@@ -140,6 +140,21 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .pagebar{display:flex;gap:10px;justify-content:center;padding:20px 0 10px;flex-wrap:wrap}
 .pagebar .big{font-size:14px;font-weight:800;padding:13px 28px;border-radius:12px;border:1px dashed var(--border2);background:#101828;color:var(--accent);cursor:pointer}
 .pagebar .big:hover{border-color:var(--accent)}
+/* Fix#4: filmstrip urutan lintas halaman — thumbnail + drag antar posisi + renumber.
+   Scroll horizontal di HP; nomor = posisi cetak global, badge H = halaman tujuan. */
+.filmstrip{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;margin-bottom:14px;background:rgba(16,24,40,.85);border:1px solid var(--border);border-radius:12px;max-width:100%;-webkit-overflow-scrolling:touch}
+.filmstrip[hidden]{display:none}
+.fcell{position:relative;flex:0 0 auto;width:64px;border:2px solid transparent;border-radius:9px;overflow:hidden;background:#0B1220;cursor:grab;padding:0}
+.fcell img{width:64px;height:48px;object-fit:cover;display:block;pointer-events:none}
+.fcell .fn{position:absolute;top:2px;left:2px;background:#0B0F19;color:#fff;font-size:10px;font-weight:800;font-family:var(--mono);border-radius:5px;padding:1px 6px}
+.fcell .fh{position:absolute;bottom:2px;right:2px;background:rgba(45,212,191,.9);color:#04211D;font-size:9px;font-weight:800;font-family:var(--mono);border-radius:5px;padding:1px 5px}
+.fcell .fx{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:6px;border:0;background:rgba(8,12,20,.85);color:#F87171;font-size:12px;font-weight:800;cursor:pointer;line-height:1;display:none}
+.fcell:hover .fx,.fcell:focus-within .fx{display:block}
+.fcell.sel{border-color:var(--accent)}
+.fcell.drop-before{box-shadow:-4px 0 0 var(--accent)}
+.fcell.drop-after{box-shadow:4px 0 0 var(--accent)}
+.fcell.dragover{border-color:var(--accent)}
+.strip-empty{color:var(--muted2);font-size:12px;padding:6px 4px;white-space:nowrap}
 .pagebar .hintline{width:100%;text-align:center;font-size:12px;color:var(--muted)}
 .divider{position:absolute;z-index:20;touch-action:none}
 .divider.v{top:0;bottom:0;width:14px;margin-left:-7px;cursor:col-resize}
@@ -342,8 +357,10 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   <main data-od-id="canvas">
     <div class="canvas-head" data-od-id="canvas-head">
       <h2>Pratinjau kertas</h2><span class="meta" id="canvasMeta"></span>
+      <button class="btn ghost sm" id="btnStrip" title="Tampilkan/sembunyikan strip urutan foto lintas halaman" aria-expanded="true">🖼 Urutan</button>
       <div class="zoomctl"><span>Tampilan</span><input type="range" id="inZoom" min="50" max="110" value="80"><span id="zoomVal">80%</span></div>
     </div>
+    <div id="strip" class="filmstrip" aria-label="Urutan foto lintas halaman"></div>
     <div id="pages" data-od-id="pages"></div>
     <div class="pagebar"><button class="big" id="pageBarAdd">＋ Tambah Halaman Baru</button></div>
   </main>
@@ -777,7 +794,63 @@ function renderAll(rebuild=true){
   $("#canvasMeta").textContent=`${state.paper} ${w}×${h} mm · pola campuran · margin ${MARGINS[state.margin]} mm`;
   if(rebuild)buildSheets(total);
   else syncSheets(total);
+  renderStrip();
   applySheetSize();
+}
+/* Fix#4: filmstrip — satu baris urutan cetak global. Thumbnail + nomor posisi +
+   badge halaman; seret (drag / tombol ← →) pindah posisi lintas halaman;
+   hapus × per sel; klik = lompat ke slot di kanvas. Undo ikut (via move/del). */
+let stripSel=-1;
+function stripPageOf(gi){return pageForPhoto(gi)+1;}
+function renderStrip(){
+  const el=$("#strip");if(!el)return;
+  if(!state.photos.length){el.innerHTML=`<span class="strip-empty">Belum ada foto — seret file ke kanvas atau tambah via ＋ Tambah foto.</span>`;return;}
+  el.innerHTML="";
+  state.photos.forEach((p,gi)=>{
+    const b=document.createElement("div");
+    b.className="fcell"+(gi===stripSel?" sel":"");
+    b.tabIndex=0;b.dataset.gi=gi;
+    b.title=`Foto ${gi+1} — halaman ${stripPageOf(gi)}. Seret untuk pindah urutan; klik untuk lompat.`;
+    b.draggable=true;
+    b.innerHTML=`<img src="${p.url}" alt="" draggable="false"><span class="fn">${gi+1}</span><span class="fh">H${stripPageOf(gi)}</span><button class="fx" title="Hapus foto ${gi+1}">×</button>`;
+    b.addEventListener("click",e=>{
+      if(e.target.closest(".fx"))return;
+      stripSel=gi;
+      document.querySelectorAll(".fcell").forEach(o=>o.classList.toggle("sel",+o.dataset.gi===gi));
+      const slot=document.querySelector(`.sheet .slot[data-idx="${gi}"]`);
+      if(slot){slot.scrollIntoView({block:"center",behavior:"smooth"});slot.classList.add("sel");}
+    });
+    b.addEventListener("keydown",e=>{
+      if(e.key==="ArrowLeft"&&gi>0){e.preventDefault();stripSel=gi-1;move(gi,gi-1);}
+      else if(e.key==="ArrowRight"&&gi<state.photos.length-1){e.preventDefault();stripSel=gi+1;move(gi,gi+1);}
+    });
+    b.querySelector(".fx").addEventListener("click",e=>{
+      e.stopPropagation();
+      if(!confirm(`Hapus foto ${gi+1}?`))return;
+      state.photos.splice(gi,1);if(stripSel>=state.photos.length)stripSel=state.photos.length-1;commitHist();renderAll();
+    });
+    b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/fstrip",String(gi));e.dataTransfer.effectAllowed="move";});
+    b.addEventListener("dragover",e=>{
+      e.preventDefault();e.dataTransfer.dropEffect="move";
+      const r=b.getBoundingClientRect();
+      const after=(e.clientX-r.left)>r.width/2;
+      b.classList.toggle("drop-after",after);b.classList.toggle("drop-before",!after);
+    });
+    b.addEventListener("dragleave",()=>b.classList.remove("drop-before","drop-after"));
+    b.addEventListener("drop",e=>{
+      e.preventDefault();e.stopPropagation();
+      const from=+(e.dataTransfer.getData("text/fstrip")||-1);
+      b.classList.remove("drop-before","drop-after");
+      if(from<0||from>=state.photos.length)return;
+      const r=b.getBoundingClientRect();
+      const after=(e.clientX-r.left)>r.width/2;
+      // posisi sisip target dalam indeks global (move tangani koreksi hapus-dulu)
+      const to=after?gi+1:gi;
+      stripSel=from<to?to-1:to;
+      move(from,to);
+    });
+    el.appendChild(b);
+  });
 }
 function syncSheets(total){
   // update kop/gap tanpa rebuild foto (saat mengetik)
@@ -1330,8 +1403,14 @@ addFiles=function(files,atIdx){
 };
 
 function move(a,b){
-  if(b<0||b>=state.photos.length)return;
-  const[x]=state.photos.splice(a,1);state.photos.splice(b,0,x);commitHist();renderAll();
+  if(a===b)return;
+  if(a<0||a>=state.photos.length)return;
+  // Fix#4: b = posisi sisip target (0..length). Sisip SETELAH hapus agar
+  // drag filmstrip lintas halaman mendarat tepat: move(0,4) = ke akhir.
+  b=Math.max(0,Math.min(state.photos.length,b));
+  const[x]=state.photos.splice(a,1);
+  const at=a<b?b-1:b;
+  state.photos.splice(Math.max(0,Math.min(state.photos.length,at)),0,x);commitHist();renderAll();
 }
 /* == Divider tarik langsung (ala Word) == */
 function tryCapture(el,id){try{el.setPointerCapture(id);}catch(e){}}
@@ -1457,6 +1536,12 @@ function bindSlots(){
   document.querySelectorAll("[data-unbreak]").forEach(b=>{
     b.addEventListener("click",e=>{e.stopPropagation();removeBreakAt(+b.dataset.unbreak);});
   });
+  const bs=document.getElementById("btnStrip");
+  if(bs&&!bs.dataset.bound){bs.dataset.bound="1";bs.addEventListener("click",()=>{
+    const el=document.getElementById("strip");const hide=el.hasAttribute("hidden");
+    if(hide)el.removeAttribute("hidden");else el.setAttribute("hidden","");
+    bs.setAttribute("aria-expanded",hide?"true":"false");
+  });}
   const pb=document.getElementById("pageBarAdd");
   if(pb&&!pb.dataset.bound){pb.dataset.bound="1";pb.addEventListener("click",()=>{
     // tambah halaman KOSONG eksplisit di akhir: tidak menggeser foto yg sudah ada SAMA SEKALI
