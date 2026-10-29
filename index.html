@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kolase QC</title>
 <meta name="app-version" content="20261029-undo">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 <style id="pageStyle">@page{size:A4 portrait;margin:14mm;}</style>
 <style>
 :root{
@@ -196,13 +197,13 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   body{background:#fff}
   .topbar,aside,main,.fileghost,.modal-veil{display:none !important}
   #print-root{display:block}
-  .psheet{page-break-after:always;break-inside:avoid;background:#fff;color:#000;position:relative;overflow:hidden}
-  .psheet:last-child{page-break-after:auto}
+  .psheet{break-inside:avoid;page-break-inside:avoid;background:#fff;color:#000;position:relative;overflow:hidden}
+  .psheet + .psheet{break-before:page;page-break-before:always}
   .psheet .doc-head{border-bottom:2.5pt solid #000}
   .psheet .doc-head h1{margin:0}
   .psheet .doc-head p{margin:2pt 0 0;color:#333}
-  .pgrid{display:grid;min-height:0}
-  .pcell{position:relative;overflow:hidden;background:#1F2430;min-height:0}
+  .pgrid{display:grid;min-height:0;align-content:stretch}
+  .pcell{position:relative;overflow:hidden;background:#1F2430;min-height:0;min-width:0}
   .pcell img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:contain}
   .pcell .capbar{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);color:#fff}
   .pcell.empty{display:none}
@@ -254,7 +255,8 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <button class="btn ghost" id="btnCam">📷 Kamera</button>
     <button class="btn ghost" id="btnClear">Kosongkan</button>
     </div>
-    <button class="btn primary" id="btnPrint">⎙ Cetak / Simpan PDF</button>
+    <button class="btn primary" id="btnPDF">⬇ Unduh PDF</button>
+    <button class="btn ghost" id="btnPrint">⎙ Cetak</button>
   </div>
 </header>
 <div id="scrim" aria-hidden="true"></div>
@@ -263,7 +265,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   <aside data-od-id="settings-panel" id="panel" aria-label="Pengaturan dokumen">
     <section class="panel" data-od-id="panel-doc">
       <h3>Dokumen</h3>
-      <p class="hint">Judul ikut tercetak di atas tiap halaman.</p>
+      <p class="hint">Judul ikut tercetak di atas tiap halaman. Tombol <b>Unduh PDF</b> hasilkan file bersih 1 halaman tanpa tulisan tepi browser.</p>
       <div class="f-row"><label class="f" for="inTitle">Judul dokumen</label><label class="mini-toggle" title="Tampilkan judul di kop"><input type="checkbox" id="tTitle" checked><span>Tampil</span></label></div>
       <input type="text" id="inTitle" value="QC OUT MRCCC Siloam">
       <div class="row2">
@@ -542,8 +544,8 @@ $("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus sem
 /* ══ Panduan cetak per-OS ══ */
 const GUIDE={
  android:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — dialog cetak akan terbuka.","Di bagian <b>Printer</b>, pilih <b>Simpan sebagai PDF</b> (atau Microsoft Print to PDF).","Samakan <b>ukuran kertas & orientasi</b> dengan setting di web ini (<span id=gPaper></span>).","Ketuk tombol <b>Simpan / Unduh PDF</b> (ikon ⬇), pilih folder, selesai."],
- iphone:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — dialog cetak akan terbuka.","Di <b>Range</b>, pilih hanya halaman berisi foto.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan ⬆</b> → <b>Simpan ke File</b>, pilih folder.","Pastikan ukuran kertas sama dengan setting di web ini (<span id=gPaper2></span>).","Catatan iPhone: tulisan judul + link + tanggal di tepi kertas ditambahkan otomatis oleh Safari dan tidak bisa dimatikan dari web ini. Untuk hasil bersih tanpa tulisan itu, cetak dari laptop/komputer dengan opsi Headers and footers dimatikan."],
- desktop:["Klik tombol <b>Lanjut Cetak</b> — dialog Print terbuka.","<b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Matikan <b>Headers and footers</b> agar judul + link web tidak ikut tercetak.","Klik <b>Save</b>, pilih folder, selesai."]
+ iphone:["Cara bersih: ketuk tombol <b>Unduh PDF</b> di atas — file tersimpan langsung tanpa tulisan tepi Safari.","Kalau tetap pakai Cetak: di <b>Range</b>, pilih hanya halaman berisi foto.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan</b> → <b>Simpan ke File</b>, pilih folder.","Catatan: tulisan judul + link + tanggal di tepi kertas ditambahkan otomatis oleh Safari dan tidak bisa dimatikan dari web mana pun."],
+ desktop:["Cara bersih: klik <b>Unduh PDF</b> — file tersimpan langsung tanpa tulisan tepi browser.","Kalau tetap pakai Cetak — <b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Matikan <b>Headers and footers</b> agar judul + link web tidak ikut tercetak.","Klik <b>Save</b>, pilih folder, selesai."]
 };
 function detectOS(){const ua=navigator.userAgent||"";if(/android/i.test(ua))return"android";if(/iphone|ipad|ipod/i.test(ua))return"iphone";return"desktop";}
 function showGuide(){
@@ -590,6 +592,88 @@ $("#btnPrint").onclick=()=>{
     else showGuide();
   }else showGuide();
 };
+$("#btnPDF").onclick=()=>{
+  if(!state.photos.length){alert("Belum ada foto. Tambahkan foto dulu ya.");return;}
+  downloadPDF();
+};
+/* Unduh PDF langsung via canvas: gambar saja, tanpa tulisan tepi browser */
+function drawHead(ctx,title,sub,align,x,y,W){
+  ctx.fillStyle="#111";ctx.textBaseline="top";
+  ctx.textAlign=align==="center"?"center":align==="right"?"right":"left";
+  const ax=align==="center"?x+W/2:align==="right"?x+W:x;
+  let cy=y;
+  if(title){ctx.font=`700 ${Math.round(W*0.052)}px Inter,system-ui,sans-serif`;ctx.fillText(title,ax,cy);cy+=Math.round(W*0.075);}
+  if(sub){ctx.font=`${Math.round(W*0.032)}px Inter,system-ui,sans-serif`;ctx.fillStyle="#444";ctx.fillText(sub,ax,cy);cy+=Math.round(W*0.05);}
+  if(title||sub){ctx.fillStyle="#111";ctx.fillRect(x,cy,W,Math.max(2,Math.round(W*0.008)));cy+=Math.round(W*0.03);}
+  return cy;
+}
+async function renderPageCanvas(pg,DPI){
+  const m=MARGINS[state.margin];
+  let[w,h]=PAPERS[state.paper];const po=pageOrient(pg);if(po==="landscape")[w,h]=[h,w];
+  const S=DPI/25.4;
+  const cv=document.createElement("canvas");cv.width=Math.round(w*S);cv.height=Math.round(h*S);
+  const ctx=cv.getContext("2d");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);
+  let cx=m*S, cy=m*S;const CW=(w-2*m)*S;
+  const d=fmtDate(state.date||$("#inDate").value);
+  const sub=[state.showSub!==false?state.sub:"",state.showDate!==false?d:""].filter(Boolean).join(" — ");
+  const title=state.showTitle!==false?state.title:"";
+  if(title||sub)cy=drawHead(ctx,title,sub,state.tAlign,cx,cy,CW);
+  const pid=pagePat(pg), info=slotsOf(pid,po), start=pageStart(pg);
+  const capN=pageCaps()[pg]??info.n;
+  const area=patAreas(pid,po);
+  const dv=divsOf(pg,pid,po);
+  const colX=[0];dv.cols.forEach(f=>colX.push(colX[colX.length-1]+f));
+  const rowY=[0];dv.rows.forEach(f=>rowY.push(rowY[rowY.length-1]+f));
+  const gapPx=state.gap*S;
+  const gx0=cx, gy0=cy;
+  const GW=CW, GH=(h-m)*S-gy0;
+  const names=area?[...new Set(area.join(" ").split(" "))]:null;
+  const boxOf=(s)=>{
+    const cu=(state.custom[pg]||{})[s];
+    if(cu)return{x:gx0+cu.x*GW,y:gy0+cu.y*GH,w:cu.w*GW,h:cu.h*GH};
+    if(names){const nm=names[s];const rows=area.map(r=>r.split(" "));
+      let c0=info.c,r0=info.r,c1=0,r1=0;
+      rows.forEach((row,ri)=>row.forEach((cell,ci)=>{if(cell===nm){c0=Math.min(c0,ci);c1=Math.max(c1,ci);r0=Math.min(r0,ri);r1=Math.max(r1,ri);}}));
+      return{x:gx0+colX[c0]*GW+gapPx/2,y:gy0+rowY[r0]*GH+gapPx/2,w:(colX[c1+1]-colX[c0])*GW-gapPx,h:(rowY[r1+1]-rowY[r0])*GH-gapPx};}
+    return{x:gx0+(s%info.c)/info.c*GW+gapPx/2,y:gy0+Math.floor(s/info.c)/info.r*GH+gapPx/2,w:GW/info.c-gapPx,h:GH/info.r-gapPx};
+  };
+  for(let s=0;s<capN;s++){const p=state.photos[start+s];if(!p)continue;
+    const b=boxOf(s);const img=new Image();img.src=p.url;
+    ctx.save();ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
+    ctx.translate(b.x+b.w/2+(p.panX||0),b.y+b.h/2+(p.panY||0));
+    const rot=((p.rot||0)%360+360)%360;ctx.rotate(rot*Math.PI/180);
+    await img.decode().catch(()=>{});
+    const iw=img.naturalWidth||1,ih=img.naturalHeight||1;
+    const swap=(rot===90||rot===270);
+    const base=Math.max(b.w/(swap?ih:iw),b.h/(swap?iw:ih))*(p.zoom||1);
+    ctx.drawImage(img,-iw*base/2,-ih*base/2,iw*base,ih*base);
+    ctx.restore();
+    if(p.cap){ctx.save();ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
+      ctx.fillStyle="rgba(8,12,20,.82)";const chh=Math.round(b.h*0.11);ctx.fillRect(b.x,b.y+b.h-chh,b.w,chh);
+      ctx.fillStyle="#fff";ctx.font=`${Math.round(b.h*0.045)}px Inter,system-ui,sans-serif`;ctx.textAlign="left";ctx.textBaseline="middle";
+      ctx.fillText(p.cap,b.x+8,b.y+b.h-chh/2,Math.max(0,b.w-16));ctx.restore();}
+  }
+  return cv;
+}
+async function downloadPDF(){
+  const btn=$("#btnPDF");const old=btn.textContent;btn.textContent="⏳ Menyusun…";btn.disabled=true;
+  try{
+    const total=totalPages();
+    const {jsPDF}=window.jspdf||{};
+    if(!jsPDF){alert("Pustaka PDF belum termuat. Coba lagi sebentar.");return;}
+    let[w0,h0]=PAPERS[state.paper];const o0=pageOrient(0);if(o0==="landscape")[w0,h0]=[h0,w0];
+    const pdf=new jsPDF({unit:"mm",format:[w0,h0],orientation:o0==="landscape"?"landscape":"portrait",compress:true});
+    for(let pg=0;pg<total;pg++){
+      let[w,h]=PAPERS[state.paper];const po=pageOrient(pg);if(po==="landscape")[w,h]=[h,w];
+      if(pg>0)pdf.addPage([w,h],po==="landscape"?"landscape":"portrait");
+      const cv=await renderPageCanvas(pg,200);
+      pdf.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",0,0,w,h);
+    }
+    const d=fmtDate(state.date||$("#inDate").value).replace(/\s+/g,"-");
+    pdf.save(`Kolase-QC-${state.paper}-${d||"foto"}.pdf`);
+  }finally{btn.textContent=old;btn.disabled=false;}
+}
 
 /* ══ Settings bindings ══ */
 $("#inTitle").oninput=e=>{state.title=e.target.value;renderAll(false);};
@@ -1372,7 +1456,7 @@ function buildPrint(){
     d.style.display="flex";d.style.flexDirection="column";
     // samakan tinggi grid: isi ruang
     const g=d.querySelector(".pgrid");g.style.flex="1";
-    d.querySelectorAll(".pcell:not(.empty)").forEach(c=>{c.style.minHeight="20mm";});
+    // kunci: tiada min-height sel agar total tidak meluap ke halaman berikut
     root.appendChild(d);
   }
 }
