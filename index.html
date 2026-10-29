@@ -36,6 +36,14 @@ button,input,select{font-family:inherit}
 .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .actions{display:flex;gap:8px;align-items:center}
 .mactions{display:contents}
+/* Fix#3: PDF jalan utama (besar, kiri), Cetak fallback kecil (kanan). Safari: print
+   browser sisipkan header/footer tak termatikan — panel + modal tegaskan unduh. */
+.btn.print-fallback{font-size:12px;padding:8px 10px;opacity:.85}
+.preflight{display:flex;gap:10px;align-items:center;background:rgba(45,212,191,.06);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--muted);margin-bottom:12px;flex-wrap:wrap}
+.preflight b{color:var(--fg)}
+.preflight .ok{color:var(--accent);font-weight:700}
+.safari-note{background:rgba(251,191,36,.08);border:1px dashed rgba(251,191,36,.5);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.safari-note b{color:#FBBF24}
 .btn{border:1px solid var(--border2);background:var(--card);color:var(--fg);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px}
 .btn:hover{border-color:var(--accent);background:var(--card2)}
 .btn:disabled{opacity:.38;cursor:default}
@@ -272,9 +280,9 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <button class="btn ghost" id="btnAdd">＋ Tambah foto</button>
     <button class="btn ghost" id="btnCam">📷 Kamera</button>
     <button class="btn ghost" id="btnClear">Kosongkan</button>
-    <button class="btn ghost" id="btnPrint">⎙ Cetak</button>
+    <button class="btn ghost print-fallback" id="btnPrint" title="Jalur cadangan via dialog cetak browser — hasil bisa beda (header Safari tak termatikan)">Cetak⋯</button>
     </div>
-    <button class="btn primary" id="btnPDF">⬇ Unduh PDF</button>
+    <button class="btn primary" id="btnPDF" title="Hasil persis pratinjau — tanpa tulisan tepi browser (disarankan, termasuk Safari)">⬇ Unduh PDF</button>
   </div>
 </header>
 <div id="scrim" aria-hidden="true"></div>
@@ -283,7 +291,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   <aside data-od-id="settings-panel" id="panel" aria-label="Pengaturan dokumen">
     <section class="panel" data-od-id="panel-doc">
       <h3>Dokumen</h3>
-      <p class="hint">Judul ikut tercetak di atas tiap halaman. Tombol <b>Unduh PDF</b> hasilkan file bersih 1 halaman tanpa tulisan tepi browser.</p>
+      <p class="hint">Judul ikut tercetak di atas tiap halaman. <b>Unduh PDF</b> hasilkan file persis pratinjau — tanpa tulisan tepi browser. Di Safari/iPhone selalu pakai Unduh PDF.</p>
       <div class="f-row"><label class="f" for="inTitle">Judul dokumen</label><label class="mini-toggle" title="Tampilkan judul di kop"><input type="checkbox" id="tTitle" checked><span>Tampil</span></label></div>
       <input type="text" id="inTitle" value="QC OUT MRCCC Siloam">
       <div class="row2">
@@ -347,14 +355,16 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 
 <div class="modal-veil" id="printGuide" hidden>
   <div class="modal">
-    <h3>⎙ Simpan sebagai PDF</h3>
-    <p class="msub">Foto sudah tersusun <b id="gPages">1 halaman</b>. Ikuti langkah sesuai HP/laptop kamu:</p>
+    <h3>⬇ Unduh PDF — hasil persis pratinjau</h3>
+    <div class="preflight" id="gPreflight"></div>
+    <div class="safari-note" id="gSafari" hidden>📱 <b>Kamu di Safari / iPhone?</b> Tombol <b>Unduh PDF</b> di atas hasilkan file bersih tanpa tulisan tepi. Jalur <b>Cetak</b> di Safari selalu sisipkan judul + link + tanggal tepi kertas yang <b>tidak bisa dimatikan</b> — pakai Cetak hanya kalau paham risikonya.</div>
+    <p class="msub">Sudah pas? Unduh langsung — tanpa dialog browser, tanpa tulisan tepi. Kalau tetap mau jalur cetak browser, ikuti langkah sesuai HP/laptop kamu:</p>
     <div class="seg" id="osSeg"><button data-os="android" class="on">🤖 Android</button><button data-os="iphone">🍎 iPhone</button><button data-os="desktop">💻 Laptop</button></div>
     <ol class="steps" id="osSteps"></ol>
     <label class="mcheck"><input type="checkbox" id="gHide"> Jangan tampilkan lagi</label>
     <div class="mrow">
       <button class="btn ghost" id="gCancel">Batal</button>
-      <button class="btn primary" id="gGo">Lanjut Cetak</button>
+      <button class="btn primary" id="gGo" title="Unduh PDF — hasil persis pratinjau">⬇ Unduh PDF</button>
     </div>
   </div>
 </div>
@@ -562,17 +572,21 @@ $("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus sem
 
 /* ══ Panduan cetak per-OS ══ */
 const GUIDE={
- android:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — dialog cetak akan terbuka.","Di bagian <b>Printer</b>, pilih <b>Simpan sebagai PDF</b> (atau Microsoft Print to PDF).","Samakan <b>ukuran kertas & orientasi</b> dengan setting di web ini (<span id=gPaper></span>).","Ketuk tombol <b>Simpan / Unduh PDF</b> (ikon ⬇), pilih folder, selesai."],
- iphone:["Cara bersih: ketuk tombol <b>Unduh PDF</b> di atas — file tersimpan langsung tanpa tulisan tepi Safari.","Kalau tetap pakai Cetak: di <b>Range</b>, pilih hanya halaman berisi foto.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan</b> → <b>Simpan ke File</b>, pilih folder.","Catatan: tulisan judul + link + tanggal di tepi kertas ditambahkan otomatis oleh Safari dan tidak bisa dimatikan dari web mana pun."],
- desktop:["Cara bersih: klik <b>Unduh PDF</b> — file tersimpan langsung tanpa tulisan tepi browser.","Kalau tetap pakai Cetak — <b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Matikan <b>Headers and footers</b> agar judul + link web tidak ikut tercetak.","Klik <b>Save</b>, pilih folder, selesai."]
+ android:["Ketuk <b>⬇ Unduh PDF</b> di bawah — file tersimpan langsung, persis pratinjau, tanpa tulisan tepi.","Itu jalur utama. Jalur Cetak browser di Android bisa sisipkan header — pakai hanya kalau paham risikonya: <b>Printer</b> → <b>Simpan sebagai PDF</b>, samakan <b>ukuran kertas & orientasi</b> (<span id=gPaper></span>).","Matikan <b>Headers and footers</b> bila ada."],
+ iphone:["Ketuk <b>⬇ Unduh PDF</b> di bawah — file tersimpan langsung tanpa tulisan tepi Safari. Ini jalur utama di iPhone.","Kalau tetap pakai Cetak: di <b>Range</b>, pilih hanya halaman berisi foto.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan</b> → <b>Simpan ke File</b>, pilih folder.","Catatan: tulisan judul + link + tanggal di tepi kertas ditambahkan otomatis oleh Safari dan tidak bisa dimatikan dari web mana pun."],
+ desktop:["Klik <b>⬇ Unduh PDF</b> di bawah — file tersimpan langsung tanpa tulisan tepi browser. Ini jalur utama.","Kalau tetap pakai Cetak — <b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Matikan <b>Headers and footers</b> agar judul + link web tidak ikut tercetak.","Klik <b>Save</b>, pilih folder, selesai."]
 };
 function detectOS(){const ua=navigator.userAgent||"";if(/android/i.test(ua))return"android";if(/iphone|ipad|ipod/i.test(ua))return"iphone";return"desktop";}
-function showGuide(){
+function showGuide(mode){
   const n=totalPages();
   const mo=mixedOrients(n);
-  $("#gPages").textContent=n+" halaman"+(mo.length>1?" (campur P+L → cetak 2 tahap)":"");
-  const[w,h]=paperWH();
-  const lbl=`${state.paper} ${w}×${h} mm ${state.orient==="portrait"?"Portrait":"Landscape"}`;
+  // Fix#3: preflight ringkas — halaman, kertas, orientasi, foto — sebelum commit.
+  const[w0,h0]=paperWH();
+  const pf=$("#gPreflight");
+  if(pf)pf.innerHTML=`<span>📄 <b>${n} halaman</b></span><span>🗞 ${state.paper} ${w0}×${h0} mm</span><span>🔄 ${mo.length>1?"campur P+L → unduhan gabung otomatis":""+(state.orient==="portrait"?"Portrait":"Landscape")}</span><span>🖼 ${state.photos.length} foto</span><span class="ok">✓ tanpa tulisan tepi browser</span>`;
+  const sf=$("#gSafari");
+  if(sf)sf.hidden=!(detectOS()==="iphone"||/safari/i.test(navigator.userAgent||""));
+  const lbl=`${state.paper} ${w0}×${h0} mm ${state.orient==="portrait"?"Portrait":"Landscape"}`;
   const os=localStorage.getItem("kolase-os")||detectOS();
   document.querySelectorAll("#osSeg button").forEach(b=>b.classList.toggle("on",b.dataset.os===os));
   const paint=()=>{$("#osSteps").innerHTML=GUIDE[os].map(s=>`<li>${s}</li>`).join("");
@@ -587,29 +601,36 @@ function showGuide(){
 }
 $("#gCancel").onclick=()=>{$("#printGuide").hidden=true;};
 $("#printGuide").addEventListener("click",e=>{if(e.target.id==="printGuide")$("#printGuide").hidden=true;});
+// Fix#3: PDF jalan utama — campur P+L gabung otomatis satu file (tanpa 2 dialog).
+// Fallback Cetak browser tetap ada via Cetak⋯ + tombol panduan, satu klik per orientasi.
+async function downloadPDFFromGuide(){
+  if(!$("#printGuide").hidden)$("#printGuide").hidden=true;
+  await downloadPDF();
+}
 $("#gGo").onclick=()=>{
   if($("#gHide").checked)localStorage.setItem("kolase-no-guide","1");
-  $("#printGuide").hidden=true;
   const total=totalPages(), mo=mixedOrients(total);
-  if(!printFilter&&mo.length>1){
-    // tahap 1: portrait — modal lanjut tahap 2
-    printFilter="portrait";buildPrint();window.print();
-    printFilter="landscape";
-    if(confirm("Tahap 1 (portrait) selesai. Lanjut cetak halaman LANDSCAPE sekarang?")){
-      buildPrint();window.print();
-    }
-    printFilter=null;return;
-  }
-  buildPrint();window.print();
+  // tombol panduan sekarang = Unduh PDF dulu; Cetak browser hanya via Cetak⋯ topbar.
+  if(!localStorage.getItem("kolase-no-guide")){ $("#printGuide").hidden=true; downloadPDFFromGuide(); return; }
+  $("#printGuide").hidden=true;
+  downloadPDFFromGuide();
 };
 $("#btnPrint").onclick=()=>{
   if(!state.photos.length){alert("Belum ada foto. Tambahkan foto dulu ya.");return;}
   printFilter=null;
-  if(localStorage.getItem("kolase-no-guide")){
-    const total=totalPages();
-    if(mixedOrients(total).length<=1){buildPrint();window.print();}
-    else showGuide();
-  }else showGuide();
+  // Fix#3: Cetak = fallback sadar risiko. Campur P+L tetap butuh 2 pass browser —
+  // jelaskan dulu, user pilih lanjut atau putar balik ke Unduh PDF.
+  const total=totalPages();
+  if(mixedOrients(total).length>1){
+    if(confirm("Halaman campur Portrait + Landscape. Jalur Cetak butuh 2 dialog (P lalu L).\n\nOK = lanjut 2 tahap · Batal = pakai Unduh PDF (1 file, disarankan).")){
+      printFilter="portrait";buildPrint();window.print();
+      printFilter="landscape";
+      if(confirm("Tahap 1 (portrait) selesai. Lanjut cetak halaman LANDSCAPE sekarang?"))buildPrint(),window.print();
+      printFilter=null;
+    }
+    return;
+  }
+  showGuide("print");
 };
 $("#btnPDF").onclick=()=>{
   if(!state.photos.length){alert("Belum ada foto. Tambahkan foto dulu ya.");return;}
@@ -685,7 +706,11 @@ async function renderPageCanvas(pg,DPI){
   return cv;
 }
 async function downloadPDF(){
-  const btn=$("#btnPDF");const old=btn.textContent;btn.textContent="⏳ Menyusun…";btn.disabled=true;
+  const btn=$("#btnPDF");const old=btn.textContent;
+  // Fix#3: progres nyata per halaman — ganti tebakan buta "⏳ Menyusun…".
+  const total0=totalPages();
+  btn.textContent=`⏳ Menyusun 0/${total0}…`;btn.disabled=true;
+  const gg=$("#gGo");const ggOld=gg?gg.textContent:null;if(gg){gg.textContent=`⏳ 0/${total0}…`;gg.disabled=true;}
   try{
     const total=totalPages();
     const {jsPDF}=window.jspdf||{};
@@ -693,6 +718,7 @@ async function downloadPDF(){
     let[w0,h0]=PAPERS[state.paper];const o0=pageOrient(0);if(o0==="landscape")[w0,h0]=[h0,w0];
     const pdf=new jsPDF({unit:"mm",format:[w0,h0],orientation:o0==="landscape"?"landscape":"portrait",compress:true});
     for(let pg=0;pg<total;pg++){
+      btn.textContent=`⏳ Menyusun ${pg+1}/${total}…`;if(gg)gg.textContent=`⏳ ${pg+1}/${total}…`;
       let[w,h]=PAPERS[state.paper];const po=pageOrient(pg);if(po==="landscape")[w,h]=[h,w];
       if(pg>0)pdf.addPage([w,h],po==="landscape"?"landscape":"portrait");
       const cv=await renderPageCanvas(pg,200);
@@ -700,7 +726,8 @@ async function downloadPDF(){
     }
     const d=fmtDate(state.date||$("#inDate").value).replace(/\s+/g,"-");
     pdf.save(`Kolase-QC-${state.paper}-${d||"foto"}.pdf`);
-  }finally{btn.textContent=old;btn.disabled=false;}
+  }catch(err){alert("Gagal menyusun PDF: "+(err&&err.message?err.message:err)+"\nCoba lagi — atau pakai Cetak⋯ bila pustaka PDF belum termuat.");
+  }finally{btn.textContent=old;btn.disabled=false;if(gg){gg.textContent=ggOld;gg.disabled=false;}}
 }
 
 /* ══ Settings bindings ══ */
