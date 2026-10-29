@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kolase QC — Penyusun Foto Dokumentasi Siap Cetak</title>
+<title>Kolase QC</title>
 <meta name="app-version" content="20261029-undo">
 <style id="pageStyle">@page{size:A4 portrait;margin:14mm;}</style>
 <style>
@@ -160,8 +160,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .doc-head{border-bottom:2.5px solid #111;padding-bottom:.45em;margin-bottom:.6em}
 .doc-head h1{margin:0;font-size:1.35em;letter-spacing:-.01em;line-height:1.2}
 .doc-head p{margin:.15em 0 0;font-size:.82em;color:#444}
-.doc-foot{display:flex;justify-content:space-between;align-items:center;font-size:.72em;color:#666;border-top:1px solid #ddd;padding-top:.4em;margin-top:.6em;font-variant-numeric:tabular-nums}
-.slot-grid{flex:1;display:grid;min-height:0;position:relative}
+.slot-grid{flex:1;display:grid;min-height:0;min-width:0;position:relative}
 .slot{position:relative;border-radius:4px;overflow:hidden;background:#fff;min-height:0;display:flex;touch-action:pan-x pan-y pinch-zoom}
 .slot.empty{border:2px dashed #CBD5E1;background:#F8FAFC;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:.15s;color:#94A3B8;text-align:center;padding:10px}
 .slot.empty:hover,.slot.empty.over{border-color:var(--accent-d);background:#ECFDF5;color:#0F766E}
@@ -195,16 +194,15 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 #print-root{display:none}
 @media print{
   body{background:#fff}
-  .topbar,aside,main{display:none !important}
+  .topbar,aside,main,.fileghost,.modal-veil{display:none !important}
   #print-root{display:block}
   .psheet{page-break-after:always;break-inside:avoid;background:#fff;color:#000;position:relative;overflow:hidden}
   .psheet:last-child{page-break-after:auto}
   .psheet .doc-head{border-bottom:2.5pt solid #000}
   .psheet .doc-head h1{margin:0}
   .psheet .doc-head p{margin:2pt 0 0;color:#333}
-  .psheet .doc-foot{border-top:1pt solid #999;color:#555}
-  .pgrid{display:grid}
-  .pcell{position:relative;overflow:hidden;background:#1F2430}
+  .pgrid{display:grid;min-height:0}
+  .pcell{position:relative;overflow:hidden;background:#1F2430;min-height:0}
   .pcell img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:contain}
   .pcell .capbar{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);color:#fff}
   .pcell.empty{display:none}
@@ -265,15 +263,12 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   <aside data-od-id="settings-panel" id="panel" aria-label="Pengaturan dokumen">
     <section class="panel" data-od-id="panel-doc">
       <h3>Dokumen</h3>
-      <p class="hint">Kop dan judul ikut tercetak di tiap halaman.</p>
+      <p class="hint">Judul ikut tercetak di atas tiap halaman.</p>
       <div class="f-row"><label class="f" for="inTitle">Judul dokumen</label><label class="mini-toggle" title="Tampilkan judul di kop"><input type="checkbox" id="tTitle" checked><span>Tampil</span></label></div>
       <input type="text" id="inTitle" value="QC OUT MRCCC Siloam">
       <div class="row2">
         <div><div class="f-row"><label class="f" for="inSub">Subjudul</label><label class="mini-toggle" title="Tampilkan subjudul di kop"><input type="checkbox" id="tSub" checked><span>Tampil</span></label></div><input type="text" id="inSub" value="Dokumentasi"></div>
         <div><div class="f-row"><label class="f" for="inDate">Tanggal</label><label class="mini-toggle" title="Tampilkan tanggal di kop"><input type="checkbox" id="tDate" checked><span>Tampil</span></label></div><input type="date" id="inDate"></div>
-      </div>
-      <div style="margin-top:8px">
-        <div class="toggle"><span>Nomor halaman</span><span class="sw"><input type="checkbox" id="tNum" checked><em></em></span></div>
       </div>
       <label class="f">Font judul</label>
       <div class="seg" id="fontSeg"><button data-f="sans" class="on" style="font-family:Inter,system-ui,sans-serif">Sans</button><button data-f="serif" style="font-family:Georgia,serif">Serif</button><button data-f="round" style="font-family:'Trebuchet MS',sans-serif">Round</button><button data-f="mono" style="font-family:monospace">Mono</button></div>
@@ -349,7 +344,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 /* ══ State ══ */
 const PAPERS={A4:[210,297],F4:[215,330],Letter:[216,279],Legal:[216,356],A3:[297,420]};
 const MARGINS={S:10,M:14,L:20};
-const state={title:"QC OUT MRCCC Siloam",sub:"Dokumentasi",date:"",kop:true,num:true,showTitle:true,showSub:true,showDate:true,
+const state={title:"QC OUT MRCCC Siloam",sub:"Dokumentasi",date:"",kop:true,showTitle:true,showSub:true,showDate:true,
   paper:"A4",orient:"portrait",margin:"M",gap:3,perPage:4,photos:[],zoomUI:80,layouts:{},orients:{},breaks:[],minPages:0,
   colW:{},tFont:"sans",tWeight:700,tSize:"M",tAlign:"left",dividers:{},rowH:{},custom:{}};
 // sel lepas-grid: state.custom[pg] = {s: {x,y,w,h} fraksi area grid}
@@ -547,8 +542,8 @@ $("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus sem
 /* ══ Panduan cetak per-OS ══ */
 const GUIDE={
  android:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — dialog cetak akan terbuka.","Di bagian <b>Printer</b>, pilih <b>Simpan sebagai PDF</b> (atau Microsoft Print to PDF).","Samakan <b>ukuran kertas & orientasi</b> dengan setting di web ini (<span id=gPaper></span>).","Ketuk tombol <b>Simpan / Unduh PDF</b> (ikon ⬇), pilih folder, selesai."],
- iphone:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — lembar pratinjau iOS terbuka.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan ⬆</b> → <b>Simpan ke File</b>, pilih folder.","Pastikan ukuran kertas sama dengan setting di web ini (<span id=gPaper2></span>)."],
- desktop:["Klik tombol <b>Lanjut Cetak</b> — dialog Print terbuka.","<b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Klik <b>Save</b>, pilih folder, selesai."]
+ iphone:["Ketuk tombol <b>Lanjut Cetak</b> di bawah — dialog cetak akan terbuka.","Di <b>Range</b>, pilih hanya halaman berisi foto.","<b>Cubit keluar (zoom-out)</b> pratinjau dengan dua jari sampai jadi PDF penuh.","Ketuk ikon <b>Bagikan ⬆</b> → <b>Simpan ke File</b>, pilih folder.","Pastikan ukuran kertas sama dengan setting di web ini (<span id=gPaper2></span>).","Catatan iPhone: tulisan judul + link + tanggal di tepi kertas ditambahkan otomatis oleh Safari dan tidak bisa dimatikan dari web ini. Untuk hasil bersih tanpa tulisan itu, cetak dari laptop/komputer dengan opsi Headers and footers dimatikan."],
+ desktop:["Klik tombol <b>Lanjut Cetak</b> — dialog Print terbuka.","<b>Destination / Printer:</b> pilih <b>Save as PDF</b>.","Samakan <b>Paper size & Layout</b> dengan setting di web ini (<span id=gPaper3></span>).","Matikan <b>Headers and footers</b> agar judul + link web tidak ikut tercetak.","Klik <b>Save</b>, pilih folder, selesai."]
 };
 function detectOS(){const ua=navigator.userAgent||"";if(/android/i.test(ua))return"android";if(/iphone|ipad|ipod/i.test(ua))return"iphone";return"desktop";}
 function showGuide(){
@@ -603,7 +598,6 @@ $("#inDate").onchange=e=>{state.date=e.target.value;renderAll(false);};
 $("#tTitle").onchange=e=>{state.showTitle=e.target.checked;renderAll(false);};
 $("#tSub").onchange=e=>{state.showSub=e.target.checked;renderAll(false);};
 $("#tDate").onchange=e=>{state.showDate=e.target.checked;renderAll(false);};
-$("#tNum").onchange=e=>{state.num=e.target.checked;renderAll(false);};
 $("#paperChips").onclick=e=>{const b=e.target.closest("[data-paper]");if(!b)return;
   document.querySelectorAll("#paperChips .chip").forEach(c=>c.classList.remove("on"));b.classList.add("on");
   state.paper=b.dataset.paper;state.custom={};renderAll();};
@@ -647,13 +641,12 @@ function renderAll(rebuild=true){
   applySheetSize();
 }
 function syncSheets(total){
-  // update header/footer/gap tanpa rebuild foto (saat mengetik)
-  document.querySelectorAll(".sheet").forEach((sh,pg)=>{
+  // update kop/gap tanpa rebuild foto (saat mengetik)
+  document.querySelectorAll(".sheet").forEach((sh)=>{
     const pad=sh.querySelector(".sheet-pad");
-    const oldH=pad.querySelector(".doc-head"),oldF=pad.querySelector(".doc-foot");
-    if(oldH)oldH.remove(); if(oldF)oldF.remove();
+    const oldH=pad.querySelector(".doc-head");
+    if(oldH)oldH.remove();
     pad.insertAdjacentHTML("afterbegin",headerHTML());
-    if(state.num)pad.insertAdjacentHTML("beforeend",`<div class="doc-foot"><span>${esc(state.title)}</span><span>Hal. ${pg+1} / ${total}</span></div>`);
     sh.querySelector(".slot-grid").style.gap=(state.gap*2.2)+"px";
   });
 }
@@ -714,7 +707,7 @@ function buildSheets(total){
     sh.className="sheet-wrap"; sh.dataset.pg=pg;
     const isLand=po==="landscape";
     const forced=pageHasForcedBreak(pg);
-    sh.innerHTML=`<div class="pageno"><span>Halaman ${pg+1} / ${total}${forced?" •⛔ break":""}</span><select data-pat="${pg}" title="Pola halaman ini">${patOptions(pid)}</select><select data-ori="${pg}" title="Orientasi halaman ini"><option value="portrait"${!isLand?" selected":""}>Portrait</option><option value="landscape"${isLand?" selected":""}>Landscape</option></select>${cw}<button class="pgbtn" data-newpg="${pg}" title="Paksa halaman baru setelah ini">+Halaman</button>${forced?`<button class="pgbtn" data-unbreak="${pg}" title="Gabung kembali dgn halaman sebelumnya">↩</button>`:""}<button class="pgbtn danger" data-delpg="${pg}" title="Hapus halaman ini">🗑</button></div><div class="sheet" data-pg="${pg}"><div class="sheet-inner"><div class="sheet-pad" style="flex:1;display:flex;flex-direction:column;min-height:0">${headerHTML()}<div class="slot-grid" style="${gridCssFor(pid,po,pg)};gap:${state.gap*2.2}px"></div>${state.num?`<div class="doc-foot"><span>${esc(state.title)}</span><span>Hal. ${pg+1} / ${total}</span></div>`:""}</div></div></div>`;
+    sh.innerHTML=`<div class="pageno"><span>Halaman ${pg+1} / ${total}${forced?" •⛔ break":""}</span><select data-pat="${pg}" title="Pola halaman ini">${patOptions(pid)}</select><select data-ori="${pg}" title="Orientasi halaman ini"><option value="portrait"${!isLand?" selected":""}>Portrait</option><option value="landscape"${isLand?" selected":""}>Landscape</option></select>${cw}<button class="pgbtn" data-newpg="${pg}" title="Paksa halaman baru setelah ini">+Halaman</button>${forced?`<button class="pgbtn" data-unbreak="${pg}" title="Gabung kembali dgn halaman sebelumnya">↩</button>`:""}<button class="pgbtn danger" data-delpg="${pg}" title="Hapus halaman ini">🗑</button></div><div class="sheet" data-pg="${pg}"><div class="sheet-inner"><div class="sheet-pad" style="flex:1;display:flex;flex-direction:column;min-height:0">${headerHTML()}<div class="slot-grid" style="${gridCssFor(pid,po,pg)};gap:${state.gap*2.2}px"></div></div></div></div>`;
     const grid=sh.querySelector(".slot-grid");
     for(let s=0;s<nslots;s++){
       const gi=start+s, ph=state.photos[gi];
@@ -1064,15 +1057,6 @@ function updateSizeBadge(badge,grid,b){
 function hideSizeBadge(){
   document.querySelectorAll("#fsizeBadge").forEach(o=>o.remove());
 }
-  // update header/footer/gap tanpa rebuild foto (saat mengetik)
-  document.querySelectorAll(".sheet").forEach((sh,pg)=>{
-    const pad=sh.querySelector(".sheet-pad");
-    const oldH=pad.querySelector(".doc-head"),oldF=pad.querySelector(".doc-foot");
-    if(oldH)oldH.remove(); if(oldF)oldF.remove();
-    pad.insertAdjacentHTML("afterbegin",headerHTML());
-    if(state.num)pad.insertAdjacentHTML("beforeend",`<div class="doc-foot"><span>${esc(state.title)}</span><span>Hal. ${pg+1} / ${total}</span></div>`);
-    sh.querySelector(".slot-grid").style.gap=(state.gap*2.2)+"px";
-  });
 
 function emptySlot(gi,num){
   const d=document.createElement("div");
@@ -1366,7 +1350,7 @@ function buildPrint(){
     const pid=pagePat(pg), info=slotsOf(pid,po), start=pageStart(pg);
     const capN=pageCaps()[pg]??info.n;
     const d=document.createElement("div");d.className="psheet";
-    d.style.width=`${w-m*2}mm`;d.style.minHeight=`${h-m*2}mm`;
+    d.style.width=`${w-m*2}mm`;d.style.height=`${h-m*2}mm`;
     d.style.fontSize="11pt";
     let cells="";
     for(let s=0;s<capN;s++){
@@ -1383,8 +1367,8 @@ function buildPrint(){
     const hasCu=Object.keys(state.custom[pg]||{}).length>0;
     const gridCss=gridCssFor(pid,po,pg)+(hasCu?";position:relative":"");
     d.innerHTML=`${printHead()}
-      <div class="pgrid" style="${gridCss};gap:${state.gap}mm;flex:1">${cells}</div>
-      ${state.num?`<div class="doc-foot"><span>${esc(state.title)}</span><span>Hal. ${pg+1} / ${total}</span></div>`:""}`;
+      <div class="pgrid" style="${gridCss};gap:${state.gap}mm;flex:1;min-height:0">${cells}</div>
+`;
     d.style.display="flex";d.style.flexDirection="column";
     // samakan tinggi grid: isi ruang
     const g=d.querySelector(".pgrid");g.style.flex="1";
