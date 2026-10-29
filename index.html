@@ -223,6 +223,31 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .tbtn:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tbtn.del:hover{background:#EF4444;border-color:#EF4444;color:#fff}
 .tbtn.grip{cursor:grab}
+/* Fix#5: target sentuh lapangan. Layar kasar (HP/tablet): toolbar selalu tampil
+   2 kolom, tombol 40px, zoom strip tinggi penuh. Desktop hover tak berubah. */
+@media (pointer:coarse){
+  .slot .toolbar{opacity:1;transform:none;flex-wrap:wrap;max-width:100%;justify-content:flex-end;gap:6px}
+  .slot .toolbar .tbtn{flex:0 0 calc(50% - 3px)}
+  .slot .zctl{opacity:1}
+  .tbtn{width:40px;height:40px;font-size:15px;border-radius:11px}
+  .zctl{padding:8px 10px;left:6px;right:6px;bottom:6px}
+  .zctl input{height:28px}
+  .zctl button{font-size:14px;min-width:44px;min-height:44px}
+  .hd.nw,.hd.ne,.hd.se,.hd.sw{width:28px;height:28px}
+  .hd.n,.hd.s{width:40px;height:20px;margin-left:-20px}
+  .hd.e,.hd.w{width:20px;height:40px;margin-top:-20px}
+  .hd.ne{right:-14px;top:-14px}.hd.nw{left:-14px;top:-14px}
+  .hd.se{right:-14px;bottom:-14px}.hd.sw{left:-14px;bottom:-14px}
+  .fcell .fx{display:block;width:28px;height:28px;font-size:15px}
+  .pgbtn,.pageno select{min-height:44px;font-size:13px}
+  .pageno details.pgpanel summary{min-height:44px;display:inline-flex;align-items:center}
+  /* Fix#5: toolbar HP tetap 1 baris horizontal scroll (bukan 2 kolom menumpuk).
+     Tutupan terukur 25% tinggi slot @44px; versi 2-kolom menutup 49% — lebih buruk.
+     Scroll-x satu tangan lebih murah daripada setengah foto tertutup. */
+  .slot .toolbar{flex-wrap:nowrap;overflow-x:auto;max-width:calc(100% - 12px);scrollbar-width:none}
+  .slot .toolbar::-webkit-scrollbar{display:none}
+  .slot .toolbar .tbtn{flex:0 0 auto;width:40px}
+}
 .zctl{position:absolute;left:6px;right:6px;bottom:6px;z-index:6;display:flex;align-items:center;gap:6px;background:rgba(8,12,20,.85);border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:5px 9px;opacity:0;transition:.15s}
 .slot:hover .zctl,.slot:focus-within .zctl{opacity:1}
 .zctl input{flex:1;accent-color:var(--accent);height:18px}
@@ -231,6 +256,16 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .capedit{position:absolute;inset:auto 0 0 0;z-index:7;background:rgba(8,12,20,.92);padding:8px;display:flex;gap:6px}
 .capedit input{flex:1;background:#fff;border:0;border-radius:7px;padding:7px 9px;font-size:12px;color:#111}
 .capedit button{background:var(--accent);border:0;border-radius:7px;padding:7px 12px;font-weight:800;cursor:pointer;color:var(--accent-ink)}
+/* Fix#5: action bar bawah — hanya tampil di layar kasar saat slot .sel.
+   Desktop hover tetap pakai toolbar; bar ini pengganti toolbar di HP. */
+.slot .actbar{display:none}
+@media (pointer:coarse){
+  .slot.sel .actbar{display:flex;position:absolute;left:6px;right:6px;bottom:6px;z-index:8;gap:6px;background:rgba(8,12,20,.92);border:1px solid rgba(255,255,255,.2);border-radius:11px;padding:6px}
+  .slot.sel .actbar button{flex:1 1 0;min-width:0;min-height:44px;border:1px solid rgba(255,255,255,.25);background:#1E293B;color:#fff;border-radius:9px;font-size:12px;font-weight:700}
+  .slot.sel .actbar button.danger{color:#F87171}
+  /* saat bar tampil, zoom strip naik agar tak tumpuk */
+  .slot.sel .zctl{bottom:64px}
+}
 
 /* ── Print ── */
 #print-root{display:none}
@@ -1000,10 +1035,16 @@ function nearestDivider(grid,pg,pid,po,vertical,edge){
   for(let i=0;i<arr.length-1;i++){acc+=arr[i];const d=Math.abs(acc-edge);if(d<bd){bd=d;best=i;}}
   return{best,info,dv};
 }
-/* Jari kedua selalu menang untuk pinch-zoom halaman: batalkan drag yg berjalan. */
+/* Jari kedua selalu menang untuk pinch-zoom halaman: batalkan drag yg berjalan.
+   Fix#5: batalkan dengan commit (jangan renderAll diam) + umpan balik getar ringan
+   agar user tahu gesturnya dibatalkan, datanya aman. */
 let activeDragAbort=null;
 window.addEventListener("pointerdown",e=>{
-  if(e.isPrimary===false&&activeDragAbort){try{activeDragAbort();}catch(_){}activeDragAbort=null;}
+  if(e.isPrimary===false&&activeDragAbort){try{activeDragAbort();}catch(_){}activeDragAbort=null;
+    try{if(navigator.vibrate)navigator.vibrate(15);}catch(_){}
+    const t=document.querySelector("#canvasMeta");
+    if(t){const o=t.textContent;t.textContent="Jari kedua: zoom halaman — geser dibatalkan, foto aman";setTimeout(()=>{t.textContent=o;},1600);}
+  }
 },true);
 function gridEdgeHandle(e,pg,s,hd,grid,pid,po,el){
   if(e.isPrimary===false)return; // jari kedua -> serahkan ke browser (pinch-zoom)
@@ -1381,6 +1422,20 @@ function filledSlot(p,gi,num,free){
   d.querySelector(".act-right").onclick=e=>{e.stopPropagation();move(gi,gi+1);};
   const ce=d.querySelector(".capedit"),ci=ce.querySelector("input");
   d.querySelector(".act-cap").onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
+  // Fix#5: action bar bawah saat slot dipilih (coarse) — caption/putar/ganti/
+  // hapus tanpa hover. Dibangun sekali per sel, tampil saat .sel di layar kasar.
+  const abar=document.createElement("div");
+  abar.className="actbar";abar.hidden=true;
+  abar.innerHTML=`<button data-a="cap">✎ Ket</button><button data-a="rot">⟳ Putar</button><button data-a="rep">⇄ Ganti</button><button data-a="del" class="danger">× Hapus</button>`;
+  d.appendChild(abar);
+  const syncBar=()=>{abar.hidden=!d.classList.contains("sel");};
+  new MutationObserver(syncBar).observe(d,{attributes:true,attributeFilter:["class"]});
+  syncBar();
+  abar.addEventListener("click",e=>{e.stopPropagation();});
+  abar.querySelector('[data-a="cap"]').onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
+  abar.querySelector('[data-a="rot"]').onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
+  abar.querySelector('[data-a="rep"]').onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);filePick.click();};
+  abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();if(!confirm(`Hapus foto ${gi+1}?`))return;state.photos.splice(gi,1);commitHist();renderAll();};
   const commit=()=>{p.cap=ci.value.trim();ce.hidden=true;commitHist();renderAll();};
   ce.querySelector("button").onclick=e=>{e.stopPropagation();commit();};
   ci.onkeydown=e=>{if(e.key==="Enter")commit();if(e.key==="Escape")ce.hidden=true;e.stopPropagation();};
