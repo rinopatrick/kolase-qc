@@ -118,6 +118,16 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .pgbtn{background:#1E293B;color:var(--accent);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;padding:2px 8px;cursor:pointer}
 .pgbtn:hover{border-color:var(--accent)}
 .fileghost{position:fixed;left:0;bottom:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1}
+/* Fix#2: pageno inline minimal — baris pertama selalu terlihat: Halaman N/M + pola + orientasi.
+   Slider kolom + tombol aksi pindah ke panel expand (details) per halaman terpilih.
+   🗑 hanya di panel expand + konfirmasi ganda — jauh dari +Halaman. */
+.pageno .pgmore{margin-left:auto}
+.pageno details.pgpanel{position:absolute;top:calc(100% + 6px);right:0;z-index:70;background:rgba(16,24,40,.97);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;display:none;min-width:230px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.pageno details.pgpanel[open]{display:block}
+.pageno details.pgpanel summary{list-style:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent);padding:2px 8px;border:1px solid var(--border2);border-radius:6px;background:#1E293B}
+.pageno details.pgpanel summary::-webkit-details-marker{display:none}
+.pageno .pgpanel-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:12px}
+.pageno .pgpanel-row:first-of-type{border-top:0}
 .pgbtn.danger{color:#F87171}
 .pagebar{display:flex;gap:10px;justify-content:center;padding:20px 0 10px;flex-wrap:wrap}
 .pagebar .big{font-size:14px;font-weight:800;padding:13px 28px;border-radius:12px;border:1px dashed var(--border2);background:#101828;color:var(--accent);cursor:pointer}
@@ -171,15 +181,15 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .doc-head p{margin:.15em 0 0;font-size:.82em;color:#444}
 .slot-grid{flex:1;display:grid;min-height:0;min-width:0;position:relative}
 .slot{position:relative;border-radius:4px;overflow:hidden;background:#fff;min-height:0;display:flex;touch-action:pan-x pan-y pinch-zoom}
-.slot.empty{border:2px dashed #CBD5E1;background:#F8FAFC;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:.15s;color:#94A3B8;text-align:center;padding:10px}
+.slot.empty{border:2px dashed #CBD5E1;background:#F8FAFC;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:.15s;color:#475569;text-align:center;padding:10px}
 .slot.empty:hover,.slot.empty.over{border-color:var(--accent-d);background:#ECFDF5;color:#0F766E}
 .slot.empty.over{transform:scale(1.01);box-shadow:0 0 0 3px rgba(20,184,166,.3)}
 .slot .snum{position:absolute;top:8px;left:8px;background:#0B0F19;color:#fff;font-size:11px;font-weight:800;font-family:var(--mono);border-radius:6px;padding:2px 8px;z-index:5}
-.slot.empty .snum{background:#E2E8F0;color:#64748B}
+.slot.empty .snum{background:#CBD5E1;color:#334155}
 .slotfile{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;font-size:100px}
 .slot .eicon{width:34px;height:34px;border-radius:10px;background:#E2E8F0;display:grid;place-items:center}
 .slot.empty p{margin:0;font-size:12px;font-weight:600;line-height:1.5}
-.slot.empty small{font-size:11px;color:#B0BACA}
+.slot.empty small{font-size:11px;color:#64748B}
 .ph{position:absolute;inset:0;overflow:hidden;background:#1F2430;cursor:grab;touch-action:pan-x pan-y pinch-zoom}
 .ph:active{cursor:grabbing}
 .ph img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transform-origin:center}
@@ -804,12 +814,20 @@ function buildSheets(total){
     const info=slotsOf(pid,po);
     const start=pageStart(pg);
     const nslots=Math.min(info.n,caps[pg]??info.n);
+    // Fix#2: inline minimal — pola + orientasi tetap inline; slider kolom +
+    // aksi halaman pindah ke panel expand (details) agar baris tak padat.
     const cw=hasMultiCol(pid,po)?`<label class="colw" title="Lebar kolom pertama">Kolom <input type="range" min="30" max="70" value="${Math.round(colWOf(pg)*100)}" data-colw="${pg}"></label>`:"";
-    const sh=document.createElement("div");
-    sh.className="sheet-wrap"; sh.dataset.pg=pg;
     const isLand=po==="landscape";
     const forced=pageHasForcedBreak(pg);
-    sh.innerHTML=`<div class="pageno"><span>Halaman ${pg+1} / ${total}${forced?" •⛔ break":""}</span><select data-pat="${pg}" title="Pola halaman ini">${patOptions(pid)}</select><select data-ori="${pg}" title="Orientasi halaman ini"><option value="portrait"${!isLand?" selected":""}>Portrait</option><option value="landscape"${isLand?" selected":""}>Landscape</option></select>${cw}<button class="pgbtn" data-newpg="${pg}" title="Paksa halaman baru setelah ini">+Halaman</button>${forced?`<button class="pgbtn" data-unbreak="${pg}" title="Gabung kembali dgn halaman sebelumnya">↩</button>`:""}<button class="pgbtn danger" data-delpg="${pg}" title="Hapus halaman ini">🗑</button></div><div class="sheet" data-pg="${pg}"><div class="sheet-inner"><div class="sheet-pad" style="flex:1;display:flex;flex-direction:column;min-height:0">${headerHTML()}<div class="slot-grid" style="${gridCssFor(pid,po,pg)};gap:${state.gap*2.2}px"></div></div></div></div>`;
+    const panel=`<details class="pgpanel"><summary class="pgmore" title="Pengaturan halaman ${pg+1}">⚙ Atur</summary>
+      <div class="pgpanel-row"><span>Lebar kolom pertama</span>${cw||"<span style='color:var(--muted2)'>1 kolom</span>"}</div>
+      <div class="pgpanel-row"><span>Tambah halaman setelah ini</span><button class="pgbtn" data-newpg="${pg}" title="Paksa halaman baru setelah ini">+Halaman</button></div>
+      ${forced?`<div class="pgpanel-row"><span>Gabung kembali</span><button class="pgbtn" data-unbreak="${pg}" title="Gabung kembali dgn halaman sebelumnya">↩</button></div>`:""}
+      <div class="pgpanel-row"><span>Hapus halaman ini</span><button class="pgbtn danger" data-delpg="${pg}" title="Hapus halaman ini — hanya halaman kosong">🗑</button></div>
+    </details>`;
+    const sh=document.createElement("div");
+    sh.className="sheet-wrap"; sh.dataset.pg=pg;
+    sh.innerHTML=`<div class="pageno"><span>Halaman ${pg+1} / ${total}${forced?" •⛔ break":""}</span><select data-pat="${pg}" title="Pola halaman ini">${patOptions(pid)}</select><select data-ori="${pg}" title="Orientasi halaman ini"><option value="portrait"${!isLand?" selected":""}>Portrait</option><option value="landscape"${isLand?" selected":""}>Landscape</option></select>${panel}</div><div class="sheet" data-pg="${pg}"><div class="sheet-inner"><div class="sheet-pad" style="flex:1;display:flex;flex-direction:column;min-height:0">${headerHTML()}<div class="slot-grid" style="${gridCssFor(pid,po,pg)};gap:${state.gap*2.2}px"></div></div></div></div>`;
     const grid=sh.querySelector(".slot-grid");
     for(let s=0;s<nslots;s++){
       const gi=start+s, ph=state.photos[gi];
@@ -1180,7 +1198,7 @@ function emptySlot(gi,num){
   d.className="slot empty"; d.dataset.idx=gi; d.tabIndex=0;
   d.setAttribute("data-od-id","slot-empty-"+gi);
   d.innerHTML=`<span class="snum">${num}</span>
-    <div class="eicon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="11" rx="2" stroke="#64748B" stroke-width="1.5"/><circle cx="5.5" cy="6.5" r="1.4" fill="#64748B"/><path d="M2 12l4-3 3 2 2-1.5L14 12" stroke="#64748B" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+    <div class="eicon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="11" rx="2" stroke="#475569" stroke-width="1.5"/><circle cx="5.5" cy="6.5" r="1.4" fill="#475569"/><path d="M2 12l4-3 3 2 2-1.5L14 12" stroke="#475569" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
     <p>Seret foto ke sini / klik</p><small>JPG · PNG · WebP — paste Ctrl+V</small><input type="file" class="slotfile" accept="image/*" multiple aria-label="Pilih foto">`;
   d.querySelector(".slotfile").onchange=e=>{addFiles(e.target.files,gi);e.target.value="";};
   d.querySelector(".slotfile").addEventListener("click",e=>e.stopPropagation());
@@ -1360,6 +1378,8 @@ function delPage(pg){
   const n=pageSlots(pg);
   const hasPhoto=state.photos.slice(start,start+n).some(Boolean);
   if(hasPhoto){alert("Halaman ini masih ada fotonya. Pindahkan atau hapus dulu fotonya sebelum hapus halaman.");return;}
+  // Fix#2: hapus butuh konfirmasi eksplisit — jauh dari mis-tap +Halaman.
+  if(!confirm("Hapus Halaman "+(pg+1)+" (kosong)?"))return;
   // halaman kosong: hapus break di awalnya sehingga halaman hilang
   state.breaks=state.breaks.filter(b=>b!==start);
   if(state.minPages>totalPages()-1)state.minPages=totalPages()-1;
@@ -1372,7 +1392,13 @@ function delPage(pg){
   state.layouts=nl;state.orients=no;state.colW=nc;state.dividers=nd;state.rowH=nr;
   renderAll();
 }
+// Fix#2: inspector halaman tunggal (selected-page pattern)
 function bindSlots(){
+  document.querySelectorAll("details.pgpanel").forEach(dt=>{
+    // tutup panel lain saat satu dibuka — satu inspector per waktu
+    dt.addEventListener("toggle",()=>{if(dt.open)document.querySelectorAll("details.pgpanel").forEach(o=>{if(o!==dt&&o.open)o.open=false;});});
+    dt.addEventListener("click",e=>e.stopPropagation());
+  });
   document.querySelectorAll("select[data-pat]").forEach(sel=>{
     sel.addEventListener("change",()=>{const pg=+sel.dataset.pat;state.layouts[pg]=sel.value;delete state.custom[pg];renderAll();});
     sel.addEventListener("click",e=>e.stopPropagation());
