@@ -132,7 +132,12 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .divider:hover::after,.divider.on::after{background:var(--accent-d)}
 .slot:hover .hd,.slot.sel .hd,.slot:focus-within .hd{opacity:1}
 @media (pointer:coarse){.slot.sel .hd{opacity:1}}
-.divider{opacity:0;transition:opacity .15s}
+/* Fix#1: handle & divider selalu samar terlihat — tak ada kontrol tak terlihat.
+   Penuh saat hover/selected/focus; sentuh: penuh saat slot dipilih. */
+.slot .hd{opacity:.38}
+.slot.sel .hd{opacity:1}
+@media (pointer:coarse){.slot.sel .hd{opacity:1}}
+.divider{opacity:.38;transition:opacity .15s}
 .slot-grid:hover .divider,.divider.on{opacity:1;z-index:21}
 /* ── Mode Bebas: kotak absolute + handle tarik ── */
 .slot.slot.freebox{position:absolute;overflow:visible;border:1.5px solid #8B93A3;background:#fff}
@@ -152,7 +157,10 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .hd.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 .hd.sw{left:-9px;bottom:-9px;cursor:nesw-resize}
 .fsize{position:absolute;z-index:31;background:#111827;color:#fff;font-size:11px;font-weight:700;font-family:var(--mono);padding:3px 9px;border-radius:7px;pointer-events:none;white-space:nowrap;transform:translate(12px,-50%)}
-.slot .mv{position:absolute;inset:0;z-index:5;cursor:move;touch-action:pan-x pan-y pinch-zoom}
+.slot .mv{position:absolute;inset:0;z-index:5;cursor:default;touch-action:pan-x pan-y pinch-zoom;pointer-events:none}
+.slot.freebox .mv{pointer-events:auto;cursor:move}
+/* Fix#1: ukuran toolbar tak berubah; hanya urutan baca: Bebas di ujung kiri. */
+.slot .mv.crop-on{pointer-events:none}
 .slot.freebox .ph{inset:0}
 .freetip{font-size:11px;color:var(--muted2);margin-left:4px}
 .colw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2)}
@@ -309,7 +317,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 
     <section class="panel" data-od-id="panel-help">
       <h3>Cara pakai</h3>
-      <div class="tip"><b>Seret</b> file dari Explorer langsung ke slot bernomor, atau ke area kanvas untuk susun berurutan. <b>Klik</b> slot untuk pilih file. <b>Tempel</b> dengan <kbd>Ctrl</kbd>+<kbd>V</kbd>. Geser foto di dalam sel untuk pan, <b>scroll / slider</b> untuk zoom, <b>klik 2×</b> untuk reset.<br><br><b>Atur ukuran kotak:</b> arahkan kursor ke kotak — handle biru muncul. Tarik handle mana pun (sisi/sudut) atau seret tengah kotak: kotak itu <b>lepas dan bebas diatur sendiri</b>, kotak lain tidak ikut berubah. Garis tipis di antara kotak = pembatas kolom/baris, tarik untuk atur cepat. Tombol <b>⤺</b> di toolbar mengembalikan ke pola.<br><br><b>Halaman:</b> tombol besar <b>＋ Tambah Halaman Baru</b> di bawah kanvas. Tiap halaman bisa diganti pola/orientasi, +Halaman paksa baru, 🗑 hapus halaman kosong.</div>
+      <div class="tip"><b>Seret</b> file dari Explorer langsung ke slot bernomor, atau ke area kanvas untuk susun berurutan. <b>Klik</b> slot untuk pilih file. <b>Tempel</b> dengan <kbd>Ctrl</kbd>+<kbd>V</kbd>. Geser foto di dalam sel untuk pan, <b>scroll / slider</b> untuk zoom, <b>klik 2×</b> untuk reset.<br><br><b>Atur ukuran kotak:</b> garis antar kotak = pembatas kolom/baris, tarik untuk atur cepat. Handle di tepi kotak = atur kolom/baris; handle sudut = lepas jadi kotak bebas. Atau klik tombol <b>⤢</b> di toolbar foto untuk lepas jadi kotak bebas, <b>⤺</b> untuk kembalikan ke pola. Handle & garis selalu terlihat samar, penuh saat disentuh/dipilih.<br><br><b>Halaman:</b> tombol besar <b>＋ Tambah Halaman Baru</b> di bawah kanvas. Tiap halaman bisa diganti pola/orientasi, +Halaman paksa baru, 🗑 hapus halaman kosong.</div>
     </section>
   </aside>
 
@@ -423,11 +431,12 @@ function marginFrac(po){
 const $=s=>document.querySelector(s);
 const pagesEl=$("#pages"), filePick=$("#filePick"), camPick=$("#camPick");
 
-/* ══ Undo/Redo (cakupan: foto + breaks; maks 50 langkah) ══
+/* ══ Undo/Redo (cakupan: foto + breaks + layout; maks 50 langkah) ══
    Blob URL foto sengaja TIDAK di-revoke agar undo hapus/ganti tetap tampil.
-   Op struktur halaman (pola/orientasi/break/layout) di luar cakupan: tidak dicatat. */
+   Fix#1: op layout (pola/orientasi/lebar kolom/divider/tinggi baris/kotak bebas)
+   ikut dicatat — undo kini kembalikan susunan juga, bukan cuma foto. */
 let hist=[],hi=-1,lastKey="",lastT=0;
-function snapState(){return JSON.stringify({p:state.photos,b:state.breaks});}
+function snapState(){return JSON.stringify({p:state.photos,b:state.breaks,l:state.layouts,o:state.orients,cw:state.colW,dv:state.dividers,rh:state.rowH,cu:state.custom});}
 function updateUndoUI(){
   const u=$("#btnUndo"),r=$("#btnRedo");
   if(u){u.disabled=hi<=0;u.title=hi<=0?"Tidak ada yang bisa diurungkan":"Urungkan (Ctrl+Z)";}
@@ -442,7 +451,7 @@ function commitHist(key){
   hi=hist.length-1;lastKey=key||"";lastT=now;updateUndoUI();
 }
 function commitIfChanged(pre){if(snapState()!==pre)commitHist();}
-function applyHist(s){const o=JSON.parse(s);state.photos=o.p;state.breaks=o.b;renderAll();}
+function applyHist(s){const o=JSON.parse(s);state.photos=o.p;state.breaks=o.b;state.layouts=o.l||{};state.orients=o.o||{};state.colW=o.cw||{};state.dividers=o.dv||{};state.rowH=o.rh||{};state.custom=o.cu||{};renderAll();}
 function undoHist(){if(hi<=0)return;hi--;lastKey="";applyHist(hist[hi]);updateUndoUI();}
 function redoHist(){if(hi>=hist.length-1)return;hi++;lastKey="";applyHist(hist[hi]);updateUndoUI();}
 hist=[snapState()];hi=0;
@@ -639,14 +648,23 @@ async function renderPageCanvas(pg,DPI){
     return{x:gx0+(s%info.c)/info.c*GW+gapPx/2,y:gy0+Math.floor(s/info.c)/info.r*GH+gapPx/2,w:GW/info.c-gapPx,h:GH/info.r-gapPx};
   };
   for(let s=0;s<capN;s++){const p=state.photos[start+s];if(!p)continue;
-    const b=boxOf(s);const img=new Image();img.src=p.url;
+    const b=boxOf(s);
+    // samakan dgn pratinjau: object-fit contain (bukan cover) + latar gelap
     ctx.save();ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
-    ctx.translate(b.x+b.w/2+(p.panX||0),b.y+b.h/2+(p.panY||0));
+    ctx.fillStyle="#1F2430";ctx.fillRect(b.x,b.y,b.w,b.h);
+    // skala pan dari px layar ke px PDF (ikuti pola tfPrint: pan * S/sc)
+    let sc=0;
+    const sheetEl=document.querySelector('.sheet[data-pg="'+pg+'"]');
+    if(sheetEl&&sheetEl.dataset.scale)sc=parseFloat(sheetEl.dataset.scale);
+    if(!sc||!isFinite(sc)||sc<=0){const baseW=640*(state.zoomUI/80);sc=Math.min(baseW,860)/w;}
+    const k=S/sc;
+    ctx.translate(b.x+b.w/2+(p.panX||0)*k,b.y+b.h/2+(p.panY||0)*k);
     const rot=((p.rot||0)%360+360)%360;ctx.rotate(rot*Math.PI/180);
+    const img=new Image();img.src=p.url;
     await img.decode().catch(()=>{});
     const iw=img.naturalWidth||1,ih=img.naturalHeight||1;
     const swap=(rot===90||rot===270);
-    const base=Math.max(b.w/(swap?ih:iw),b.h/(swap?iw:ih))*(p.zoom||1);
+    const base=Math.min(b.w/(swap?ih:iw),b.h/(swap?iw:ih))*(p.zoom||1);
     ctx.drawImage(img,-iw*base/2,-ih*base/2,iw*base,ih*base);
     ctx.restore();
     if(p.cap){ctx.save();ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
@@ -832,7 +850,7 @@ function makeOverlay(grid,pg,start,s){
     d.addEventListener("pointerdown",e=>ovlResize(e,pg,s,hd,grid,el));
     el.appendChild(d);
   });
-  mv.addEventListener("pointerdown",e=>ovlMove(e,pg,s,grid,el));
+  mv.addEventListener("pointerdown",e=>{if(!el.classList.contains("freebox"))return;ovlMove(e,pg,s,grid,el);});
   el.addEventListener("pointerdown",()=>{
     el.parentElement.querySelectorAll(".slot.freebox.sel").forEach(o=>{if(o!==el)o.classList.remove("sel");});
     el.classList.add("sel");
@@ -847,7 +865,9 @@ function renderOverlays(grid,pg,start,nslots){
     makeOverlay(grid,pg,start,s);
   });
 }
-/* == Sel grid: handle tepi = atur kolom/baris; sudut/badan = lepas jadi overlay bebas == */
+/* == Sel grid: handle SISI (n/s/e/w) = atur kolom/baris via divider terdekat;
+   sudut + tombol Bebas eksplisit = lepas jadi overlay. Badan sel TIDAK lepas —
+   badan = pan foto (alami). Fix#1: tak ada detach tak sengaja via seret badan. == */
 const HANDLES=["n","s","e","w","ne","nw","se","sw"];
 function cellRectFrac(grid,el){
   const gr=grid.getBoundingClientRect(), r=el.getBoundingClientRect();
@@ -883,6 +903,10 @@ function gridEdgeHandle(e,pg,s,hd,grid,pid,po,el){
 }
 function detachCell(e,pg,s,hd,grid,el,pid,po){
   if(e.isPrimary===false)return; // jari kedua -> serahkan ke browser (pinch-zoom)
+  // Fix#1: catat pre-state sebelum lepas agar undo kembalikan susunan.
+  // hd palsu dari tombol ⤢ (clientX/Y 0, tanpa drag) -> lepas + pilih saja.
+  const pre=snapState();
+  const bareTap=e&&(e.clientX===0&&e.clientY===0);
   // sudut/badan/tengah sel grid -> lepas jadi overlay absolute, lanjutkan drag-nya TANPA rebuild
   // (rebuild memutus pointer capture & event stream di browser asli)
   const fr=cellRectFrac(grid,el);
@@ -894,21 +918,30 @@ function detachCell(e,pg,s,hd,grid,el,pid,po){
   if(!ov)return;
   ov.classList.add("sel");
   const t=hd==="move"?ov.querySelector(".mv"):ov.querySelector(".hd."+hd);
+  if(bareTap){commitIfChanged(pre);renderAll();return;}
   if(t)t.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,clientX:e.clientX,clientY:e.clientY,pointerId:e.pointerId||99,button:0}));
 }
 function attachGridBits(el,pg,s,grid,pid,po){
-  // SEMUA handle + badan = lepas jadi overlay bebas (satu kotak saja yg berubah)
-  // divider garis tetap tersedia di antara sel untuk atur kolom/baris cepat
+  // Fix#1: handle SISI (n/s/e/w) = tarik divider kolom/baris (perilaku lama gridEdgeHandle).
+  // Handle SUDUT (ne/nw/se/sw) = lepas jadi overlay bebas. Badan sel (mv) TIDAK
+  // detach — seret badan = pan foto (alami, ditangani .ph pointer handlers).
+  // Detach eksplisit tersedia via tombol ⤢ di toolbar (act-free).
   HANDLES.forEach(hd=>{
     const d=document.createElement("div");
-    d.className="hd "+hd;d.title="Tarik untuk atur kotak ini (bebas, tak ganggu lain)";
-    d.addEventListener("pointerdown",e=>detachCell(e,pg,s,hd,grid,el,pid,po));
+    d.className="hd "+hd;
+    const isSide=(hd==="n"||hd==="s"||hd==="e"||hd==="w");
+    d.title=isSide?"Tarik untuk atur lebar kolom / tinggi baris":"Tarik untuk lepas jadi kotak bebas";
+    d.addEventListener("pointerdown",e=>{
+      if(isSide)gridEdgeHandle(e,pg,s,hd,grid,pid,po,el);
+      else detachCell(e,pg,s,hd,grid,el,pid,po);
+    });
     el.appendChild(d);
   });
   const mv=document.createElement("div");
-  mv.className="mv";mv.title="Seret untuk lepas & pindah bebas";
+  mv.className="mv crop-on";
+  mv.title="Klik foto untuk geser/zoom di dalam bingkai";
   el.insertBefore(mv,el.firstChild);
-  mv.addEventListener("pointerdown",e=>detachCell(e,pg,s,"move",grid,el,pid,po));
+  // Badan sel grid TIDAK detach: biarkan event jatuh ke .ph (pan foto).
 }
 function ovlBox(pg,s){return (state.custom[pg]||{})[s];}
 /* Dorong korban tabrakan: overlay yg menabrak sel/overlay lain menggesernya menjauh.
@@ -1091,7 +1124,7 @@ function ovlResize(e,pg,s,hd,grid,el){
     updateSizeBadge(badge,grid,ovlBox(pg,s));
   };
   const up=()=>{hideSizeBadge(badge);activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];resolveOverlaps(pg,grid);commitIfChanged(pre);renderAll();};
-  activeDragAbort=()=>{try{hideSizeBadge(badge);}catch(_){}el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);renderAll();};
+  activeDragAbort=()=>{try{hideSizeBadge(badge);}catch(_){}el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);commitIfChanged(hist[hi]);renderAll();};
   el.addEventListener("pointermove",move);
   el.addEventListener("pointerup",up);
 }
@@ -1115,7 +1148,7 @@ function ovlMove(e,pg,s,grid,el){
     el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
   };
   const up=()=>{activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];resolveOverlaps(pg,grid);commitIfChanged(pre);renderAll();};
-  activeDragAbort=()=>{el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);renderAll();};
+  activeDragAbort=()=>{el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);commitIfChanged(hist[hi]);renderAll();};
   el.addEventListener("pointermove",move);
   el.addEventListener("pointerup",up);
 }
@@ -1165,6 +1198,7 @@ function filledSlot(p,gi,num,free){
     <span class="snum">${num}</span>
     <div class="toolbar">
       <button class="tbtn grip" title="Seret untuk pindah posisi" draggable="true">⠿</button>
+      <button class="tbtn act-free" title="Lepas jadi kotak bebas (atur sendiri)">⤢</button>
       <button class="tbtn act-cap" title="Keterangan">✎</button>
       <button class="tbtn act-left" title="Geser kiri">←</button>
       <button class="tbtn act-right" title="Geser kanan">→</button>
@@ -1177,12 +1211,18 @@ function filledSlot(p,gi,num,free){
     <div class="capedit" hidden><input maxlength="120" placeholder="Keterangan foto…" value="${esc(p.cap)}"><button>OK</button></div>`;
   const img=d.querySelector("img");
   img.style.transform=tf(p);
-  // pan
+  // pan pada badan foto: seret untuk geser. Fix#1: tap tanpa gerak (<3px) di
+  // badan sel grid = pilih slot (tampilkan handle penuh), tanpa detach.
   let sx,sy,px,py,drag=false;
   const vp=d.querySelector(".ph");
   vp.addEventListener("pointerdown",e=>{drag=true;sx=e.clientX;sy=e.clientY;px=p.panX;py=p.panY;vp.setPointerCapture(e.pointerId);});
   vp.addEventListener("pointermove",e=>{if(!drag)return;p.panX=px+(e.clientX-sx);p.panY=py+(e.clientY-sy);img.style.transform=tf(p);});
-  vp.addEventListener("pointerup",()=>{if(!drag)return;drag=false;commitIfChanged(hist[hi]);});
+  vp.addEventListener("pointerup",e=>{if(!drag)return;drag=false;
+    if(Math.abs(e.clientX-sx)<3&&Math.abs(e.clientY-sy)<3&&!d.classList.contains("freebox")){
+      d.parentElement.querySelectorAll(".slot.sel").forEach(o=>{if(o!==d)o.classList.remove("sel");});
+      d.classList.add("sel");
+    }
+    commitIfChanged(hist[hi]);});
   vp.addEventListener("wheel",e=>{e.preventDefault();p.zoom=Math.min(3,Math.max(1,p.zoom*(e.deltaY<0?1.08:0.93)));img.style.transform=tf(p);d.querySelector(".zctl input").value=Math.round(p.zoom*100);commitHist("wheel");},{passive:false});
   vp.addEventListener("dblclick",()=>{const pre=snapState();p.zoom=1;p.panX=0;p.panY=0;img.style.transform=tf(p);d.querySelector(".zctl input").value=100;commitIfChanged(pre);});
   // zoom strip
@@ -1202,8 +1242,21 @@ function filledSlot(p,gi,num,free){
     const tb=d.querySelector(".toolbar");
     const rs=document.createElement("button");
     rs.className="tbtn";rs.title="Kembalikan ke pola grid";rs.textContent="⤺";
-    rs.onclick=e=>{e.stopPropagation();const fb=d.closest(".freebox");if(fb){setCustom(+fb.dataset.pg,+fb.dataset.s,null);renderAll();}};
+    rs.onclick=e=>{e.stopPropagation();const fb=d.closest(".freebox");if(fb){const pre=snapState();setCustom(+fb.dataset.pg,+fb.dataset.s,null);commitIfChanged(pre);renderAll();}};
     tb.insertBefore(rs,tb.firstChild);
+  }
+  // Fix#1: detach eksplisit per sel grid — lepas jadi overlay + pilih, tanpa drag lanjutan.
+  // Undo kini cover (snapState ikut cu) sehingga ⤺ maupun Ctrl+Z bisa kembalikan.
+  const af=d.querySelector(".act-free");
+  if(af&&!isOvl){
+    af.onclick=e=>{e.stopPropagation();
+      const grid=d.parentElement;if(!grid||!grid.classList.contains("slot-grid"))return;
+      const sh=grid.closest(".sheet-wrap");const pg=+((sh&&sh.dataset.pg)||0);
+      const cells=[...grid.querySelectorAll(':scope > .slot:not(.ovl):not(.divider)')];
+      const s=cells.indexOf(d);if(s<0)return;
+      const pid=pagePat(pg),po=pageOrient(pg);
+      detachCell({isPrimary:true,preventDefault(){},stopPropagation(){},clientX:0,clientY:0,pointerId:99,button:0},pg,s,"move",grid,d,pid,po);
+    };
   }
   d.querySelector(".act-rep").onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);filePick.click();};
   d.querySelector(".act-left").onclick=e=>{e.stopPropagation();move(gi,gi-1);};
@@ -1362,6 +1415,11 @@ function bindSlots(){
     const gi=+sl.dataset.idx;
     sl.addEventListener("click",e=>{
       if(suppressClick){suppressClick=false;return;}
+      // slot kosong: teruskan ketukan ke input file transparan (andal di HP)
+      if(sl.classList.contains("empty")&&!e.target.closest("input.slotfile")){
+        const fi=sl.querySelector("input.slotfile");
+        if(fi){fi.click();return;}
+      }
       if(e.target.closest(".toolbar,.zctl,.capedit,.ph,.mv,.hd")){
         // klik badan kotak Bebas = pilih (tampilkan handle aktif)
         if(e.target.closest(".slot.freebox")&&!e.target.closest(".toolbar,.zctl,.capedit")){
