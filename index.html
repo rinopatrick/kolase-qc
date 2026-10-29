@@ -226,9 +226,9 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
   .brand{flex:1 1 auto;min-width:0}
   .brand small{display:none}
   .actions{display:contents}
-  #btnPrint{order:1;margin-left:auto;min-height:44px}
-  .mactions{order:2;flex:1 1 100%;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
-  .mactions .btn{flex:0 0 auto;min-height:44px}
+  #btnPDF{order:1;margin-left:auto;min-height:44px;padding:8px 12px;font-size:13px;flex:none}
+  .mactions{order:2;flex:1 1 100%;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;overflow:visible;padding-bottom:2px}
+  .mactions .btn{min-height:44px;justify-content:center;white-space:nowrap;padding:8px 6px;font-size:12.5px}
 }
 </style>
 </head>
@@ -254,9 +254,9 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <button class="btn ghost" id="btnAdd">＋ Tambah foto</button>
     <button class="btn ghost" id="btnCam">📷 Kamera</button>
     <button class="btn ghost" id="btnClear">Kosongkan</button>
+    <button class="btn ghost" id="btnPrint">⎙ Cetak</button>
     </div>
     <button class="btn primary" id="btnPDF">⬇ Unduh PDF</button>
-    <button class="btn ghost" id="btnPrint">⎙ Cetak</button>
   </div>
 </header>
 <div id="scrim" aria-hidden="true"></div>
