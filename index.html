@@ -480,6 +480,10 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <div class="seg" id="osSeg"><button data-os="android" class="on">🤖 Android</button><button data-os="iphone">🍎 iPhone</button><button data-os="desktop">💻 Laptop</button></div>
     <ol class="steps" id="osSteps"></ol>
     <label class="mcheck"><input type="checkbox" id="gHide"> Jangan tampilkan lagi</label>
+    <div class="mrow" id="gMixChoice" hidden>
+      <button class="btn primary" id="gMixPDF">⬇ Unduh gabung 1 file</button>
+      <button class="btn ghost" id="gMixPrint">Cetak 2 tahap (P lalu L)</button>
+    </div>
     <div class="mrow">
       <button class="btn ghost" id="gCancel">Batal</button>
       <button class="btn primary" id="gGo" title="Unduh PDF — hasil persis pratinjau">⬇ Unduh PDF</button>
@@ -810,6 +814,9 @@ function showGuide(mode){
   const paint=()=>{$("#osSteps").innerHTML=GUIDE[os].map(s=>`<li>${s}</li>`).join("");
     ["gPaper","gPaper2","gPaper3"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=lbl;});};
   paint();
+  // Task3: pilihan campur P+L inline — ganti 2 confirm. Tahap-2 hanya via aksi toast.
+  const mc=$("#gMixChoice");
+  if(mc)mc.hidden=!(mo.length>1);
   $("#osSeg").onclick=e=>{const b=e.target.closest("[data-os]");if(!b)return;
     document.querySelectorAll("#osSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
     localStorage.setItem("kolase-os",b.dataset.os);
@@ -817,7 +824,14 @@ function showGuide(mode){
     ["gPaper","gPaper2","gPaper3"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=lbl;});};
   $("#printGuide").hidden=false;
 }
-$("#gCancel").onclick=()=>{$("#printGuide").hidden=true;};
+$("#gCancel").onclick=()=>{$("#printGuide").hidden=true;printFilter=null;};
+$("#gMixPDF").onclick=()=>{downloadPDFFromGuide();};
+$("#gMixPrint").onclick=()=>{
+  $("#printGuide").hidden=true;
+  printFilter="portrait";buildPrint();window.print();
+  toast("Tahap 1 portrait dikirim.",{action:"Lanjut landscape",ms:8000,onAction:()=>{printFilter="landscape";buildPrint();window.print();printFilter=null;}});
+  printFilter=null;
+};
 $("#printGuide").addEventListener("click",e=>{if(e.target.id==="printGuide")$("#printGuide").hidden=true;});
 // Fix#3: PDF jalan utama — campur P+L gabung otomatis satu file (tanpa 2 dialog).
 // Fallback Cetak browser tetap ada via Cetak⋯ + tombol panduan, satu klik per orientasi.
@@ -834,24 +848,13 @@ $("#gGo").onclick=()=>{
   downloadPDFFromGuide();
 };
 $("#btnPrint").onclick=()=>{
-  if(!state.photos.length){alert("Belum ada foto. Tambahkan foto dulu ya.");return;}
+  // Task3: print trust tanpa alert/confirm — kosong via toast, campur via showGuide.
+  if(!state.photos.length){toast("Belum ada foto — tambah dulu.");const f=document.querySelector(".slot.empty .slotfile, #strip");if(f&&f.focus)f.focus();return;}
   printFilter=null;
-  // Fix#3: Cetak = fallback sadar risiko. Campur P+L tetap butuh 2 pass browser —
-  // jelaskan dulu, user pilih lanjut atau putar balik ke Unduh PDF.
-  const total=totalPages();
-  if(mixedOrients(total).length>1){
-    if(confirm("Halaman campur Portrait + Landscape. Jalur Cetak butuh 2 dialog (P lalu L).\n\nOK = lanjut 2 tahap · Batal = pakai Unduh PDF (1 file, disarankan).")){
-      printFilter="portrait";buildPrint();window.print();
-      printFilter="landscape";
-      if(confirm("Tahap 1 (portrait) selesai. Lanjut cetak halaman LANDSCAPE sekarang?"))buildPrint(),window.print();
-      printFilter=null;
-    }
-    return;
-  }
   showGuide("print");
 };
 $("#btnPDF").onclick=()=>{
-  if(!state.photos.length){alert("Belum ada foto. Tambahkan foto dulu ya.");return;}
+  if(!state.photos.length){toast("Belum ada foto — tambah dulu.");const f=document.querySelector(".slot.empty .slotfile, #strip");if(f&&f.focus)f.focus();return;}
   downloadPDF();
 };
 /* Unduh PDF langsung via canvas: gambar saja, tanpa tulisan tepi browser */
@@ -932,7 +935,8 @@ async function downloadPDF(){
   try{
     const total=totalPages();
     const {jsPDF}=window.jspdf||{};
-    if(!jsPDF){alert("Pustaka PDF belum termuat. Coba lagi sebentar.");return;}
+    // Task3: toast ganti alert — return dalam try agar finally kembalikan tombol.
+    if(!jsPDF){toast("Pustaka PDF belum termuat — coba lagi sebentar.");return;}
     let[w0,h0]=PAPERS[state.paper];const o0=pageOrient(0);if(o0==="landscape")[w0,h0]=[h0,w0];
     const pdf=new jsPDF({unit:"mm",format:[w0,h0],orientation:o0==="landscape"?"landscape":"portrait",compress:true});
     for(let pg=0;pg<total;pg++){
@@ -944,7 +948,7 @@ async function downloadPDF(){
     }
     const d=fmtDate(state.date||$("#inDate").value).replace(/\s+/g,"-");
     pdf.save(`Kolase-QC-${state.paper}-${d||"foto"}.pdf`);
-  }catch(err){alert("Gagal menyusun PDF: "+(err&&err.message?err.message:err)+"\nCoba lagi — atau pakai Cetak⋯ bila pustaka PDF belum termuat.");
+  }catch(err){toast("Gagal menyusun PDF — coba lagi, atau pakai Cetak.");
   }finally{btn.textContent=old;btn.disabled=false;if(gg){gg.textContent=ggOld;gg.disabled=false;}}
 }
 
