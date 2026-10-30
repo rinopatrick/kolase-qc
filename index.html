@@ -246,6 +246,17 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .capbar{position:absolute;left:0;right:0;bottom:0;background:rgba(8,12,20,.82);backdrop-filter:blur(4px);color:#fff;font-size:.72em;padding:.35em .7em;line-height:1.4;z-index:4}
 .toolbar{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:6;opacity:0;transform:translateY(-4px);transition:.15s}
 .slot:hover .toolbar,.slot:focus-within .toolbar{opacity:1;transform:none}
+/* Task1: toast inline + kontrol base visible (desktop .38, hover/pilih/fokus penuh;
+   coarse-pointer existing tetap menang di HP karena blok itu muncul belakangan). */
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);z-index:200;background:#101828;border:1px solid var(--border2);color:var(--fg);border-radius:12px;padding:10px 14px;font-size:13px;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:.2s;max-width:min(92vw,560px)}
+#toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+#toast button{background:var(--accent);border:0;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;color:var(--accent-ink)}
+.slot .toolbar,.slot .zctl{opacity:.38}
+.slot:hover .toolbar,.slot.sel .toolbar,.slot:focus-within .toolbar,.slot:hover .zctl,.slot:focus-within .zctl{opacity:1}
+.slot .hd{opacity:.38}
+.slot:hover .hd,.slot.sel .hd,.slot:focus-within .hd{opacity:1}
+.divider::after{background:rgba(13,148,136,.4)}
+.divider:hover::after,.divider.on::after{background:var(--accent-d)}
 .tbtn{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(8,12,20,.85);color:#fff;font-size:13px;cursor:pointer;display:grid;place-items:center;line-height:1}
 .tbtn:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tbtn.del:hover{background:#EF4444;border-color:#EF4444;color:#fff}
@@ -432,6 +443,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 </div>
 
 <div id="print-root"></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 <input type="file" id="filePick" accept="image/*" multiple class="fileghost">
 <input type="file" id="camPick" accept="image/*" capture="environment" class="fileghost">
 <input type="file" id="galPick" accept="image/*" multiple class="fileghost">
@@ -574,6 +586,19 @@ function marginFrac(po){
   return{mw:m/Math.max(1,(pw-2*m)),mh:m/Math.max(1,(ph-2*m))};
 }
 const $=s=>document.querySelector(s);
+/* Task1: toast inline global — pengganti alert/confirm baru (dilarang). */
+let _toastT=null;
+window.toast=function(msg,opts){
+  const t=document.querySelector("#toast");if(!t)return;
+  t.hidden=false;
+  t.innerHTML=`<span></span>`;
+  t.querySelector("span").textContent=msg;
+  if(opts&&opts.action){const b=document.createElement("button");b.textContent=opts.action;b.onclick=()=>{opts.onAction&&opts.onAction();hide()};t.appendChild(b);}
+  t.classList.add("show");
+  clearTimeout(_toastT);
+  _toastT=setTimeout(hide,opts&&opts.ms||4200);
+  function hide(){t.classList.remove("show");clearTimeout(_toastT);_toastT=setTimeout(()=>{t.hidden=true;},220);}
+};
 const pagesEl=$("#pages"), filePick=$("#filePick"), camPick=$("#camPick"), galPick=$("#galPick");
 /* Sheet sumber foto HANYA Android: iOS/desktop sudah punya sheet bawaan sistem.
    Android tanpa capture langsung buka galeri; sheet ini kembalikan pilihan kamera/galeri. */
