@@ -671,8 +671,8 @@ function renderLaySeg(){
 const DRAFT_DB="kolase-qc-draft",DRAFT_STORE="photos";
 function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,2);r.onupgradeneeded=()=>{if(r.result.objectStoreNames.contains(DRAFT_STORE))r.result.deleteObjectStore(DRAFT_STORE);r.result.createObjectStore(DRAFT_STORE,{keyPath:"i"});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
 function draftTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);};}catch(e){try{db.close();}catch(_){}rej(e);}}));}
-async function draftSaveAll(){try{const items=[];for(let i=0;i<state.photos.length;i++){const p=state.photos[i];try{const b=await (await fetch(p.url)).blob();items.push({i,name:p.name||"",cap:p.cap||"",blob:b});}catch(e){}}await draftTx("readwrite",s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
-async function draftLoad(){try{const rows=await draftTx("readonly",s=>s.getAll());if(!rows||!rows.length)return false;rows.sort((a,b)=>a.i-b.i);for(const r of rows){try{state.photos.push({id:++uid,url:URL.createObjectURL(r.blob),name:r.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:r.cap||""});}catch(e){}}return true;}catch(e){return false;}}
+async function draftSaveAll(){try{const items=[];for(let i=0;i<state.photos.length;i++){const p=state.photos[i];try{const b=await (await fetch(p.url)).blob();items.push({i,pid:p.pid||null,name:p.name||"",cap:p.cap||"",blob:b});}catch(e){}}await draftTx("readwrite",s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
+async function draftLoad(){try{const rows=await draftTx("readonly",s=>s.getAll());if(!rows||!rows.length)return false;rows.sort((a,b)=>a.i-b.i);for(const r of rows){try{state.photos.push({id:++uid,pid:r.pid||undefined,url:URL.createObjectURL(r.blob),name:r.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:r.cap||""});}catch(e){}}return true;}catch(e){return false;}}
 async function draftClear(){try{await draftTx("readwrite",s=>s.clear());}catch(e){}}
 function draftArm(){if(draftArm._on)return;draftArm._on=true;const save=()=>{if(state&&state.photos)draftSaveAll();};setInterval(()=>{if(!document.hidden)save();},4000);addEventListener("pagehide",save);addEventListener("beforeunload",save);}
 /* ── Pindai QR laptop dari dalam app (tanpa pindah tab, tanpa reload) ── */
@@ -758,7 +758,7 @@ document.addEventListener("keydown",e=>{
   if(k==="z"&&!e.shiftKey){e.preventDefault();undoHist();}
   else if((k==="z"&&e.shiftKey)||k==="y"){e.preventDefault();redoHist();}
 });
-$("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus semua foto dari kanvas?")){state.photos=[];commitHist();renderAll();}};
+$("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus semua foto dari kanvas?")){const hadGuest=LINK.isGuest&&LINK.session;state.photos=[];if(hadGuest){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]});}commitHist();renderAll();}};
 
 /* ══ Panduan cetak per-OS ══ */
 const GUIDE={
@@ -1000,7 +1000,7 @@ function renderStrip(){
     b.querySelector(".fx").addEventListener("click",e=>{
       e.stopPropagation();
       if(!confirm(`Hapus foto ${gi+1}?`))return;
-      state.photos.splice(gi,1);if(stripSel>=state.photos.length)stripSel=state.photos.length-1;commitHist();renderAll();
+      {const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);}if(stripSel>=state.photos.length)stripSel=state.photos.length-1;commitHist();renderAll();
     });
     b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/fstrip",String(gi));e.dataTransfer.effectAllowed="move";});
     b.addEventListener("dragover",e=>{
@@ -1532,7 +1532,7 @@ function filledSlot(p,gi,num,free){
   d.querySelector(".z-reset").onclick=e=>{e.stopPropagation();const pre=snapState();p.zoom=1;p.panX=0;p.panY=0;p.rot=0;img.style.transform=tf(p);zr.value=100;commitIfChanged(pre);};
   // toolbar actions
   d.querySelector(".act-rot").onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
-  d.querySelector(".act-del").onclick=e=>{e.stopPropagation();state.photos.splice(gi,1);commitHist();renderAll();};
+  d.querySelector(".act-del").onclick=e=>{e.stopPropagation();const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);commitHist();renderAll();};
   const rb=d.querySelector(".act-rbox");
   if(rb)rb.onclick=e=>{e.stopPropagation();const fb=d.closest(".freebox");if(fb){const s=+fb.dataset.s;const gi=pageStart(+fb.dataset.pg)+s;const ph=state.photos[gi];if(ph&&!confirm("Hapus kotak + fotonya?"))return;if(ph){state.photos.splice(gi,1);}setCustom(+fb.dataset.pg,s,null);commitHist();renderAll();}};
   if(isOvl){
@@ -1560,8 +1560,7 @@ function filledSlot(p,gi,num,free){
   d.querySelector(".act-left").onclick=e=>{e.stopPropagation();move(gi,gi-1);};
   d.querySelector(".act-right").onclick=e=>{e.stopPropagation();move(gi,gi+1);};
   const ce=d.querySelector(".capedit"),ci=ce.querySelector("input");
-  d.querySelector(".act-cap").onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
-  // Fix#5: action bar bawah saat slot dipilih (coarse) — caption/putar/ganti/
+  d.querySelector(".act-cap").onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};  // Fix#5: action bar bawah saat slot dipilih (coarse) — caption/putar/ganti/
   // hapus tanpa hover. Dibangun sekali per sel, tampil saat .sel di layar kasar.
   const abar=document.createElement("div");
   abar.className="actbar";abar.hidden=true;
@@ -1574,8 +1573,8 @@ function filledSlot(p,gi,num,free){
   abar.querySelector('[data-a="cap"]').onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
   abar.querySelector('[data-a="rot"]').onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
   abar.querySelector('[data-a="rep"]').onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);pickPhoto(inp=>{if(inp===camPick)camPick.click();else if(inp)addFilesCached(inp,gi);else filePick.click();});};
-  abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();if(!confirm(`Hapus foto ${gi+1}?`))return;state.photos.splice(gi,1);commitHist();renderAll();};
-  const commit=()=>{p.cap=ci.value.trim();ce.hidden=true;commitHist();renderAll();};
+  abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();if(!confirm(`Hapus foto ${gi+1}?`))return;const gone2=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone2&&gone2.pid)syncDel(gone2.pid);commitHist();renderAll();};
+  const commit=()=>{p.cap=ci.value.trim();ce.hidden=true;commitHist();renderAll();if(LINK.isGuest&&LINK.session&&p.pid)syncCap(p.pid,p.cap);};
   ce.querySelector("button").onclick=e=>{e.stopPropagation();commit();};
   ci.onkeydown=e=>{if(e.key==="Enter")commit();if(e.key==="Escape")ce.hidden=true;e.stopPropagation();};
   // reorder grip
@@ -1590,7 +1589,9 @@ addFiles=function(files,atIdx){
   if(replaceAt>=0){
     const f=[...files].find(f=>f.type.startsWith("image/"));
     if(f&&state.photos[replaceAt]){
-      Object.assign(state.photos[replaceAt],{url:URL.createObjectURL(f),name:f.name,zoom:1,panX:0,panY:0,rot:0});}
+      Object.assign(state.photos[replaceAt],{url:URL.createObjectURL(f),name:f.name,zoom:1,panX:0,panY:0,rot:0});
+      /* ganti foto = kirim ulang versi baru (pid sama, ack lama dihapus) */
+      if(LINK.isGuest&&LINK.session){const rp=state.photos[replaceAt];if(rp&&rp.pid){delete LINK.sync.sentIds[rp.pid];syncEnqueue(rp.pid);syncStatus("Foto diganti — sync ulang…");}}}
     replaceAt=-1;commitHist();renderAll();return;
   }
   _addFiles(files,atIdx);
@@ -1866,7 +1867,11 @@ function tfPrintS(p,sc){return `translate(-50%,-50%) translate(${(p.panX*3.7795/
    1 QR = 1 sesi = 1 dokumen. Host (laptop): peer id kolaseqc-DOC-XXXXX. Guest (HP): buka link #s=DOC-XXXXX. */
 const PEERJS_CDN="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
 const QR_CDN="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-const LINK={peer:null,conn:null,session:null,chunks:{},meta:{got:0,count:0},isGuest:false};
+const LINK={peer:null,conn:null,session:null,chunks:{},meta:{got:0,count:0},isGuest:false,
+ sync:{queue:[],busy:false,sentIds:{},hostIds:{},unacked:{},timer:0,retry:0}};
+/* ID stabil per foto: sync delta cocokkan pid, bukan urutan. Foto lama dapat pid saat sesi mulai. */
+function photoPid(p){if(!p.pid)p.pid="p"+Math.random().toString(36).slice(2,10);return p.pid;}
+function connOpen(c){return c&&c.open!==false;}
 function loadScriptOnce(src){return new Promise((res,rej)=>{if(document.querySelector('script[data-cdn="'+src+'"]'))return res();const s=document.createElement("script");s.src=src;s.dataset.cdn=src;s.onload=res;s.onerror=()=>rej(new Error("cdn "+src));document.head.appendChild(s);});}
 /* Prefetch saat idle: saat user klik Terima dari HP, pustaka sudah di cache */
 setTimeout(()=>{const go=()=>{loadScriptOnce(PEERJS_CDN).catch(()=>{});loadScriptOnce(QR_CDN).catch(()=>{});};if("requestIdleCallback" in window)requestIdleCallback(go,{timeout:4000});else go();},1200);
@@ -1875,6 +1880,14 @@ function linkUrl(sid){return location.origin+location.pathname+"#s="+sid;}
 function dataUrlToBlob(u){const c=u.indexOf(","),h=u.slice(0,c),b=u.slice(c+1),m=h.match(/data:(.*?);/),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:(m&&m[1])||"image/jpeg"});}
 function blobToJpeg(blob,maxDim,q){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(blob);img.onload=()=>{URL.revokeObjectURL(u);let w=img.naturalWidth,h=img.naturalHeight;const s=Math.min(1,(maxDim||1920)/Math.max(w,h));w=Math.max(1,Math.round(w*s));h=Math.max(1,Math.round(h*s));const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(img,0,0,w,h);res(cv.toDataURL("image/jpeg",q||0.85));};img.onerror=rej;img.src=u;});}
 async function photoToDataUrl(p){const b=await (await fetch(p.url)).blob();return blobToJpeg(b,1920,0.85);}
+/* ── pesan ringan tanpa gambar ── */
+function linkSend(o){const c=LINK.conn;if(!connOpen(c))return false;try{c.send(o);return true;}catch(e){return false;}}
+function hostApplyPhoto(pid,name,cap,blobUrl){
+  let ex=state.photos.find(p=>p.pid===pid);
+  if(ex){if(ex.url!==blobUrl){try{URL.revokeObjectURL(ex.url);}catch(e){}ex.url=blobUrl;}ex.name=name||ex.name;ex.cap=cap||"";return ex;}
+  const p={id:++uid,pid,url:blobUrl,name:name||(pid+".jpg"),zoom:1,panX:0,panY:0,rot:0,cap:cap||""};
+  state.photos.push(p);return p;
+}
 /* ── HOST (laptop) ── */
 async function hostOpen(){
   const sid=newSessionId();LINK.session=sid;LINK.chunks={};LINK.meta={got:0,count:0};
@@ -1890,24 +1903,47 @@ async function hostOpen(){
   const peer=new Peer("kolaseqc-"+sid);
   LINK.peer=peer;
   peer.on("open",()=>{$("#lkStatus").textContent="QR aktif — scan dari HP. Tab ini jangan ditutup.";});
-  peer.on("connection",c=>{LINK.conn=c;$("#lkStatus").textContent="HP terhubung — menunggu kirim…";c.on("data",d=>hostOnData(d,c));c.on("close",()=>{if(LINK.conn===c){LINK.conn=null;$("#lkStatus").textContent="HP terputus. QR tetap aktif — kirim ulang dari HP, atau Tutup sesi.";}});});
+  peer.on("connection",c=>{LINK.conn=c;LINK.sync.hostIds={};LINK.sync.unacked={};$("#lkStatus").textContent="HP terhubung — sync realtime aktif ✓";c.on("data",d=>hostOnData(d,c));c.on("close",()=>{if(LINK.conn===c){LINK.conn=null;$("#lkStatus").textContent="HP terputus. QR tetap aktif — buka lagi dari HP untuk sambung otomatis.";}});});
   peer.on("error",e=>{const t=(e&&e.type)||"";if(t==="unavailable-id")$("#lkStatus").textContent="Sesi kedaluwarsa — tutup lalu buat baru.";else $("#lkStatus").textContent="Koneksi gagal ("+t+"). Tutup & buat baru, atau pakai Import file.";});
 }
 function hostOnData(d,c){
   if(!d||typeof d!=="object")return;
-  if(d.t==="hello"){LINK.meta={got:0,count:d.count||0};$("#lkStatus").textContent="Menerima 0/"+LINK.meta.count+" foto…";try{c.send({t:"ready"});}catch(e){}}
-  else if(d.t==="img-start"){LINK.chunks[d.idx]={parts:new Array(d.chunks),name:d.name||"",cap:d.cap||""};}
-  else if(d.t==="img-chunk"){const b=LINK.chunks[d.idx];if(b)b.parts[d.i]=d.data;}
+  if(d.t==="hello"){LINK.meta={got:0,count:d.count||0};
+    /* kirim daftar pid yg sudah ada -> HP hanya kirim yg kurang (anti duplikat) */
+    LINK.sync.hostIds={};state.photos.forEach(p=>{if(p.pid)LINK.sync.hostIds[p.pid]=1;});
+    $("#lkStatus").textContent="HP terhubung — sync "+LINK.meta.count+" foto…";
+    try{c.send({t:"welcome",have:Object.keys(LINK.sync.hostIds)});}catch(e){}
+    return;}
+  else if(d.t==="img-start"){LINK.chunks[d.pid]={parts:new Array(d.chunks),name:d.name||"",cap:d.cap||"",pid:d.pid};}
+  else if(d.t==="img-chunk"){const b=LINK.chunks[d.pid];if(b)b.parts[d.i]=d.data;}
   else if(d.t==="img-end"){
-    const b=LINK.chunks[d.idx];if(!b||b.parts.some(x=>x==null))return;
+    const b=LINK.chunks[d.pid];if(!b||b.parts.some(x=>x==null))return;
     const blob=dataUrlToBlob(b.parts.join(""));
-    state.photos.push({id:++uid,url:URL.createObjectURL(blob),name:b.name||("hp-"+(d.idx+1)+".jpg"),zoom:1,panX:0,panY:0,rot:0,cap:b.cap||""});
-    delete LINK.chunks[d.idx];renderAll();
-    LINK.meta.got++;$("#lkStatus").textContent="Menerima "+LINK.meta.got+"/"+LINK.meta.count+" foto…";
+    hostApplyPhoto(d.pid,b.name||("hp-"+d.pid+".jpg"),b.cap,URL.createObjectURL(blob));
+    delete LINK.chunks[d.pid];renderAll();
+    LINK.sync.hostIds[d.pid]=1;LINK.meta.got++;
+    $("#lkStatus").textContent="Sync "+LINK.meta.got+"/"+LINK.meta.count+" foto ✓ — realtime aktif";
     $("#lkCount").textContent=state.photos.length+" foto di dokumen";
-    try{c.send({t:"img-ack",idx:d.idx});}catch(e){}
-    if(LINK.meta.got>=LINK.meta.count){commitHist();renderAll();$("#lkStatus").textContent="Selesai — "+LINK.meta.got+" foto masuk. Susun di layout, unduh PDF, lalu Tutup sesi.";}
-  }
+    try{c.send({t:"img-ack",pid:d.pid});}catch(e){}
+    commitHist();
+    return;}
+  else if(d.t==="del"){
+    const i=state.photos.findIndex(p=>p.pid===d.pid);
+    if(i>=0){state.photos.splice(i,1);commitHist();renderAll();$("#lkCount").textContent=state.photos.length+" foto di dokumen";}
+    delete LINK.sync.hostIds[d.pid];
+    try{c.send({t:"del-ack",pid:d.pid});}catch(e){}
+    return;}
+  else if(d.t==="cap"){
+    const p=state.photos.find(p=>p.pid===d.pid);
+    if(p){p.cap=d.cap||"";commitHist();renderAll();}
+    try{c.send({t:"cap-ack",pid:d.pid});}catch(e){}
+    return;}
+  else if(d.t==="clear"){
+    const keep=new Set(d.pids||[]);
+    /* hanya foto ber-pid (dari HP) yg diselaraskan; foto lokal laptop tak tersentuh */
+    state.photos=state.photos.filter(p=>!p.pid||keep.has(p.pid));
+    commitHist();renderAll();$("#lkCount").textContent=state.photos.length+" foto di dokumen";
+    return;}
 }
 function hostDestroy(){try{LINK.conn&&LINK.conn.close();}catch(e){}try{LINK.peer&&LINK.peer.destroy();}catch(e){}LINK.conn=null;LINK.peer=null;}
 $("#btnPhone").onclick=hostOpen;
@@ -1918,7 +1954,7 @@ $("#lkImportBtn").onclick=()=>$("#lkFile").click();
 $("#lkFile").onchange=async e=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.photos))throw 0;
-    for(const ph of j.photos){if(!ph.dataUrl)continue;state.photos.push({id:++uid,url:URL.createObjectURL(dataUrlToBlob(ph.dataUrl)),name:ph.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:ph.cap||""});}
+    for(const ph of j.photos){if(!ph.dataUrl)continue;state.photos.push({id:++uid,pid:ph.pid||undefined,url:URL.createObjectURL(dataUrlToBlob(ph.dataUrl)),name:ph.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:ph.cap||""});}
     commitHist();renderAll();$("#lkCount").textContent=state.photos.length+" foto di dokumen";$("#lkStatus").textContent="Import selesai — "+j.photos.length+" foto masuk.";
   }catch(_){$("#lkStatus").textContent="File tidak valid.";}
 };
@@ -1933,47 +1969,116 @@ function guestInit(){
   scanBarRefresh();
   updGuestCount();
 }
-function updGuestCount(){const n=state.photos.length,g=$("#gSend");if(!g)return;g.textContent=n?("Kirim "+n+" foto ke laptop"):"Belum ada foto";g.disabled=!n;}
+function updGuestCount(){const n=state.photos.length,g=$("#gSend");if(!g)return;const q=LINK.sync.queue.length;const done=Object.keys(LINK.sync.sentIds||{}).length;g.textContent=n?("Sync "+done+"/"+n+(q?(" · "+q+" antre"):" ✓")):"Belum ada foto";g.disabled=!n;}
 const _renderAll=renderAll;renderAll=function(){_renderAll();if(LINK.isGuest)updGuestCount();};
-$("#gSend").onclick=guestSend;
-$("#gExport").onclick=guestExport;
-async function guestSend(){
-  if(!state.photos.length||!LINK.session)return;
-  const st=$("#gStatus");st.textContent="Menyiapkan…";
-  try{await loadScriptOnce(PEERJS_CDN);}catch(e){st.textContent="Perlu internet untuk kirim. Atau ketuk Unduh file.";return;}
+/* ── SYNC REALTIME (HP -> laptop, otomatis, delta, koneksi persisten) ──
+   - guestConnect(): satu sambungan dijaga, auto-reconnect 3–15 dtk
+   - antrean: foto baru otomatis masuk antrean dan terkirim berurutan
+   - delta: welcome dari laptop berisi pid yg sudah ada -> hanya yg kurang dikirim
+   - ringan: del & cap terkirim instan tanpa gambar */
+function syncStatus(t){const st=$("#gStatus");if(st)st.textContent=t;}
+function guestEnsurePids(){state.photos.forEach(photoPid);}
+function syncEnqueue(pid){guestEnsurePids();const q=LINK.sync.queue;if(pid&&!q.includes(pid))q.push(pid);syncPump();}
+function syncEnqueueAll(){guestEnsurePids();state.photos.forEach(p=>{if(p&&p.pid&&!LINK.sync.sentIds[p.pid]&&!LINK.sync.queue.includes(p.pid))LINK.sync.queue.push(p.pid);});syncPump();}
+async function guestConnect(){
+  if(!LINK.session||!LINK.isGuest)return;
+  if(LINK.peerConnecting)return;
+  try{await loadScriptOnce(PEERJS_CDN);}catch(e){syncStatus("Perlu internet untuk sync. Atau ketuk Unduh file.");scheduleReconnect();return;}
+  LINK.peerConnecting=true;
   try{LINK.peer&&LINK.peer.destroy();}catch(e){}
+  LINK.conn=null;
   const peer=new Peer("kolaseqc-g-"+Math.random().toString(36).slice(2,8));
   LINK.peer=peer;
   peer.on("open",()=>{
-    st.textContent="Menghubungkan ke laptop…";
-    let c;try{c=peer.connect("kolaseqc-"+LINK.session,{reliable:true});}catch(e){st.textContent="Gagal — pastikan QR masih aktif di laptop.";return;}
-    LINK.conn=c;
-    const to=setTimeout(()=>{st.textContent="Laptop tidak menjawab — QR mungkin sudah ditutup. Coba tampilkan ulang QR.";},15000);
-    c.on("open",()=>{clearTimeout(to);guestPush(c);});
+    LINK.peerConnecting=false;syncStatus("Menghubungkan ke laptop…");
+    let c;try{c=peer.connect("kolaseqc-"+LINK.session,{reliable:true});}catch(e){syncStatus("Gagal — pastikan QR masih aktif di laptop.");scheduleReconnect();return;}
+    const to=setTimeout(()=>{if(!connOpen(LINK.conn)){syncStatus("Laptop tidak menjawab — mencoba lagi…");try{c.close();}catch(e){}scheduleReconnect();}},15000);
+    c.on("open",()=>{
+      clearTimeout(to);LINK.conn=c;LINK.sync.retry=0;
+      syncStatus("Terhubung ✓ sync realtime aktif");
+      guestEnsurePids();
+      try{c.send({t:"hello",count:state.photos.length,pids:state.photos.map(p=>p.pid)});}catch(e){scheduleReconnect();return;}
+      c.on("data",guestOnHost);
+      c.on("close",()=>{if(LINK.conn===c){LINK.conn=null;syncStatus("Terputus — menyambung ulang…");scheduleReconnect();}});
+      c.on("error",()=>{if(LINK.conn===c){LINK.conn=null;scheduleReconnect();}});
+      syncPump();
+    });
   });
-  peer.on("error",()=>{st.textContent="Laptop tidak ditemukan — QR mungkin sudah ditutup. Tampilkan ulang QR di laptop.";});
+  peer.on("error",()=>{LINK.peerConnecting=false;syncStatus("Laptop tidak ditemukan — QR mungkin sudah ditutup. Mencoba lagi…");scheduleReconnect();});
+  peer.on("disconnected",()=>{try{peer.reconnect();}catch(e){scheduleReconnect();}});
 }
-async function guestPush(c){
-  const st=$("#gStatus"),n=state.photos.length;
-  try{c.send({t:"hello",count:n});}catch(e){st.textContent="Koneksi putus. Kirim ulang.";return;}
-  for(let i=0;i<n;i++){
-    const p=state.photos[i];st.textContent="Mengirim "+(i+1)+"/"+n+"…";
-    let url;try{url=await photoToDataUrl(p);}catch(e){continue;}
-    const CH=16*1024,total=Math.ceil(url.length/CH);
-    try{
-      c.send({t:"img-start",idx:i,name:p.name||"",cap:p.cap||"",chunks:total});
-      for(let k=0;k<total;k++){c.send({t:"img-chunk",idx:i,i:k,data:url.slice(k*CH,(k+1)*CH)});await new Promise(r=>setTimeout(r,10));}
-      c.send({t:"img-end",idx:i});
-    }catch(e){st.textContent="Koneksi putus di foto "+(i+1)+" — kirim ulang.";return;}
-    await new Promise(r=>setTimeout(r,60));
+function scheduleReconnect(){
+  if(!LINK.session||!LINK.isGuest)return;
+  if(LINK.sync.timer)return;
+  const wait=Math.min(15000,3000+LINK.sync.retry*2000);LINK.sync.retry++;
+  LINK.sync.timer=setTimeout(()=>{LINK.sync.timer=0;if(!connOpen(LINK.conn))guestConnect();},wait);
+}
+function guestOnHost(d){
+  if(!d||typeof d!=="object")return;
+  const S=LINK.sync;
+  if(d.t==="welcome"){
+    const have=new Set(d.have||[]);
+    S.sentIds={};state.photos.forEach(p=>{if(p&&have.has(p.pid))S.sentIds[p.pid]=1;});
+    S.unacked={};S.busy=false;
+    syncEnqueueAll();
+    syncStatus(have.size?("Sync "+have.size+" foto sudah di laptop ✓ — foto baru langsung terkirim."):"Terhubung ✓ — foto baru langsung terkirim otomatis.");
+    updGuestCount();
   }
-  st.textContent="Terkirim "+n+" foto ✓ — cek laptop, finalisasi di sana.";
+  else if((d.t==="img-ack"||d.t==="del-ack"||d.t==="cap-ack")&&d.pid){
+    S.sentIds[d.pid]=1;delete S.unacked[d.pid];
+    if(S.queue[0]===d.pid)S.queue.shift();
+    S.busy=false;updGuestCount();setTimeout(syncPump,60);
+  }
 }
+async function syncPump(){
+  const S=LINK.sync;
+  if(S.busy)return;
+  const pid=S.queue[0];
+  if(!pid)return;
+  if(!connOpen(LINK.conn)){scheduleReconnect();return;}
+  const p=state.photos.find(x=>x&&x.pid===pid);
+  if(!p){S.queue.shift();delete S.unacked[pid];syncPump();return;}
+  if(S.sentIds[pid]){S.queue.shift();delete S.unacked[pid];syncPump();return;}
+  S.busy=true;
+  try{
+    const url=await photoToDataUrl(p);
+    const CH=16*1024,total=Math.ceil(url.length/CH);
+    S.unacked[pid]={at:Date.now()};
+    LINK.conn.send({t:"img-start",pid,name:p.name||"",cap:p.cap||"",chunks:total});
+    for(let k=0;k<total;k++){LINK.conn.send({t:"img-chunk",pid,i:k,data:url.slice(k*CH,(k+1)*CH)});await new Promise(r=>setTimeout(r,10));}
+    LINK.conn.send({t:"img-end",pid});
+    syncStatus("Mengirim "+(p.name||"foto")+"…");
+    setTimeout(()=>{if(S.unacked[pid]&&!S.sentIds[pid]){S.busy=false;syncPump();}},30000);
+  }catch(e){S.busy=false;syncStatus("Koneksi putus — "+S.queue.length+" antre, menyambung ulang…");scheduleReconnect();}
+}
+const _addFilesSync=addFiles;
+addFiles=function(files,atIdx){
+  _addFilesSync(files,atIdx);
+  if(LINK.isGuest&&LINK.session){
+    guestEnsurePids();
+    const baru=state.photos.slice(-8);
+    baru.forEach(p=>{if(p&&p.pid&&!LINK.sync.sentIds[p.pid])syncEnqueue(p.pid);});
+    if(!connOpen(LINK.conn))guestConnect();else syncPump();
+    syncStatus("Foto baru antre sync…");
+  }
+};
+function syncDel(pid){if(!linkSend({t:"del",pid})){scheduleReconnect();}}
+function syncCap(pid,cap){linkSend({t:"cap",pid,cap});}
+async function guestSend(){
+  if(!state.photos.length||!LINK.session)return;
+  if(!connOpen(LINK.conn)){syncStatus("Menghubungkan…");guestConnect();syncEnqueueAll();return;}
+  syncEnqueueAll();syncPump();syncStatus("Sync berjalan…");
+}
+$("#gSend").onclick=guestSend;
+$("#gExport").onclick=guestExport;
+/* auto-connect saat masuk mode tamu: sambungan langsung dijaga tanpa tunggu klik */
+const _guestInit2=guestInit;
+guestInit=function(){_guestInit2();if(LINK.isGuest&&LINK.session){guestEnsurePids();guestConnect();}};
 async function guestExport(){
   const st=$("#gStatus");if(!state.photos.length){st.textContent="Belum ada foto.";return;}
   st.textContent="Menyiapkan file…";
   try{
-    const arr=[];for(const p of state.photos)arr.push({name:p.name,cap:p.cap,dataUrl:await photoToDataUrl(p)});
+    const arr=[];for(const p of state.photos)arr.push({pid:p.pid||null,name:p.name,cap:p.cap,dataUrl:await photoToDataUrl(p)});
     const blob=new Blob([JSON.stringify({app:"kolase-qc-link",session:LINK.session,photos:arr})],{type:"application/json"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kolase-"+(LINK.session||"hp")+".json";document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),5000);
