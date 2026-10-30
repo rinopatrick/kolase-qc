@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kolase QC</title>
-<meta name="app-version" content="20261029-undo">
+<meta name="app-version" content="20261030-link2">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <style id="pageStyle">@page{size:A4 portrait;margin:14mm;}</style>
 <style>
 :root{
@@ -1763,6 +1765,8 @@ const PEERJS_CDN="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
 const QR_CDN="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
 const LINK={peer:null,conn:null,session:null,chunks:{},meta:{got:0,count:0},isGuest:false};
 function loadScriptOnce(src){return new Promise((res,rej)=>{if(document.querySelector('script[data-cdn="'+src+'"]'))return res();const s=document.createElement("script");s.src=src;s.dataset.cdn=src;s.onload=res;s.onerror=()=>rej(new Error("cdn "+src));document.head.appendChild(s);});}
+/* Prefetch saat idle: saat user klik Terima dari HP, pustaka sudah di cache */
+setTimeout(()=>{const go=()=>{loadScriptOnce(PEERJS_CDN).catch(()=>{});loadScriptOnce(QR_CDN).catch(()=>{});};if("requestIdleCallback" in window)requestIdleCallback(go,{timeout:4000});else go();},1200);
 function newSessionId(){const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<5;i++)s+=A[Math.floor(Math.random()*A.length)];return "DOC-"+s;}
 function linkUrl(sid){return location.origin+location.pathname+"#s="+sid;}
 function dataUrlToBlob(u){const c=u.indexOf(","),h=u.slice(0,c),b=u.slice(c+1),m=h.match(/data:(.*?);/),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:(m&&m[1])||"image/jpeg"});}
@@ -1778,9 +1782,11 @@ async function hostOpen(){
   try{await Promise.all([loadScriptOnce(PEERJS_CDN),loadScriptOnce(QR_CDN)]);}
   catch(e){$("#lkStatus").textContent="Gagal muat pustaka (perlu internet). Jalur cadangan: minta HP ketuk Unduh file, lalu Import file di sini.";return;}
   hostDestroy();
+  try{new QRCode($("#lkQr"),{text:linkUrl(sid),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});}catch(q){$("#lkQr").innerHTML='<span style="color:#666;font-size:13px">QR gagal — salin link di bawah.</span>';}
+  $("#lkStatus").textContent="QR tampil — mengaktifkan sesi…";
   const peer=new Peer("kolaseqc-"+sid);
   LINK.peer=peer;
-  peer.on("open",()=>{$("#lkStatus").textContent="QR aktif — scan dari HP. Tab ini jangan ditutup.";try{new QRCode($("#lkQr"),{text:linkUrl(sid),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});}catch(q){$("#lkQr").innerHTML='<span style="color:#666;font-size:13px">QR gagal — salin link di bawah.</span>';}});
+  peer.on("open",()=>{$("#lkStatus").textContent="QR aktif — scan dari HP. Tab ini jangan ditutup.";});
   peer.on("connection",c=>{LINK.conn=c;$("#lkStatus").textContent="HP terhubung — menunggu kirim…";c.on("data",d=>hostOnData(d,c));c.on("close",()=>{if(LINK.conn===c){LINK.conn=null;$("#lkStatus").textContent="HP terputus. QR tetap aktif — kirim ulang dari HP, atau Tutup sesi.";}});});
   peer.on("error",e=>{const t=(e&&e.type)||"";if(t==="unavailable-id")$("#lkStatus").textContent="Sesi kedaluwarsa — tutup lalu buat baru.";else $("#lkStatus").textContent="Koneksi gagal ("+t+"). Tutup & buat baru, atau pakai Import file.";});
 }
@@ -1818,6 +1824,7 @@ function guestInit(){
   const m=location.hash.match(/#s=([A-Za-z0-9-]+)/);
   if(!m)return;
   LINK.isGuest=true;LINK.session=m[1].toUpperCase();
+  loadScriptOnce(PEERJS_CDN).catch(()=>{}); /* prefetch: tombol Kirim langsung siap */
   $("#guestBar").hidden=false;$("#gCode").textContent=LINK.session;
   updGuestCount();
 }
