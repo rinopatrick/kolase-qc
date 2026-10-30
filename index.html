@@ -123,6 +123,12 @@ kbd{background:#1E293B;border:1px solid var(--border2);border-radius:5px;padding
 #gSend{background:#04211D;color:#fff}
 #gSend:disabled{opacity:.45;cursor:default}
 #gExport{background:rgba(255,255,255,.85);color:#04211D}
+#gScan{background:#fff;color:#04211D}
+/* Modal pindai QR laptop: kamera dalam app, hasil langsung tempel sesi tanpa reload */
+#scanView{width:100%;border-radius:12px;background:#000;max-height:52vh;object-fit:cover;display:block}
+.scan-hint{font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.5}
+.scan-err{font-size:13px;color:#FCA5A5;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:9px 12px;margin-top:10px;line-height:1.5}
+.scan-err[hidden]{display:none}
 .lk-qr{display:grid;place-items:center;background:#fff;border-radius:12px;padding:14px;margin:4px 0 12px;min-height:208px}
 .lk-qr img,.lk-qr canvas{display:block}
 .lk-code{text-align:center;font-size:14px;margin-bottom:8px}
@@ -332,6 +338,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 <body>
 
 <div id="guestBar" hidden>📲 Mode kirim <span class="gcode" id="gCode">–</span><span class="gstatus" id="gStatus">Siap kirim ke laptop.</span><button id="gSend">Kirim ke laptop</button><button id="gExport" title="Unduh sebagai file, pindah via kabel/Bluetooth, import di laptop">Unduh file</button></div>
+<div id="scanBar" hidden style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#0E7490,#14B8A6);color:#fff;font-weight:600">📷 Sudah foto di HP ini? <span class="gstatus" id="scanHint" style="font-size:13px;font-weight:500;flex:1;min-width:140px">Pindai QR laptop — foto yang sudah ada ikut terkirim, tidak hilang.</span><button id="gScanBtn" style="border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;background:#fff;color:#04211D">Pindai QR laptop</button></div>
 <header class="topbar" data-od-id="topbar">
   <button class="btn ghost" id="btnMenu" aria-label="Buka pengaturan" aria-expanded="false">☰</button>
   <div class="brand" data-od-id="brand">
@@ -430,6 +437,19 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 <input type="file" id="galPick" accept="image/*" multiple class="fileghost">
 
 <!-- Sheet pilihan sumber foto: samakan perilaku iOS (kamera/galeri) di Android -->
+<div class="modal-veil" id="scanModal" hidden>
+  <div class="modal">
+    <h3>📷 Pindai QR laptop</h3>
+    <p class="msub">Arahkan kamera ke QR di layar laptop. Foto di HP ini <b>tidak hilang</b> — setelah tersambung, ketuk Kirim.</p>
+    <video id="scanView" playsinline muted></video>
+    <p class="scan-hint" id="scanMsg">Menyiapkan kamera…</p>
+    <p class="scan-err" id="scanErr" hidden></p>
+    <div class="mrow">
+      <button class="btn ghost" id="scanCancel">Batal</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-veil" id="srcSheet" hidden>
   <div class="modal sheetpick">
     <h3>Tambah foto</h3>
@@ -647,6 +667,60 @@ function renderLaySeg(){
   g.appendChild(note);
 }
 
+/* ══ Draft otomatis (IndexedDB): foto HP selamat dari reload/pindah tab/scan QR ══ */
+const DRAFT_DB="kolase-qc-draft",DRAFT_STORE="photos";
+function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,2);r.onupgradeneeded=()=>{if(r.result.objectStoreNames.contains(DRAFT_STORE))r.result.deleteObjectStore(DRAFT_STORE);r.result.createObjectStore(DRAFT_STORE,{keyPath:"i"});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+function draftTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);};}catch(e){try{db.close();}catch(_){}rej(e);}}));}
+async function draftSaveAll(){try{const items=[];for(let i=0;i<state.photos.length;i++){const p=state.photos[i];try{const b=await (await fetch(p.url)).blob();items.push({i,name:p.name||"",cap:p.cap||"",blob:b});}catch(e){}}await draftTx("readwrite",s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
+async function draftLoad(){try{const rows=await draftTx("readonly",s=>s.getAll());if(!rows||!rows.length)return false;rows.sort((a,b)=>a.i-b.i);for(const r of rows){try{state.photos.push({id:++uid,url:URL.createObjectURL(r.blob),name:r.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:r.cap||""});}catch(e){}}return true;}catch(e){return false;}}
+async function draftClear(){try{await draftTx("readwrite",s=>s.clear());}catch(e){}}
+function draftArm(){if(draftArm._on)return;draftArm._on=true;const save=()=>{if(state&&state.photos)draftSaveAll();};setInterval(()=>{if(!document.hidden)save();},4000);addEventListener("pagehide",save);addEventListener("beforeunload",save);}
+/* ── Pindai QR laptop dari dalam app (tanpa pindah tab, tanpa reload) ── */
+const SCAN_CDN="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+let scanStream=null,scanRAF=0;
+function scanMsg(t){const e=$("#scanMsg");if(e)e.textContent=t;}
+function scanFail(t){const e=$("#scanErr");if(e){e.hidden=false;e.textContent=t;}}
+function scanClose(){try{cancelAnimationFrame(scanRAF);}catch(e){}scanRAF=0;const v=$("#scanView");if(v)v.srcObject=null;if(scanStream){try{scanStream.getTracks().forEach(tr=>tr.stop());}catch(e){}scanStream=null;}$("#scanModal").hidden=true;}
+async function scanOpen(){
+  $("#scanModal").hidden=false;
+  const err=$("#scanErr");if(err)err.hidden=true;
+  if(!window.isSecureContext&&location.protocol!=="https:"&&location.hostname!=="localhost"&&location.protocol!=="file:"){scanFail("Pindai butuh HTTPS. Buka halaman ini lewat link laptop (bukan file lokal).");scanMsg("Kamera tidak tersedia.");return;}
+  try{await loadScriptOnce(SCAN_CDN);}catch(e){scanFail("Gagal muat pemindai (perlu internet).");scanMsg("Pemindai tidak tersedia.");return;}
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});}catch(e){scanFail("Kamera ditolak/tidak tersedia. Izinkan akses kamera untuk situs ini, lalu coba lagi.");scanMsg("Kamera tidak tersedia.");return;}
+  scanStream=stream;const v=$("#scanView");v.srcObject=stream;try{await v.play();}catch(e){}
+  scanMsg("Arahkan ke QR di layar laptop…");
+  const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+  const tick=()=>{
+    if($("#scanModal").hidden)return;
+    try{
+      const w=v.videoWidth,h=v.videoHeight;
+      if(w&&h){cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);
+        const code=jsQR(cx.getImageData(0,0,w,h).data,w,h);
+        if(code&&code.data){scanFound(String(code.data||""));return;}}
+    }catch(e){}
+    scanRAF=requestAnimationFrame(tick);
+  };
+  tick();
+}
+function scanFound(text){
+  let sid=null;
+  try{const m=String(text).match(/#s=([A-Za-z0-9-]+)/);if(m)sid=m[1].toUpperCase();}catch(e){}
+  if(!sid){scanFail("QR bukan sesi Kolase QC. Pindai QR dari tombol Terima dari HP di laptop.");return;}
+  scanClose();
+  history.replaceState(null,"","#s="+sid);
+  guestInit();
+  const n=state.photos.length;
+  $("#gStatus").textContent=n?("Tersambung ke "+sid+" ✓ — "+n+" foto siap, ketuk Kirim ke laptop."):("Tersambung ke "+sid+" ✓ — belum ada foto, tambahkan lalu kirim.");
+  try{$("#guestBar").scrollIntoView({behavior:"smooth",block:"center"});}catch(e){}
+}
+$("#scanCancel").onclick=scanClose;
+$("#scanModal").addEventListener("click",e=>{if(e.target.id==="scanModal")scanClose();});
+function scanBarRefresh(){
+  const bar=$("#scanBar");if(!bar)return;
+  const show=!LINK.isGuest;
+  bar.hidden=!show;
+  if(show)bar.style.display="flex";else bar.style.display="";
+}
 /* ══ Files ══ */
 function addFiles(files,atIdx){
   const imgs=[...files].filter(f=>f.type.startsWith("image/"));
@@ -654,7 +728,7 @@ function addFiles(files,atIdx){
   const objs=imgs.map(f=>({id:++uid,url:URL.createObjectURL(f),name:f.name,zoom:1,panX:0,panY:0,rot:0,cap:""}));
   if(atIdx==null||atIdx<0||atIdx>=state.photos.length)state.photos.push(...objs);
   else state.photos.splice(atIdx,0,...objs);
-  commitHist();renderAll();
+  commitHist();renderAll();draftArm();draftSaveAll();
 }
 filePick.onchange=e=>{addFiles(e.target.files,pickIdx);filePick.value="";pickIdx=-1;};
 document.addEventListener("paste",e=>{
@@ -1849,12 +1923,14 @@ $("#lkFile").onchange=async e=>{
   }catch(_){$("#lkStatus").textContent="File tidak valid.";}
 };
 /* ── GUEST (HP): mode kirim via #s=DOC-XXXXX ── */
+$("#gScanBtn").onclick=scanOpen;
 function guestInit(){
   const m=location.hash.match(/#s=([A-Za-z0-9-]+)/);
-  if(!m)return;
+  if(!m){scanBarRefresh();return;}
   LINK.isGuest=true;LINK.session=m[1].toUpperCase();
   loadScriptOnce(PEERJS_CDN).catch(()=>{}); /* prefetch: tombol Kirim langsung siap */
   $("#guestBar").hidden=false;$("#gCode").textContent=LINK.session;
+  scanBarRefresh();
   updGuestCount();
 }
 function updGuestCount(){const n=state.photos.length,g=$("#gSend");if(!g)return;g.textContent=n?("Kirim "+n+" foto ke laptop"):"Belum ada foto";g.disabled=!n;}
@@ -1905,6 +1981,9 @@ async function guestExport(){
   }catch(e){st.textContent="Gagal buat file.";}
 }
 guestInit();
+/* Pulihkan draft HP bila ada (reload/tab baru setelah scan via kamera bawaan). */
+(async()=>{try{if(location.hash.match(/#s=/))return;const ok=await draftLoad();if(ok){draftArm();commitHist();renderAll();}}catch(e){}})();
+scanBarRefresh();
 
 renderAll();
 </script>
