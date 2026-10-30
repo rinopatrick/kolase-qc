@@ -109,6 +109,22 @@ kbd{background:#1E293B;border:1px solid var(--border2);border-radius:5px;padding
 .modal .mcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer}
 .modal .mcheck input{width:16px;height:16px;accent-color:var(--accent)}
 .modal .mrow{display:flex;gap:10px;justify-content:flex-end}
+/* ── Link HP → Laptop (P2P) ── */
+#guestBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#14B8A6,#0E7490);color:#04211D;font-weight:600}
+#guestBar[hidden]{display:none}
+#guestBar .gcode{background:rgba(0,0,0,.25);color:#fff;border-radius:8px;padding:3px 10px;font-family:var(--mono);letter-spacing:1px}
+#guestBar .gstatus{font-size:13px;font-weight:500;flex:1;min-width:140px}
+#guestBar button{border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+#gSend{background:#04211D;color:#fff}
+#gSend:disabled{opacity:.45;cursor:default}
+#gExport{background:rgba(255,255,255,.85);color:#04211D}
+.lk-qr{display:grid;place-items:center;background:#fff;border-radius:12px;padding:14px;margin:4px 0 12px;min-height:208px}
+.lk-qr img,.lk-qr canvas{display:block}
+.lk-code{text-align:center;font-size:14px;margin-bottom:8px}
+.lk-code b{font-family:var(--mono);letter-spacing:2px}
+.lk-linkrow{display:flex;gap:8px;align-items:center;background:#0B0F19;border-radius:10px;padding:8px 8px 8px 12px;margin-bottom:10px}
+.lk-linkrow code{flex:1;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-status{font-size:13px;color:var(--accent);background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.25);border-radius:10px;padding:9px 12px;margin-bottom:14px;line-height:1.5}
 @media print{.modal-veil{display:none !important}}
 
 /* ── Canvas ── */
@@ -310,6 +326,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 </head>
 <body>
 
+<div id="guestBar" hidden>📲 Mode kirim <span class="gcode" id="gCode">–</span><span class="gstatus" id="gStatus">Siap kirim ke laptop.</span><button id="gSend">Kirim ke laptop</button><button id="gExport" title="Unduh sebagai file, pindah via kabel/Bluetooth, import di laptop">Unduh file</button></div>
 <header class="topbar" data-od-id="topbar">
   <button class="btn ghost" id="btnMenu" aria-label="Buka pengaturan" aria-expanded="false">☰</button>
   <div class="brand" data-od-id="brand">
@@ -329,6 +346,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <button class="btn ghost" id="btnRedo" title="Ulangi (Ctrl+Y)" disabled>↷</button>
     <button class="btn ghost" id="btnAdd">＋ Tambah foto</button>
     <button class="btn ghost" id="btnCam">📷 Kamera</button>
+    <button class="btn ghost" id="btnPhone" title="Tampilkan QR agar HP bisa kirim foto langsung ke dokumen ini">⇄ Terima dari HP</button>
     <button class="btn ghost" id="btnClear">Kosongkan</button>
     <button class="btn ghost print-fallback" id="btnPrint" title="Jalur cadangan via dialog cetak browser — hasil bisa beda (header Safari tak termatikan)">Cetak⋯</button>
     </div>
@@ -417,6 +435,22 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
     <div class="mrow">
       <button class="btn ghost" id="gCancel">Batal</button>
       <button class="btn primary" id="gGo" title="Unduh PDF — hasil persis pratinjau">⬇ Unduh PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-veil" id="linkModal" hidden>
+  <div class="modal">
+    <h3>⇄ Terima foto dari HP</h3>
+    <p class="msub">Scan QR ini dari HP — 1 QR hanya untuk dokumen ini. Tab laptop <b>jangan ditutup</b> selama kirim. Foto jalan langsung HP → laptop (terenkripsi), tidak disimpan di server mana pun.</p>
+    <div class="lk-qr" id="lkQr"></div>
+    <div class="lk-code">Sesi <b id="lkCode">–</b> · <span id="lkCount"></span></div>
+    <div class="lk-linkrow"><code id="lkLink"></code><button class="btn ghost" id="lkCopy">Salin</button></div>
+    <div class="lk-status" id="lkStatus">Menyiapkan…</div>
+    <div class="mrow">
+      <button class="btn ghost" id="lkImportBtn" title="Jalur cadangan kalau P2P gagal: import file .json dari HP">Import file…</button>
+      <input type="file" id="lkFile" accept="application/json,.json" hidden>
+      <button class="btn ghost" id="lkClose">Tutup sesi</button>
     </div>
   </div>
 </div>
@@ -1722,6 +1756,119 @@ function tfPrint(p,po){
   const bse=640*(state.zoomUI/80), Wd=Math.min(bse,860), sc=Wd/wdt;
   return tfPrintS(p,sc);}
 function tfPrintS(p,sc){return `translate(-50%,-50%) translate(${(p.panX*3.7795/sc).toFixed(1)}px,${(p.panY*3.7795/sc).toFixed(1)}px) rotate(${p.rot}deg) scale(${p.zoom})`;}
+
+/* ══ Link HP → Laptop: P2P WebRTC via PeerJS Cloud (gratis, tanpa simpan foto di server) ══
+   1 QR = 1 sesi = 1 dokumen. Host (laptop): peer id kolaseqc-DOC-XXXXX. Guest (HP): buka link #s=DOC-XXXXX. */
+const PEERJS_CDN="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
+const QR_CDN="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+const LINK={peer:null,conn:null,session:null,chunks:{},meta:{got:0,count:0},isGuest:false};
+function loadScriptOnce(src){return new Promise((res,rej)=>{if(document.querySelector('script[data-cdn="'+src+'"]'))return res();const s=document.createElement("script");s.src=src;s.dataset.cdn=src;s.onload=res;s.onerror=()=>rej(new Error("cdn "+src));document.head.appendChild(s);});}
+function newSessionId(){const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<5;i++)s+=A[Math.floor(Math.random()*A.length)];return "DOC-"+s;}
+function linkUrl(sid){return location.origin+location.pathname+"#s="+sid;}
+function dataUrlToBlob(u){const c=u.indexOf(","),h=u.slice(0,c),b=u.slice(c+1),m=h.match(/data:(.*?);/),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:(m&&m[1])||"image/jpeg"});}
+function blobToJpeg(blob,maxDim,q){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(blob);img.onload=()=>{URL.revokeObjectURL(u);let w=img.naturalWidth,h=img.naturalHeight;const s=Math.min(1,(maxDim||1920)/Math.max(w,h));w=Math.max(1,Math.round(w*s));h=Math.max(1,Math.round(h*s));const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(img,0,0,w,h);res(cv.toDataURL("image/jpeg",q||0.85));};img.onerror=rej;img.src=u;});}
+async function photoToDataUrl(p){const b=await (await fetch(p.url)).blob();return blobToJpeg(b,1920,0.85);}
+/* ── HOST (laptop) ── */
+async function hostOpen(){
+  const sid=newSessionId();LINK.session=sid;LINK.chunks={};LINK.meta={got:0,count:0};
+  $("#linkModal").hidden=false;
+  $("#lkCode").textContent=sid;$("#lkLink").textContent=linkUrl(sid);
+  $("#lkCount").textContent=state.photos.length+" foto di dokumen";
+  $("#lkQr").innerHTML="";$("#lkStatus").textContent="Menyiapkan koneksi (perlu internet)…";
+  try{await Promise.all([loadScriptOnce(PEERJS_CDN),loadScriptOnce(QR_CDN)]);}
+  catch(e){$("#lkStatus").textContent="Gagal muat pustaka (perlu internet). Jalur cadangan: minta HP ketuk Unduh file, lalu Import file di sini.";return;}
+  hostDestroy();
+  const peer=new Peer("kolaseqc-"+sid);
+  LINK.peer=peer;
+  peer.on("open",()=>{$("#lkStatus").textContent="QR aktif — scan dari HP. Tab ini jangan ditutup.";try{new QRCode($("#lkQr"),{text:linkUrl(sid),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});}catch(q){$("#lkQr").innerHTML='<span style="color:#666;font-size:13px">QR gagal — salin link di bawah.</span>';}});
+  peer.on("connection",c=>{LINK.conn=c;$("#lkStatus").textContent="HP terhubung — menunggu kirim…";c.on("data",d=>hostOnData(d,c));c.on("close",()=>{if(LINK.conn===c){LINK.conn=null;$("#lkStatus").textContent="HP terputus. QR tetap aktif — kirim ulang dari HP, atau Tutup sesi.";}});});
+  peer.on("error",e=>{const t=(e&&e.type)||"";if(t==="unavailable-id")$("#lkStatus").textContent="Sesi kedaluwarsa — tutup lalu buat baru.";else $("#lkStatus").textContent="Koneksi gagal ("+t+"). Tutup & buat baru, atau pakai Import file.";});
+}
+function hostOnData(d,c){
+  if(!d||typeof d!=="object")return;
+  if(d.t==="hello"){LINK.meta={got:0,count:d.count||0};$("#lkStatus").textContent="Menerima 0/"+LINK.meta.count+" foto…";try{c.send({t:"ready"});}catch(e){}}
+  else if(d.t==="img-start"){LINK.chunks[d.idx]={parts:new Array(d.chunks),name:d.name||"",cap:d.cap||""};}
+  else if(d.t==="img-chunk"){const b=LINK.chunks[d.idx];if(b)b.parts[d.i]=d.data;}
+  else if(d.t==="img-end"){
+    const b=LINK.chunks[d.idx];if(!b||b.parts.some(x=>x==null))return;
+    const blob=dataUrlToBlob(b.parts.join(""));
+    state.photos.push({id:++uid,url:URL.createObjectURL(blob),name:b.name||("hp-"+(d.idx+1)+".jpg"),zoom:1,panX:0,panY:0,rot:0,cap:b.cap||""});
+    delete LINK.chunks[d.idx];renderAll();
+    LINK.meta.got++;$("#lkStatus").textContent="Menerima "+LINK.meta.got+"/"+LINK.meta.count+" foto…";
+    $("#lkCount").textContent=state.photos.length+" foto di dokumen";
+    try{c.send({t:"img-ack",idx:d.idx});}catch(e){}
+    if(LINK.meta.got>=LINK.meta.count){commitHist();renderAll();$("#lkStatus").textContent="Selesai — "+LINK.meta.got+" foto masuk. Susun di layout, unduh PDF, lalu Tutup sesi.";}
+  }
+}
+function hostDestroy(){try{LINK.conn&&LINK.conn.close();}catch(e){}try{LINK.peer&&LINK.peer.destroy();}catch(e){}LINK.conn=null;LINK.peer=null;}
+$("#btnPhone").onclick=hostOpen;
+$("#lkClose").onclick=()=>{hostDestroy();LINK.session=null;$("#linkModal").hidden=true;};
+$("#linkModal").addEventListener("click",e=>{if(e.target.id==="linkModal")$("#linkModal").hidden=true;});
+$("#lkCopy").onclick=async()=>{const t=$("#lkLink").textContent;try{await navigator.clipboard.writeText(t);$("#lkCopy").textContent="Tersalin ✓";setTimeout(()=>{$("#lkCopy").textContent="Salin";},1500);}catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(_){}ta.remove();}};
+$("#lkImportBtn").onclick=()=>$("#lkFile").click();
+$("#lkFile").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.photos))throw 0;
+    for(const ph of j.photos){if(!ph.dataUrl)continue;state.photos.push({id:++uid,url:URL.createObjectURL(dataUrlToBlob(ph.dataUrl)),name:ph.name||"hp.jpg",zoom:1,panX:0,panY:0,rot:0,cap:ph.cap||""});}
+    commitHist();renderAll();$("#lkCount").textContent=state.photos.length+" foto di dokumen";$("#lkStatus").textContent="Import selesai — "+j.photos.length+" foto masuk.";
+  }catch(_){$("#lkStatus").textContent="File tidak valid.";}
+};
+/* ── GUEST (HP): mode kirim via #s=DOC-XXXXX ── */
+function guestInit(){
+  const m=location.hash.match(/#s=([A-Za-z0-9-]+)/);
+  if(!m)return;
+  LINK.isGuest=true;LINK.session=m[1].toUpperCase();
+  $("#guestBar").hidden=false;$("#gCode").textContent=LINK.session;
+  updGuestCount();
+}
+function updGuestCount(){const n=state.photos.length,g=$("#gSend");if(!g)return;g.textContent=n?("Kirim "+n+" foto ke laptop"):"Belum ada foto";g.disabled=!n;}
+const _renderAll=renderAll;renderAll=function(){_renderAll();if(LINK.isGuest)updGuestCount();};
+$("#gSend").onclick=guestSend;
+$("#gExport").onclick=guestExport;
+async function guestSend(){
+  if(!state.photos.length||!LINK.session)return;
+  const st=$("#gStatus");st.textContent="Menyiapkan…";
+  try{await loadScriptOnce(PEERJS_CDN);}catch(e){st.textContent="Perlu internet untuk kirim. Atau ketuk Unduh file.";return;}
+  try{LINK.peer&&LINK.peer.destroy();}catch(e){}
+  const peer=new Peer("kolaseqc-g-"+Math.random().toString(36).slice(2,8));
+  LINK.peer=peer;
+  peer.on("open",()=>{
+    st.textContent="Menghubungkan ke laptop…";
+    let c;try{c=peer.connect("kolaseqc-"+LINK.session,{reliable:true});}catch(e){st.textContent="Gagal — pastikan QR masih aktif di laptop.";return;}
+    LINK.conn=c;
+    const to=setTimeout(()=>{st.textContent="Laptop tidak menjawab — QR mungkin sudah ditutup. Coba tampilkan ulang QR.";},15000);
+    c.on("open",()=>{clearTimeout(to);guestPush(c);});
+  });
+  peer.on("error",()=>{st.textContent="Laptop tidak ditemukan — QR mungkin sudah ditutup. Tampilkan ulang QR di laptop.";});
+}
+async function guestPush(c){
+  const st=$("#gStatus"),n=state.photos.length;
+  try{c.send({t:"hello",count:n});}catch(e){st.textContent="Koneksi putus. Kirim ulang.";return;}
+  for(let i=0;i<n;i++){
+    const p=state.photos[i];st.textContent="Mengirim "+(i+1)+"/"+n+"…";
+    let url;try{url=await photoToDataUrl(p);}catch(e){continue;}
+    const CH=16*1024,total=Math.ceil(url.length/CH);
+    try{
+      c.send({t:"img-start",idx:i,name:p.name||"",cap:p.cap||"",chunks:total});
+      for(let k=0;k<total;k++){c.send({t:"img-chunk",idx:i,i:k,data:url.slice(k*CH,(k+1)*CH)});await new Promise(r=>setTimeout(r,10));}
+      c.send({t:"img-end",idx:i});
+    }catch(e){st.textContent="Koneksi putus di foto "+(i+1)+" — kirim ulang.";return;}
+    await new Promise(r=>setTimeout(r,60));
+  }
+  st.textContent="Terkirim "+n+" foto ✓ — cek laptop, finalisasi di sana.";
+}
+async function guestExport(){
+  const st=$("#gStatus");if(!state.photos.length){st.textContent="Belum ada foto.";return;}
+  st.textContent="Menyiapkan file…";
+  try{
+    const arr=[];for(const p of state.photos)arr.push({name:p.name,cap:p.cap,dataUrl:await photoToDataUrl(p)});
+    const blob=new Blob([JSON.stringify({app:"kolase-qc-link",session:LINK.session,photos:arr})],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kolase-"+(LINK.session||"hp")+".json";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    st.textContent="File terunduh — pindah via kabel/Bluetooth, lalu Import file di laptop.";
+  }catch(e){st.textContent="Gagal buat file.";}
+}
+guestInit();
 
 renderAll();
 </script>
