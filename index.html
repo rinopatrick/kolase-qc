@@ -248,15 +248,12 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 .slot:hover .toolbar,.slot:focus-within .toolbar{opacity:1;transform:none}
 /* Task1: toast inline + kontrol base visible (desktop .38, hover/pilih/fokus penuh;
    coarse-pointer existing tetap menang di HP karena blok itu muncul belakangan). */
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);z-index:200;background:#101828;border:1px solid var(--border2);color:var(--fg);border-radius:12px;padding:10px 14px;font-size:13px;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:.2s;max-width:min(92vw,560px)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);z-index:210;background:#101828;border:1px solid var(--border2);color:var(--fg);border-radius:12px;padding:10px 14px;font-size:13px;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:.2s;max-width:min(92vw,560px)}
 #toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
 #toast button{background:var(--accent);border:0;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;color:var(--accent-ink)}
 .slot .toolbar,.slot .zctl{opacity:.38}
-.slot:hover .toolbar,.slot.sel .toolbar,.slot:focus-within .toolbar,.slot:hover .zctl,.slot:focus-within .zctl{opacity:1}
-.slot .hd{opacity:.38}
-.slot:hover .hd,.slot.sel .hd,.slot:focus-within .hd{opacity:1}
+.slot:hover .toolbar,.slot.sel .toolbar,.slot:focus-within .toolbar,.slot:hover .zctl,.slot.sel .zctl,.slot:focus-within .zctl{opacity:1}
 .divider::after{background:rgba(13,148,136,.4)}
-.divider:hover::after,.divider.on::after{background:var(--accent-d)}
 .tbtn{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(8,12,20,.85);color:#fff;font-size:13px;cursor:pointer;display:grid;place-items:center;line-height:1}
 .tbtn:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tbtn.del:hover{background:#EF4444;border-color:#EF4444;color:#fff}
