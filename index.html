@@ -200,6 +200,7 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 @media (pointer:coarse){.slot.sel .hd{opacity:1}}
 .divider{opacity:.38;transition:opacity .15s}
 .slot-grid:hover .divider,.divider.on{opacity:1;z-index:21}
+.divbadge{position:absolute;z-index:32;background:#111827;color:#fff;font-size:11px;font-weight:700;font-family:var(--mono);padding:3px 9px;border-radius:7px;pointer-events:none;white-space:nowrap}
 /* ── Mode Bebas: kotak absolute + handle tarik ── */
 .slot.slot.freebox{position:absolute;overflow:visible;border:1.5px solid #8B93A3;background:#fff}
 .slot.freebox.sel{border:2px solid #4F46E5}
@@ -1177,6 +1178,7 @@ function makeOverlay(grid,pg,start,s){
   el.addEventListener("pointerdown",()=>{
     el.parentElement.querySelectorAll(".slot.freebox.sel").forEach(o=>{if(o!==el)o.classList.remove("sel");});
     el.classList.add("sel");
+    el.style.zIndex=++ovlTop; // Task4: klik naikkan ke atas, tumpuk bebas
   },{capture:true});
   return el;
 }
@@ -1188,9 +1190,11 @@ function renderOverlays(grid,pg,start,nslots){
     makeOverlay(grid,pg,start,s);
   });
 }
-/* == Sel grid: handle SISI (n/s/e/w) = atur kolom/baris via divider terdekat;
-   sudut + tombol Bebas eksplisit = lepas jadi overlay. Badan sel TIDAK lepas —
-   badan = pan foto (alami). Fix#1: tak ada detach tak sengaja via seret badan. == */
+/* == Sel grid: SEMUA 8 handle (sisi+sudut) = atur kolom/baris via divider terdekat.
+   Detach HANYA via tombol ⤢ eksplisit (act-free). Badan sel TIDAK lepas —
+   badan = pan foto (alami). Task4: sudut kini resize dalam grid (aman, tak ada
+   detach tak sengaja). Overlay bebas masih via ⤢, tetap lengkap. == */
+let ovlTop=10; // Task4: z-order klik overlay (render PDF tak peduli z)
 const HANDLES=["n","s","e","w","ne","nw","se","sw"];
 function cellRectFrac(grid,el){
   const gr=grid.getBoundingClientRect(), r=el.getBoundingClientRect();
@@ -1218,10 +1222,17 @@ window.addEventListener("pointerdown",e=>{
 },true);
 function gridEdgeHandle(e,pg,s,hd,grid,pid,po,el){
   if(e.isPrimary===false)return; // jari kedua -> serahkan ke browser (pinch-zoom)
-  // handle sisi (n/s/e/w) di sel grid = tarik divider terdekat (perilaku lama)
+  // Task4: SEMUA handle (sisi + sudut) = tarik divider terdekat.
+  // Sudut pakai sumbu dominan: ne/nw/se/sw dgn |dx|>=|dy| -> vertikal, else horizontal.
   e.preventDefault();e.stopPropagation();
   const r=grid.getBoundingClientRect();
-  const vertical=(hd==="e"||hd==="w");
+  let vertical=(hd==="e"||hd==="w");
+  if(hd.length===2){
+    // Task4: sudut -> sumbu dari hurufnya: e/w menang bila ada (kolom), else baris.
+    vertical=hd.includes("e")||hd.includes("w");
+    // samakan hd ke sisi ekuivalen agar edge terhitung benar
+    hd=vertical?(hd.includes("e")?"e":"w"):(hd.includes("s")?"s":"n");
+  }
   // posisi edge sel dalam fraksi grid
   const fr=cellRectFrac(grid,el);
   const edge=vertical?(hd==="e"?fr.x+fr.w:fr.x):(hd==="s"?fr.y+fr.h:fr.y);
@@ -1236,33 +1247,29 @@ function detachCell(e,pg,s,hd,grid,el,pid,po){
   // hd palsu dari tombol ⤢ (clientX/Y 0, tanpa drag) -> lepas + pilih saja.
   const pre=snapState();
   const bareTap=e&&(e.clientX===0&&e.clientY===0);
-  // sudut/badan/tengah sel grid -> lepas jadi overlay absolute, lanjutkan drag-nya TANPA rebuild
-  // (rebuild memutus pointer capture & event stream di browser asli)
+  // Task4: detach HANYA via tombol ⤢ (bareTap). Tanpa dorong korban — overlay boleh tumpuk.
   const fr=cellRectFrac(grid,el);
   const b={x:+fr.x.toFixed(3),y:+fr.y.toFixed(3),w:+fr.w.toFixed(3),h:+fr.h.toFixed(3)};
   setCustom(pg,s,b);
-  pushAside(pg,s,b,0,0,grid);
   const start=pageStart(pg);
   const ov=makeOverlay(grid,pg,start,s);
   if(!ov)return;
   ov.classList.add("sel");
+  ov.style.zIndex=++ovlTop;
   const t=hd==="move"?ov.querySelector(".mv"):ov.querySelector(".hd."+hd);
   if(bareTap){commitIfChanged(pre);renderAll();return;}
   if(t)t.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,clientX:e.clientX,clientY:e.clientY,pointerId:e.pointerId||99,button:0}));
 }
 function attachGridBits(el,pg,s,grid,pid,po){
-  // Fix#1: handle SISI (n/s/e/w) = tarik divider kolom/baris (perilaku lama gridEdgeHandle).
-  // Handle SUDUT (ne/nw/se/sw) = lepas jadi overlay bebas. Badan sel (mv) TIDAK
+  // Task4: SEMUA 8 handle = resize dalam grid via divider terdekat (gridEdgeHandle).
+  // Detach HANYA via tombol ⤢ di toolbar (act-free). Badan sel (mv) TIDAK
   // detach — seret badan = pan foto (alami, ditangani .ph pointer handlers).
-  // Detach eksplisit tersedia via tombol ⤢ di toolbar (act-free).
   HANDLES.forEach(hd=>{
     const d=document.createElement("div");
     d.className="hd "+hd;
-    const isSide=(hd==="n"||hd==="s"||hd==="e"||hd==="w");
-    d.title=isSide?"Tarik untuk atur lebar kolom / tinggi baris":"Tarik untuk lepas jadi kotak bebas";
+    d.title="Tarik untuk atur ukuran kolom/baris";
     d.addEventListener("pointerdown",e=>{
-      if(isSide)gridEdgeHandle(e,pg,s,hd,grid,pid,po,el);
-      else detachCell(e,pg,s,hd,grid,el,pid,po);
+      gridEdgeHandle(e,pg,s,hd,grid,pid,po,el);
     });
     el.appendChild(d);
   });
@@ -1273,147 +1280,7 @@ function attachGridBits(el,pg,s,grid,pid,po){
   // Badan sel grid TIDAK detach: biarkan event jatuh ke .ph (pan foto).
 }
 function ovlBox(pg,s){return (state.custom[pg]||{})[s];}
-/* Dorong korban tabrakan: overlay yg menabrak sel/overlay lain menggesernya menjauh.
-   Korban berupa sel grid ikut lepas jadi overlay agar bisa digeser. */
-function rectsOverlap(a,b){return a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;}
-function overflowVictimToNextPage(pg,s){
-  // korban tak tertampung di halaman ini -> pindahkan fotonya ke HALAMAN BARU berikut
-  const gi=pageStart(pg)+s;
-  const ph=state.photos[gi];
-  if(!ph)return false;
-  state.photos.splice(gi,1);
-  const at=Math.min(gi,state.photos.length);
-  state.photos.splice(at,0,ph);
-  // paksa halaman baru di posisi sisip agar foto mulai halaman sendiri
-  if(!state.breaks.includes(at))state.breaks.push(at);
-  state.breaks.sort((a,b)=>a-b);
-  delete (state.custom[pg]||{})[s];
-  const cu=state.custom[pg]||{};
-  Object.keys(cu).map(Number).filter(k=>k>s).sort((a,b)=>a-b).forEach(k=>{cu[k-1]=cu[k];delete cu[k];});
-  return true;
-}
 function pageForPhoto(gi){const caps=pageCaps();let s=0;for(let pg=0;pg<caps.length;pg++){if(gi<s+caps[pg])return pg;s+=caps[pg];}return caps.length-1;}
-function resolveOverlaps(pg,grid){
-  // dipanggil saat drag selesai: dorong korban yg muat; yg tak muat pindah ke halaman berikut
-  const n=slotsOf(pagePat(pg),pageOrient(pg)).n;
-  const boxOf=(s)=>{
-    const c=(state.custom[pg]||{})[s];
-    if(c)return{...c};
-    const pid=pagePat(pg),po=pageOrient(pg),inf=slotsOf(pid,po);
-    const a=patAreas(pid,po);
-    if(a){const names=[...new Set(a.join(" ").split(" "))];
-      const nm=names[s];const rows=a.map(r=>r.split(" "));
-      let c0=inf.c,r0=inf.r,c1=0,r1=0;
-      rows.forEach((row,ri)=>row.forEach((cell,ci)=>{if(cell===nm){c0=Math.min(c0,ci);c1=Math.max(c1,ci);r0=Math.min(r0,ri);r1=Math.max(r1,ri);}}));
-      return{x:c0/inf.c,y:r0/inf.r,w:(c1-c0+1)/inf.c,h:(r1-r0+1)/inf.r};
-    }
-    return{x:(s%inf.c)/inf.c,y:Math.floor(s/inf.c)/inf.r,w:1/inf.c,h:1/inf.r};
-  };
-  const MF0=marginFrac(pageOrient(pg));
-  const X0=-MF0.mw,X1=1+MF0.mw,Y0=-MF0.mh,Y1=1+MF0.mh;
-  let changed=false;
-  for(let pass=0;pass<4;pass++){
-    let moved=false;
-    for(let s=0;s<n;s++){
-      const a=boxOf(s);
-      for(let t=s+1;t<n;t++){
-        const b=boxOf(t);
-        if(!rectsOverlap(a,b))continue;
-        // korban = yg lebih kecil / yg bukan baru diubah; utamakan dorong t
-        const cands=[{x:a.x+a.w,y:b.y},{x:a.x-b.w,y:b.y},{x:b.x,y:a.y+a.h},{x:b.x,y:a.y-b.h}];
-        const fits=(c)=>c.x>=X0-0.001&&c.y>=Y0-0.001&&c.x+b.w<=X1+0.001&&c.y+b.h<=Y1+0.001;
-        const pick=cands.find(c=>fits(c)&&!rectsOverlap(c,a));
-        if(pick){
-          setCustom(pg,t,{x:+pick.x.toFixed(3),y:+pick.y.toFixed(3),w:+b.w.toFixed(3),h:+b.h.toFixed(3)});
-          moved=true;changed=true;
-        }else{
-          // tak muat: pindahkan foto korban ke halaman berikut
-          if(overflowVictimToNextPage(pg,t)){moved=true;changed=true;}
-        }
-      }
-    }
-    if(!moved)break;
-  }
-  if(changed)renderAll();
-}
-function pushAside(pg,selfS,selfBox,dx,dy,grid,cuOverride,apply){
-  // cuOverride: simulasi di atas salinan (dry-run); apply=false -> tanpa efek samping, return {ok, moves}
-  const dry=cuOverride!=null;
-  const cu=dry?cuOverride:(state.custom[pg]||{});
-  const moves=dry?[]:null;
-  const info=slotsOf(pagePat(pg),pageOrient(pg));
-  const start=pageStart(pg);
-  const applyBox=(s,b)=>{
-    setCustom(pg,s,{x:+b.x.toFixed(3),y:+b.y.toFixed(3),w:+b.w.toFixed(3),h:+b.h.toFixed(3)});
-    const el=grid.querySelector('.slot.ovl[data-s="'+s+'"]');
-    if(el){el.style.left=(b.x*100)+"%";el.style.top=(b.y*100)+"%";el.style.width=(b.w*100)+"%";el.style.height=(b.h*100)+"%";}
-  };
-  // kumpulkan semua penghuni: overlay custom + sel grid biasa (di-lepas bila ketabrak)
-  pushAside.failed=false;
-  for(let pass=0;pass<3;pass++){
-    let moved=false;
-    const n=slotsOf(pagePat(pg),pageOrient(pg)).n;
-    for(let s=0;s<n;s++){
-      if(s===selfS)continue;
-      let b=cu[s];
-      if(!b){
-        // posisi sel grid dari pola (pakai area bila ada)
-        const pid=pagePat(pg),po=pageOrient(pg),inf=slotsOf(pid,po);
-        const a=patAreas(pid,po);
-        if(a){const names=[...new Set(a.join(" ").split(" "))];
-          const nm=names[s];const rows=a.map(r=>r.split(" "));
-          let c0=inf.c,r0=inf.r,c1=0,r1=0;
-          rows.forEach((row,ri)=>row.forEach((cell,ci)=>{if(cell===nm){c0=Math.min(c0,ci);c1=Math.max(c1,ci);r0=Math.min(r0,ri);r1=Math.max(r1,ri);}}));
-          b={x:c0/inf.c,y:r0/inf.r,w:(c1-c0+1)/inf.c,h:(r1-r0+1)/inf.r};
-        }else b={x:(s%inf.c)/inf.c,y:Math.floor(s/inf.c)/inf.r,w:1/inf.c,h:1/inf.r};
-      }else b={...b};
-      if(!rectsOverlap(selfBox,b))continue;
-      // cari tempat bebas untuk korban: coba 4 sisi (kanan,kiri,bawah,atas self),
-      // pilih yg muat di kertas (0..1) & tidak menabrak self/penghuni lain; fallback = posisi yg paling sedikit keluar
-      const cands=[
-        {x:selfBox.x+selfBox.w,y:b.y},
-        {x:selfBox.x-b.w,y:b.y},
-        {x:b.x,y:selfBox.y+selfBox.h},
-        {x:b.x,y:selfBox.y-b.h}
-      ];
-      const others=[];
-      {const n2=slotsOf(pagePat(pg),pageOrient(pg)).n;
-       for(let t=0;t<n2;t++){if(t===selfS||t===s)continue;const ob=(dry?cuOverride:(state.custom[pg]||{}))[t];if(ob)others.push(ob);}}
-      // batas legal korban: boleh masuk margin, tapi JANGAN keluar kertas
-      const MF0=marginFrac(pageOrient(pg));
-      const X0=-MF0.mw,X1=1+MF0.mw,Y0=-MF0.mh,Y1=1+MF0.mh;
-      const fits=(c)=>c.x>=X0-0.001&&c.y>=Y0-0.001&&c.x+b.w<=X1+0.001&&c.y+b.h<=Y1+0.001;
-      const hitsSelf=(c)=>rectsOverlap({x:c.x,y:c.y,w:b.w,h:b.h},selfBox);
-      const hitsOther=(c)=>others.some(o=>rectsOverlap({x:c.x,y:c.y,w:b.w,h:b.h},o));
-      let pick=cands.find(c=>fits(c)&&!hitsSelf(c)&&!hitsOther(c));
-      if(!pick){
-        // tidak ada yg muat (bahkan di area margin): resize/geser DIBATALKAN — korban tetap, self dikunci
-        pushAside.failed=true;return false;
-      }
-      b.x=+pick.x.toFixed(3);b.y=+pick.y.toFixed(3);
-      if(dry){cuOverride[s]={...b};moves.push({s,b:{...b},isNew:!cu[s]});moved=true;continue;}
-      if(!cu[s]){
-        // sel grid ketabrak -> lepas jadi overlay langsung (tanpa rebuild agar drag tidak putus)
-        setCustom(pg,s,{x:+b.x.toFixed(3),y:+b.y.toFixed(3),w:+b.w.toFixed(3),h:+b.h.toFixed(3)});
-        const cellEl=grid.querySelector(':scope > .slot[data-idx="'+(start+s)+'"]:not(.ovl)');
-        if(cellEl)cellEl.style.visibility="hidden";
-        const el=document.createElement("div");
-        el.className="slot freebox ovl";el.dataset.freebox="1";el.dataset.pg=pg;el.dataset.s=s;
-        const ph=state.photos[start+s];
-        el.innerHTML=ph?("<div class=\"ph\"><img src=\""+ph.url+"\" draggable=\"false\"></div>"):'<div class="snum">'+(s+1)+'</div>';
-        el.style.left=(b.x*100)+"%";el.style.top=(b.y*100)+"%";
-        el.style.width=(b.w*100)+"%";el.style.height=(b.h*100)+"%";
-        el.style.position="absolute";
-        grid.appendChild(el);
-      }else applyBox(s,b);
-      moved=true;
-    }
-    if(!moved)break;
-    if(pushAside.failed)break;
-  }
-  if(dry)return{ok:!pushAside.failed,moves};
-  return !pushAside.failed;
-}
 function ovlResize(e,pg,s,hd,grid,el){
   if(e.isPrimary===false)return;
   e.preventDefault();e.stopPropagation();
@@ -1446,13 +1313,13 @@ function ovlResize(e,pg,s,hd,grid,el){
     if(h<MIN){if(hd.includes("n"))y=b0.y+b0.h-MIN;h=MIN;}
     x=Math.min(1+MF.mw-MIN,Math.max(-MF.mw,x));y=Math.min(1+MF.mh-MIN,Math.max(-MF.mh,y));
     w=Math.min(1+MF.mw-x,w);h=Math.min(1+MF.mh-y,h);
-    // bebas overlap saat drag; tabrakan dibereskan saat lepas (resolveOverlaps di up)
+    // Task4: overlay boleh tumpuk — tanpa resolveOverlaps
     setCustom(pg,s,{x:+x.toFixed(3),y:+y.toFixed(3),w:+w.toFixed(3),h:+h.toFixed(3)});
     el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
     el.style.width=(w*100)+"%";el.style.height=(h*100)+"%";
     updateSizeBadge(badge,grid,ovlBox(pg,s));
   };
-  const up=()=>{hideSizeBadge(badge);activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];resolveOverlaps(pg,grid);commitIfChanged(pre);renderAll();};
+  const up=()=>{hideSizeBadge(badge);activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];commitIfChanged(pre);renderAll();};
   activeDragAbort=()=>{try{hideSizeBadge(badge);}catch(_){}el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);commitIfChanged(hist[hi]);renderAll();};
   el.addEventListener("pointermove",move);
   el.addEventListener("pointerup",up);
@@ -1472,11 +1339,11 @@ function ovlMove(e,pg,s,grid,el){
     let x=b0.x+(me.clientX-x0)/r.width;
     let y=b0.y+(me.clientY-y0)/r.height;
     x=Math.min(1+MF2.mw-b0.w,Math.max(-MF2.mw,x));y=Math.min(1+MF2.mh-b0.h,Math.max(-MF2.mh,y));
-    // bebas overlap saat drag; tabrakan dibereskan saat lepas (resolveOverlaps di up)
+    // Task4: overlay boleh tumpuk — tanpa resolveOverlaps
     setCustom(pg,s,{...b0,x:+x.toFixed(3),y:+y.toFixed(3)});
     el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
   };
-  const up=()=>{activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];resolveOverlaps(pg,grid);commitIfChanged(pre);renderAll();};
+  const up=()=>{activeDragAbort=null;el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);const pre=hist[hi];commitIfChanged(pre);renderAll();};
   activeDragAbort=()=>{el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);commitIfChanged(hist[hi]);renderAll();};
   el.addEventListener("pointermove",move);
   el.addEventListener("pointerup",up);
@@ -1585,6 +1452,7 @@ function filledSlot(p,gi,num,free){
       const s=cells.indexOf(d);if(s<0)return;
       const pid=pagePat(pg),po=pageOrient(pg);
       detachCell({isPrimary:true,preventDefault(){},stopPropagation(){},clientX:0,clientY:0,pointerId:99,button:0},pg,s,"move",grid,d,pid,po);
+      toast("Kotak bebas — Ctrl+Z kembalikan."); // Task4: umpan balik detach eksplisit
     };
   }
   function addFilesCached(inp,gi){const h=e=>{addFiles(e.target.files,gi);e.target.value="";inp.removeEventListener("change",h);};inp.addEventListener("change",h);inp.click();}
@@ -1642,9 +1510,27 @@ function move(a,b){
 /* == Divider tarik langsung (ala Word) == */
 function tryCapture(el,id){try{el.setPointerCapture(id);}catch(e){}}
 function dragDivider(d,grid,pg,pid,po,vertical,idx,startX,startY,pid0){
-  // inti geser divider; dipakai divider sendiri & handle sisi sel
+  // inti geser divider; dipakai divider sendiri & SEMUA handle sel (sisi+sudut, Task4)
   d.classList.add("on");
+  // Task4: badge mm fisik di tengah divider: mm = fraksi x (lebar/tinggi fisik - 2*margin).
+  let[w0,h0]=PAPERS[state.paper];if(po==="landscape")[w0,h0]=[h0,w0];
+  const m0=MARGINS[state.margin];
+  const phys=vertical?(w0-2*m0):(h0-2*m0);
+  const physOf=f=>Math.max(0,Math.round(f*phys))+" mm";
+  const badge=document.createElement("div");
+  badge.className="divbadge";
+  grid.appendChild(badge);
   const dv=divsOf(pg,pid,po);
+  const badgePos=()=>{
+    let edge=0;const arr=vertical?dv.cols:dv.rows;
+    for(let i=0;i<=idx;i++)edge+=arr[i];
+    // badge di tengah divider: kiri/atas = edge grid dikali ukuran px
+    const r=grid.getBoundingClientRect();
+    if(vertical){badge.style.left=(edge*r.width)+"px";badge.style.top=(r.height/2)+"px";badge.style.transform="translate(12px,-50%)";}
+    else{badge.style.left=(r.width/2)+"px";badge.style.top=(edge*r.height)+"px";badge.style.transform="translate(-50%,-50%)";}
+  };
+  const badgeTxt=()=>{const arr=vertical?dv.cols:dv.rows;badge.textContent=physOf(arr[idx])+" · "+physOf(arr[idx+1]);};
+  badgePos();badgeTxt();
   const r0=grid.getBoundingClientRect();
   const size=vertical?r0.width:r0.height;
   const arr0=vertical?[...dv.cols]:[...dv.rows];
@@ -1670,9 +1556,10 @@ function dragDivider(d,grid,pg,pid,po,vertical,idx,startX,startY,pid0){
     grid.style.gridTemplateRows=dv.rows.map(x=>x.toFixed(3)+"fr").join(" ");
     pos();
     grid.querySelectorAll(".divider").forEach(o=>{if(o!==d&&o._repos)o._repos();});
+    badgePos();badgeTxt();
   };
-  const up=()=>{d.classList.remove("on");activeDragAbort=null;window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("pointercancel",up);};
-  activeDragAbort=()=>{d.classList.remove("on");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("pointercancel",up);};
+  const up=()=>{badge.remove();d.classList.remove("on");activeDragAbort=null;window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("pointercancel",up);};
+  activeDragAbort=()=>{badge.remove();d.classList.remove("on");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("pointercancel",up);};
   window.addEventListener("pointermove",move);
   window.addEventListener("pointerup",up);
   window.addEventListener("pointercancel",up);
