@@ -1313,7 +1313,7 @@ function ovlResize(e,pg,s,hd,grid,el){
     if(h<MIN){if(hd.includes("n"))y=b0.y+b0.h-MIN;h=MIN;}
     x=Math.min(1+MF.mw-MIN,Math.max(-MF.mw,x));y=Math.min(1+MF.mh-MIN,Math.max(-MF.mh,y));
     w=Math.min(1+MF.mw-x,w);h=Math.min(1+MF.mh-y,h);
-    // Task4: overlay boleh tumpuk — tanpa resolveOverlaps
+    // Task4: overlay boleh tumpuk
     setCustom(pg,s,{x:+x.toFixed(3),y:+y.toFixed(3),w:+w.toFixed(3),h:+h.toFixed(3)});
     el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
     el.style.width=(w*100)+"%";el.style.height=(h*100)+"%";
@@ -1339,7 +1339,7 @@ function ovlMove(e,pg,s,grid,el){
     let x=b0.x+(me.clientX-x0)/r.width;
     let y=b0.y+(me.clientY-y0)/r.height;
     x=Math.min(1+MF2.mw-b0.w,Math.max(-MF2.mw,x));y=Math.min(1+MF2.mh-b0.h,Math.max(-MF2.mh,y));
-    // Task4: overlay boleh tumpuk — tanpa resolveOverlaps
+    // Task4: overlay boleh tumpuk
     setCustom(pg,s,{...b0,x:+x.toFixed(3),y:+y.toFixed(3)});
     el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
   };
