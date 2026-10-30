@@ -629,7 +629,13 @@ function commitHist(key){
   hi=hist.length-1;lastKey=key||"";lastT=now;updateUndoUI();
 }
 function commitIfChanged(pre){if(snapState()!==pre)commitHist();}
-function applyHist(s){const o=JSON.parse(s);state.photos=o.p;state.breaks=o.b;state.layouts=o.l||{};state.orients=o.o||{};state.colW=o.cw||{};state.dividers=o.dv||{};state.rowH=o.rh||{};state.custom=o.cu||{};renderAll();}
+function applyHist(s){const o=JSON.parse(s);state.photos=o.p;state.breaks=o.b;state.layouts=o.l||{};state.orients=o.o||{};state.colW=o.cw||{};state.dividers=o.dv||{};state.rowH=o.rh||{};state.custom=o.cu||{};renderAll();updateUndoUI();}
+/* Task2: hapus guarded — tunda 8 detik + tombol Urungkan, tanpa confirm. */
+function pendingDel(label,doFn){
+  const pre=snapState();
+  const t=setTimeout(()=>{doFn();commitHist();renderAll();},8000);
+  toast(label+" — dihapus dalam 8 detik.",{action:"Urungkan",ms:8000,onAction:()=>{clearTimeout(t);applyHist(pre);renderAll();updateUndoUI();}});
+}
 function undoHist(){if(hi<=0)return;hi--;lastKey="";applyHist(hist[hi]);updateUndoUI();}
 function redoHist(){if(hi>=hist.length-1)return;hi++;lastKey="";applyHist(hist[hi]);updateUndoUI();}
 hist=[snapState()];hi=0;
@@ -780,7 +786,7 @@ document.addEventListener("keydown",e=>{
   if(k==="z"&&!e.shiftKey){e.preventDefault();undoHist();}
   else if((k==="z"&&e.shiftKey)||k==="y"){e.preventDefault();redoHist();}
 });
-$("#btnClear").onclick=()=>{if(!state.photos.length)return;if(confirm("Hapus semua foto dari kanvas?")){const hadGuest=LINK.isGuest&&LINK.session;state.photos=[];if(hadGuest){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]});}commitHist();renderAll();}};
+$("#btnClear").onclick=()=>{if(!state.photos.length)return;const hadGuest=LINK.isGuest&&LINK.session;pendingDel("Semua foto dibersihkan",()=>{state.photos=[];if(hadGuest){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]});}});};
 
 /* ══ Panduan cetak per-OS ══ */
 const GUIDE={
@@ -1021,8 +1027,7 @@ function renderStrip(){
     });
     b.querySelector(".fx").addEventListener("click",e=>{
       e.stopPropagation();
-      if(!confirm(`Hapus foto ${gi+1}?`))return;
-      {const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);}if(stripSel>=state.photos.length)stripSel=state.photos.length-1;commitHist();renderAll();
+      pendingDel(`Foto ${gi+1} dihapus`,()=>{const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);if(stripSel>=state.photos.length)stripSel=state.photos.length-1;});
     });
     b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/fstrip",String(gi));e.dataTransfer.effectAllowed="move";});
     b.addEventListener("dragover",e=>{
@@ -1554,9 +1559,9 @@ function filledSlot(p,gi,num,free){
   d.querySelector(".z-reset").onclick=e=>{e.stopPropagation();const pre=snapState();p.zoom=1;p.panX=0;p.panY=0;p.rot=0;img.style.transform=tf(p);zr.value=100;commitIfChanged(pre);};
   // toolbar actions
   d.querySelector(".act-rot").onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
-  d.querySelector(".act-del").onclick=e=>{e.stopPropagation();const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);commitHist();renderAll();};
+  d.querySelector(".act-del").onclick=e=>{e.stopPropagation();pendingDel(`Foto ${gi+1} dihapus`,()=>{const gone=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone&&gone.pid)syncDel(gone.pid);});};
   const rb=d.querySelector(".act-rbox");
-  if(rb)rb.onclick=e=>{e.stopPropagation();const fb=d.closest(".freebox");if(fb){const s=+fb.dataset.s;const gi=pageStart(+fb.dataset.pg)+s;const ph=state.photos[gi];if(ph&&!confirm("Hapus kotak + fotonya?"))return;if(ph){state.photos.splice(gi,1);}setCustom(+fb.dataset.pg,s,null);commitHist();renderAll();}};
+  if(rb)rb.onclick=e=>{e.stopPropagation();const fb=d.closest(".freebox");if(fb){const s=+fb.dataset.s;const pgc=+fb.dataset.pg;const gic=pageStart(pgc)+s;pendingDel("Kotak + foto dihapus",()=>{const ph=state.photos[gic];if(ph&&LINK.isGuest&&ph.pid)syncDel(ph.pid);if(ph){state.photos.splice(gic,1);}setCustom(pgc,s,null);});}};
   if(isOvl){
     const tb=d.querySelector(".toolbar");
     const rs=document.createElement("button");
@@ -1595,7 +1600,7 @@ function filledSlot(p,gi,num,free){
   abar.querySelector('[data-a="cap"]').onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
   abar.querySelector('[data-a="rot"]').onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
   abar.querySelector('[data-a="rep"]').onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);pickPhoto(inp=>{if(inp===camPick)camPick.click();else if(inp)addFilesCached(inp,gi);else filePick.click();});};
-  abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();if(!confirm(`Hapus foto ${gi+1}?`))return;const gone2=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone2&&gone2.pid)syncDel(gone2.pid);commitHist();renderAll();};
+  abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();pendingDel(`Foto ${gi+1} dihapus`,()=>{const gone2=state.photos[gi];state.photos.splice(gi,1);if(LINK.isGuest&&gone2&&gone2.pid)syncDel(gone2.pid);});};
   const commit=()=>{p.cap=ci.value.trim();ce.hidden=true;commitHist();renderAll();if(LINK.isGuest&&LINK.session&&p.pid)syncCap(p.pid,p.cap);};
   ce.querySelector("button").onclick=e=>{e.stopPropagation();commit();};
   ci.onkeydown=e=>{if(e.key==="Enter")commit();if(e.key==="Escape")ce.hidden=true;e.stopPropagation();};
@@ -1696,24 +1701,23 @@ function addDividers(grid,pg,pid,po){
 }
 function delPage(pg){
   const total=totalPages();
-  if(total<=1){alert("Minimal 1 halaman.");return;}
+  if(total<=1){toast("Minimal 1 halaman.");return;}
   const start=pageStart(pg);
   const n=pageSlots(pg);
   const hasPhoto=state.photos.slice(start,start+n).some(Boolean);
-  if(hasPhoto){alert("Halaman ini masih ada fotonya. Pindahkan atau hapus dulu fotonya sebelum hapus halaman.");return;}
-  // Fix#2: hapus butuh konfirmasi eksplisit — jauh dari mis-tap +Halaman.
-  if(!confirm("Hapus Halaman "+(pg+1)+" (kosong)?"))return;
-  // halaman kosong: hapus break di awalnya sehingga halaman hilang
-  state.breaks=state.breaks.filter(b=>b!==start);
-  if(state.minPages>totalPages()-1)state.minPages=totalPages()-1;
-  const nl={},no={},nc={},nd={},nr={},nf={};
-  Object.entries(state.layouts).forEach(([k,v])=>{const p=+k;if(p!==pg)nl[p>pg?p-1:p]=v;});
-  Object.entries(state.orients).forEach(([k,v])=>{const p=+k;if(p!==pg)no[p>pg?p-1:p]=v;});
-  Object.entries(state.colW).forEach(([k,v])=>{const p=+k;if(p!==pg)nc[p>pg?p-1:p]=v;});
-  Object.entries(state.dividers).forEach(([k,v])=>{const p=+k;if(p!==pg)nd[p>pg?p-1:p]=v;});
-  Object.entries(state.rowH).forEach(([k,v])=>{const p=+k;if(p!==pg)nr[p>pg?p-1:p]=v;});
-  state.layouts=nl;state.orients=no;state.colW=nc;state.dividers=nd;state.rowH=nr;
-  renderAll();
+  if(hasPhoto){toast("Pindahkan foto dulu.");return;}
+  // Task2: hapus guarded pending + Urungkan (tanpa confirm).
+  pendingDel(`Halaman ${pg+1} dihapus`,()=>{
+    state.breaks=state.breaks.filter(b=>b!==start);
+    if(state.minPages>totalPages()-1)state.minPages=totalPages()-1;
+    const nl={},no={},nc={},nd={},nr={};
+    Object.entries(state.layouts).forEach(([k,v])=>{const p=+k;if(p!==pg)nl[p>pg?p-1:p]=v;});
+    Object.entries(state.orients).forEach(([k,v])=>{const p=+k;if(p!==pg)no[p>pg?p-1:p]=v;});
+    Object.entries(state.colW).forEach(([k,v])=>{const p=+k;if(p!==pg)nc[p>pg?p-1:p]=v;});
+    Object.entries(state.dividers).forEach(([k,v])=>{const p=+k;if(p!==pg)nd[p>pg?p-1:p]=v;});
+    Object.entries(state.rowH).forEach(([k,v])=>{const p=+k;if(p!==pg)nr[p>pg?p-1:p]=v;});
+    state.layouts=nl;state.orients=no;state.colW=nc;state.dividers=nd;state.rowH=nr;
+  });
 }
 // Fix#2: inspector halaman tunggal (selected-page pattern)
 function bindSlots(){
