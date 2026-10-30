@@ -111,6 +111,9 @@ kbd{background:#1E293B;border:1px solid var(--border2);border-radius:5px;padding
 .modal .mcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer}
 .modal .mcheck input{width:16px;height:16px;accent-color:var(--accent)}
 .modal .mrow{display:flex;gap:10px;justify-content:flex-end}
+/* Sheet pilihan sumber foto (Android tidak punya sheet sistem spt iOS) */
+.sheetpick .srcrow{display:flex;gap:10px;margin-bottom:14px}
+.sheetpick .srcrow .btn{flex:1;min-height:52px;font-size:15px}
 /* ── Link HP → Laptop (P2P) ── */
 #guestBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,#14B8A6,#0E7490);color:#04211D;font-weight:600}
 #guestBar[hidden]{display:none}
@@ -424,6 +427,20 @@ main{background:radial-gradient(1000px 500px at 60% -10%,rgba(45,212,191,.06),tr
 <div id="print-root"></div>
 <input type="file" id="filePick" accept="image/*" multiple class="fileghost">
 <input type="file" id="camPick" accept="image/*" capture="environment" class="fileghost">
+<input type="file" id="galPick" accept="image/*" multiple class="fileghost">
+
+<!-- Sheet pilihan sumber foto: samakan perilaku iOS (kamera/galeri) di Android -->
+<div class="modal-veil" id="srcSheet" hidden>
+  <div class="modal sheetpick">
+    <h3>Tambah foto</h3>
+    <p class="msub">Pilih sumber foto.</p>
+    <div class="srcrow">
+      <button class="btn primary" id="srcCam">📷 Kamera</button>
+      <button class="btn ghost" id="srcGal">🖼 Galeri / File</button>
+    </div>
+    <div class="mrow"><button class="btn ghost" id="srcCancel">Batal</button></div>
+  </div>
+</div>
 
 <div class="modal-veil" id="printGuide" hidden>
   <div class="modal">
@@ -537,7 +554,18 @@ function marginFrac(po){
   return{mw:m/Math.max(1,(pw-2*m)),mh:m/Math.max(1,(ph-2*m))};
 }
 const $=s=>document.querySelector(s);
-const pagesEl=$("#pages"), filePick=$("#filePick"), camPick=$("#camPick");
+const pagesEl=$("#pages"), filePick=$("#filePick"), camPick=$("#camPick"), galPick=$("#galPick");
+/* Sheet sumber foto HANYA Android: iOS/desktop sudah punya sheet bawaan sistem.
+   Android tanpa capture langsung buka galeri; sheet ini kembalikan pilihan kamera/galeri. */
+const IS_ANDROID=/Android/i.test(navigator.userAgent||"");
+let srcCb=null;
+function pickPhoto(cb){if(!IS_ANDROID){cb(null);return;}srcCb=cb;$("#srcSheet").hidden=false;}
+function srcClose(){$("#srcSheet").hidden=true;srcCb=null;}
+$("#srcCam").onclick=()=>{const cb=srcCb;srcClose();if(cb)cb(camPick);};
+$("#srcGal").onclick=()=>{const cb=srcCb;srcClose();if(cb)cb(galPick);};
+$("#srcCancel").onclick=srcClose;
+$("#srcSheet").addEventListener("click",e=>{if(e.target.id==="srcSheet")srcClose();});
+galPick.onchange=e=>{addFiles(e.target.files,pickIdx);galPick.value="";pickIdx=-1;};
 
 /* ══ Undo/Redo (cakupan: foto + breaks + layout; maks 50 langkah) ══
    Blob URL foto sengaja TIDAK di-revoke agar undo hapus/ganti tetap tampil.
@@ -633,7 +661,7 @@ document.addEventListener("paste",e=>{
   const fs=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith("image/"));
   if(fs.length){e.preventDefault();addFiles(fs);}
 });
-$("#btnAdd").onclick=()=>{pickIdx=-1;filePick.click();};
+$("#btnAdd").onclick=()=>{pickIdx=-1;pickPhoto(inp=>{(inp||filePick).click();});};
 $("#btnCam").onclick=()=>{pickIdx=-1;camPick.click();};
 camPick.onchange=e=>{addFiles(e.target.files,pickIdx);camPick.value="";pickIdx=-1;};
 /* ── Drawer pengaturan (mobile) ── */
@@ -1378,7 +1406,7 @@ function emptySlot(gi,num){
     <div class="eicon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="11" rx="2" stroke="#475569" stroke-width="1.5"/><circle cx="5.5" cy="6.5" r="1.4" fill="#475569"/><path d="M2 12l4-3 3 2 2-1.5L14 12" stroke="#475569" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
     <p>Seret foto ke sini / klik</p><small>JPG · PNG · WebP — paste Ctrl+V</small><input type="file" class="slotfile" accept="image/*" multiple aria-label="Pilih foto">`;
   d.querySelector(".slotfile").onchange=e=>{addFiles(e.target.files,gi);e.target.value="";};
-  d.querySelector(".slotfile").addEventListener("click",e=>e.stopPropagation());
+  d.querySelector(".slotfile").addEventListener("click",e=>{e.stopPropagation();if(!IS_ANDROID)return;e.preventDefault();pickPhoto(inp=>{if(inp===camPick){pickIdx=gi;camPick.click();}else if(inp){addFilesCached(inp,gi);}});});
   return d;
 }
 function filledSlot(p,gi,num,free){
@@ -1453,7 +1481,8 @@ function filledSlot(p,gi,num,free){
       detachCell({isPrimary:true,preventDefault(){},stopPropagation(){},clientX:0,clientY:0,pointerId:99,button:0},pg,s,"move",grid,d,pid,po);
     };
   }
-  d.querySelector(".act-rep").onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);filePick.click();};
+  function addFilesCached(inp,gi){const h=e=>{addFiles(e.target.files,gi);e.target.value="";inp.removeEventListener("change",h);};inp.addEventListener("change",h);inp.click();}
+  d.querySelector(".act-rep").onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);pickPhoto(inp=>{if(inp===camPick)camPick.click();else if(inp)addFilesCached(inp,gi);else filePick.click();});};
   d.querySelector(".act-left").onclick=e=>{e.stopPropagation();move(gi,gi-1);};
   d.querySelector(".act-right").onclick=e=>{e.stopPropagation();move(gi,gi+1);};
   const ce=d.querySelector(".capedit"),ci=ce.querySelector("input");
@@ -1470,7 +1499,7 @@ function filledSlot(p,gi,num,free){
   abar.addEventListener("click",e=>{e.stopPropagation();});
   abar.querySelector('[data-a="cap"]').onclick=e=>{e.stopPropagation();ce.hidden=!ce.hidden;if(!ce.hidden)ci.focus();};
   abar.querySelector('[data-a="rot"]').onclick=e=>{e.stopPropagation();p.rot=(p.rot+90)%360;img.style.transform=tf(p);commitHist();};
-  abar.querySelector('[data-a="rep"]').onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);filePick.click();};
+  abar.querySelector('[data-a="rep"]').onclick=e=>{e.stopPropagation();pickIdx=gi;replaceMode(gi);pickPhoto(inp=>{if(inp===camPick)camPick.click();else if(inp)addFilesCached(inp,gi);else filePick.click();});};
   abar.querySelector('[data-a="del"]').onclick=e=>{e.stopPropagation();if(!confirm(`Hapus foto ${gi+1}?`))return;state.photos.splice(gi,1);commitHist();renderAll();};
   const commit=()=>{p.cap=ci.value.trim();ce.hidden=true;commitHist();renderAll();};
   ce.querySelector("button").onclick=e=>{e.stopPropagation();commit();};
@@ -1658,9 +1687,9 @@ function bindSlots(){
         }
         return;
       }
-      pickIdx=gi;filePick.click();
+      pickIdx=gi;pickPhoto(inp=>{if(inp===camPick)camPick.click();else if(inp){const h=e=>{addFiles(e.target.files,gi);e.target.value="";inp.removeEventListener("change",h);};inp.addEventListener("change",h);inp.click();}else filePick.click();});
     });
-    sl.addEventListener("keydown",e=>{if(e.key==="Enter"&&sl.classList.contains("empty")){pickIdx=gi;filePick.click();}});
+    sl.addEventListener("keydown",e=>{if(e.key==="Enter"&&sl.classList.contains("empty")){pickIdx=gi;pickPhoto(inp=>(inp||filePick).click());}});
     sl.addEventListener("dragover",e=>{e.preventDefault();sl.classList.add("over");});
     sl.addEventListener("dragleave",()=>sl.classList.remove("over"));
     sl.addEventListener("drop",e=>{
