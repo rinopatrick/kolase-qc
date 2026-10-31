@@ -208,9 +208,16 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .lk-linkrow code{flex:1;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lk-status{font-size:13px;color:var(--accent);background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);border-radius:10px;padding:9px 12px;margin-bottom:4px;line-height:1.5}
 
+#btnMenu{display:none}
+#scrim{display:none}
 @media(max-width:980px){
   .shell{grid-template-columns:1fr;height:auto}
-  .panel{border-right:none;border-bottom:1px solid var(--line);max-height:none}
+  .panel{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);z-index:120;border-right:1px solid var(--line2);padding:16px 14px 40px;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateX(-105%);transition:transform .25s ease-out}
+  body.drawer .panel{transform:none;box-shadow:24px 0 60px rgba(0,0,0,.5)}
+  body.drawer{overflow:hidden}
+  #scrim{display:block;position:fixed;inset:0;z-index:110;background:rgba(2,6,16,.6);opacity:0;pointer-events:none;transition:opacity .25s}
+  body.drawer #scrim{opacity:1;pointer-events:auto}
+  #btnMenu{display:inline-flex}
   .metrics{display:none}
   .topbar{flex-wrap:wrap;height:auto;padding:10px}
   .slot .tools{opacity:1;transform:none}
@@ -233,6 +240,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 <div id="scanBar" hidden>📷 Sudah foto di HP ini? <span class="gstatus" id="scanHint">Pindai QR laptop — foto yang sudah ada ikut terkirim, tidak hilang.</span><button id="gScanBtn" class="btn-line" style="min-height:38px;padding:8px 14px">Pindai QR laptop</button></div>
 
 <header class="topbar" data-od-id="topbar">
+  <button class="ibtn" id="btnMenu" aria-label="Buka pengaturan" aria-expanded="false" title="Pengaturan">☰</button>
   <div class="brand" data-od-id="brand">
     <div class="mark">QC</div>
     <div><h1>Kolase <span>QC</span></h1><small>Field Doc Tool</small></div>
@@ -256,6 +264,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   </div>
 </header>
 
+<div id="scrim" aria-hidden="true"></div>
 <div class="shell">
   <aside class="panel" data-od-id="settings-panel">
     <div class="sect" data-od-id="sect-doc">
@@ -701,6 +710,10 @@ $('#galPick').addEventListener('change',e=>{addFiles(e.target.files);e.target.va
 function addVia(cb){pickPhoto(inp=>{if(inp)inp.click();else $('#filePick').click();});}
 $('#btnAdd').onclick=()=>addVia();$('#btnEmptyAdd').onclick=()=>addVia();
 $('#btnCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};$('#btnEmptyCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};
+/* Drawer pengaturan (mobile ≤980px): panel jadi laci, kanvas langsung terlihat */
+function setDrawer(open){document.body.classList.toggle('drawer',!!open);const b=$('#btnMenu');if(!b)return;b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'✕':'☰';b.setAttribute('aria-label',open?'Tutup pengaturan':'Buka pengaturan');}
+$('#btnMenu').onclick=()=>setDrawer(!document.body.classList.contains('drawer'));
+$('#scrim').onclick=()=>setDrawer(false);
 $('#btnClear').onclick=()=>{if(!S.pages.flatMap(p=>p.slots).some(s=>s.img)){toast('Sudah kosong','warn');return}pushUndo();const bak=snap();S.pages=[newPage(S.pattern)];if(LINK.isGuest&&LINK.session){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]})}save();render();toast('Semua foto dikosongkan','warn',{label:'Urungkan',ms:8000,fn:()=>restore(bak)})};
 $('#btnUndo').onclick=()=>{if(!undoStack.length)return;redoStack.push(snap());restore(undoStack.pop());syncUndoBtns()};
 $('#btnRedo').onclick=()=>{if(!redoStack.length)return;undoStack.push(snap());restore(redoStack.pop());syncUndoBtns()};
