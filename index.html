@@ -161,12 +161,6 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .btn-teal{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;padding:12px 20px;font-weight:800;cursor:pointer;min-height:44px}
 .btn-line{background:#fff;border:1.5px solid #B9C4CC;border-radius:10px;padding:11px 18px;font-weight:600;cursor:pointer;min-height:44px;color:var(--ink)}
 
-/* filmstrip */
-.film{position:sticky;bottom:12px;max-width:860px;margin:0 auto;background:rgba(16,22,27,.94);backdrop-filter:blur(8px);border:1px solid #2A3540;border-radius:14px;padding:10px 12px;display:flex;gap:8px;align-items:center;overflow-x:auto}
-.film .fl{font-family:var(--font-m);font-size:10.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;flex:none}
-.thumb{width:64px;height:48px;border-radius:8px;object-fit:cover;border:2px solid transparent;flex:none;cursor:pointer;background:#222}
-.thumb.cur{border-color:var(--accent)}
-.thumb.empty{border-style:dashed;border-color:#3A4753;background:transparent;display:grid;place-items:center;color:var(--muted);font-family:var(--font-m);font-size:11px}
 
 /* toasts */
 #toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;display:grid;gap:8px;width:min(480px,92vw)}
@@ -233,7 +227,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 @media print{
   body.print-P .page-wrap[data-ori="landscape"]{display:none!important}
   body.print-L .page-wrap[data-ori="portrait"]{display:none!important}
-  .topbar,.panel,.stage-top,.page-bar,.film,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.divider,.hd,.divbadge{display:none!important}
+  .topbar,.panel,.stage-top,.page-bar,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.divider,.hd,.divbadge{display:none!important}
   .shell{display:block;height:auto}
   .stage{background:#fff;padding:0}
   .page-wrap{max-width:none;margin:0}
@@ -338,7 +332,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       <p>Seret & letakkan file foto ke halaman, klik nomor slot, atau tempel dari clipboard (<kbd>Ctrl</kbd>+<kbd>V</kbd>). Semua tersimpan otomatis di browser.</p>
       <div class="cta-row"><button class="btn-teal" id="btnEmptyAdd">＋ Tambah foto</button><button class="btn-line" id="btnEmptyCam">📷 Buka kamera</button></div>
     </div>
-    <div class="film" id="film" data-od-id="filmstrip"><span class="fl">Urutan foto</span><span style="color:var(--muted);font-size:12px" id="filmHint">— kosong —</span></div>
+
   </main>
 </div>
 
@@ -684,7 +678,7 @@ function render(){
     d.querySelector('[data-act=delpage]').addEventListener('click',()=>delPage(pi));
     wrap.appendChild(d);
   });
-  renderFilm();syncUndoBtns();
+  syncUndoBtns();
   function pushUndoLite(){pushUndo()}
 }
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
@@ -712,12 +706,6 @@ function delPage(pi){if(S.pages.length<=1){toast('Minimal 1 halaman','warn');ret
   gone.slots.forEach(s=>{if(s.blobId){const id=s.blobId,ref=s.img;const still=allSlots().some(o=>o.slot.img===ref);if(!still)blobDel(id);}});
   save();render();
   toast('Halaman '+(pi+1)+' dihapus ('+n+' foto)','warn',{label:'Urungkan',ms:8000,fn:()=>{S.pages.splice(pi,0,gone);save();render()}})}
-function renderFilm(){const f=$('#film');f.querySelectorAll('.thumb').forEach(e=>e.remove());const fh=$('#filmHint');if(fh)fh.remove();
-  const all=[];S.pages.forEach((p,pi)=>p.slots.forEach((s,si)=>{if(s.img)all.push({p,s,pi,si})}));
-  if(!all.length){const h=document.createElement('span');h.id='filmHint';h.style.cssText='color:var(--muted);font-size:12px';h.textContent='— kosong — seret file ke slot bernomor —';f.appendChild(h);return}
-  all.forEach((o,i)=>{const im=document.createElement('img');im.src=showImgOf(o.s);im.className='thumb';im.title='Foto '+(i+1)+' — klik untuk pindah halaman';im.alt='Thumb foto '+(i+1);
-    im.addEventListener('click',()=>{pushUndo();const tgt=S.pages[(o.pi+1)%S.pages.length];o.p.slots.splice(o.p.slots.indexOf(o.s),1);if(!o.p.slots.length)o.p.slots.push(newSlot());tgt.slots.unshift(o.s);if(tgt.slots.length>8){const back=tgt.slots.pop();o.p.slots.push(back)}save();render();toast('Foto '+(i+1)+' dipindah ke HAL '+((o.pi+2)>S.pages.length?1:(o.pi+2)))});f.appendChild(im)})}
-
 /* intake helpers */
 let pickTarget=null;
 function pickFor(p,s){pickTarget={p,s};$('#filePick').click()}
