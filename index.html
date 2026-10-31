@@ -231,7 +231,15 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   body.drawer{overflow:hidden}
   #scrim{display:block;position:fixed;inset:0;z-index:110;background:rgba(2,6,16,.6);opacity:0;pointer-events:none;transition:opacity .25s}
   body.drawer #scrim{opacity:1;pointer-events:auto}
+  body.drawer .topbar{z-index:130}
   #btnMenu{display:inline-flex}
+  #btnDrawerClose{display:none}
+  body.drawer #btnDrawerClose{display:inline-flex!important;justify-content:center}
+  .brand small{display:none}
+  .brand h1{font-size:14px}
+  .topbar{gap:8px;padding:8px 10px}
+  #guestBar,#scanBar{font-size:13px;padding:8px 12px}
+  #scanBar .btn-line{min-height:36px;padding:6px 10px;font-size:12px}
   .metrics{display:none}
   .topbar{flex-wrap:wrap;height:auto;padding:10px}
   .slot .tools{opacity:1;transform:none}
@@ -284,6 +292,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 <div id="scrim" aria-hidden="true"></div>
 <div class="shell">
   <aside class="panel" data-od-id="settings-panel">
+    <button class="ibtn" id="btnDrawerClose" aria-label="Tutup pengaturan" style="display:none;width:100%;margin-bottom:10px">✕ Tutup pengaturan</button>
     <div class="sect" data-od-id="sect-doc">
       <div class="sect-h"><span class="n">01</span><div><h2>Dokumen</h2><p>Kop tiap halaman cetak</p></div></div>
       <div class="sect-b">
@@ -744,9 +753,10 @@ function addVia(cb){pickPhoto(inp=>{if(inp)inp.click();else $('#filePick').click
 $('#btnAdd').onclick=()=>addVia();$('#btnEmptyAdd').onclick=()=>addVia();
 $('#btnCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};$('#btnEmptyCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};
 /* Drawer pengaturan (mobile ≤980px): panel jadi laci, kanvas langsung terlihat */
-function setDrawer(open){document.body.classList.toggle('drawer',!!open);const b=$('#btnMenu');if(!b)return;b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'✕':'☰';b.setAttribute('aria-label',open?'Tutup pengaturan':'Buka pengaturan');}
+function setDrawer(open){document.body.classList.toggle('drawer',!!open);const b=$('#btnMenu');if(!b)return;b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'✕':'☰';b.setAttribute('aria-label',open?'Tutup pengaturan':'Buka pengaturan');try{if(open){const p=document.querySelector('.panel');if(p)p.scrollTop=0;}else{const f=document.querySelector('#btnMenu');if(f)f.focus({preventScroll:true});}}catch(e){}}
 $('#btnMenu').onclick=()=>setDrawer(!document.body.classList.contains('drawer'));
 $('#scrim').onclick=()=>setDrawer(false);
+const _bdc=$('#btnDrawerClose');if(_bdc)_bdc.onclick=()=>setDrawer(false);
 $('#btnClear').onclick=async()=>{if(!S.pages.flatMap(p=>p.slots).some(s=>s.img)){toast('Sudah kosong','warn');return}pushUndo();const bak=snap();const oldRefs=allSlots().map(o=>o.slot.img).filter(isIdbRef);S.pages=[newPage(S.pattern)];if(LINK.isGuest&&LINK.session){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]})}save();render();toast('Semua foto dikosongkan','warn',{label:'Urungkan',ms:8000,fn:()=>restore(bak)});
   /* GC blob yatim bila tidak diurungkan: cek 9 detik */
   setTimeout(()=>{if(!S.pages.some(p=>p.slots.some(s=>oldRefs.includes(s.img))))oldRefs.forEach(r=>blobDel(r.slice(4)));},9000);};
