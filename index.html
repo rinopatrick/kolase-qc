@@ -1114,9 +1114,15 @@ function scanFound(text){
 }
 $('#scanCancel').onclick=scanClose;
 $('#scanModal').addEventListener('click',e=>{if(e.target.id==='scanModal')scanClose();});
+function isPhoneDevice(){try{
+  const coarse=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
+  const small=Math.min(window.innerWidth||9999,window.screen?window.screen.width:9999)<760;
+  return!!(coarse&&small);
+}catch(e){return false;}}
 function scanBarRefresh(){
   const bar=$('#scanBar');if(!bar)return;
-  const show=!LINK.isGuest;
+  /* Banner pindai-QR hanya relevan di HP (mode tamu). Di laptop tombol HP sudah ada di topbar. */
+  const show=!LINK.isGuest&&isPhoneDevice();
   bar.hidden=!show;
 }
 /* ══ Draft otomatis (IndexedDB): foto HP selamat dari reload/pindah tab/scan QR ══ */
@@ -1209,6 +1215,7 @@ load();
 })();
 /* boot P2P/guest/draft: sebelum interaksi; load lama + render ulang bila draft pulih */
 draftArm();guestInit();scanBarRefresh();
+try{window.addEventListener('resize',()=>{clearTimeout(window.__sbT);window.__sbT=setTimeout(scanBarRefresh,300);});}catch(e){}
 (async()=>{try{if(location.hash.match(/#s=/))return;const ok=await draftLoad();if(ok){save();render();}}catch(e){}})();
 /* Migrasi satu kali: draft blob lama (store photos) → blob store baru per slot */
 async function hydrateLegacyDraft(){
