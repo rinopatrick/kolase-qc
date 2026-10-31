@@ -211,6 +211,10 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 #btnMenu{display:none}
 #scrim{display:none}
 @media(max-width:980px){
+  .top-actions{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:8px;padding-bottom:2px}
+  .top-actions::-webkit-scrollbar{display:none}
+  .top-actions .ibtn{flex:0 0 auto;white-space:nowrap}
+  .top-actions .sep{flex:0 0 auto}
   .shell{grid-template-columns:1fr;height:auto}
   .panel{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);z-index:120;border-right:1px solid var(--line2);padding:16px 14px 40px;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateX(-105%);transition:transform .25s ease-out}
   body.drawer .panel{transform:none;box-shadow:24px 0 60px rgba(0,0,0,.5)}
@@ -237,7 +241,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 <body data-od-id="kolase-qc-app">
 
 <div id="guestBar" hidden>📲 Mode kirim <span class="gcode" id="gCode">–</span><span class="gstatus" id="gStatus">Siap kirim ke laptop.</span><button id="gSend" class="btn-dark" style="min-height:38px;padding:8px 14px">Kirim ke laptop</button><button id="gExport" class="btn-line" style="min-height:38px;padding:8px 14px">Unduh file</button></div>
-<div id="scanBar" hidden>📷 Sudah foto di HP ini? <span class="gstatus" id="scanHint">Pindai QR laptop — foto yang sudah ada ikut terkirim, tidak hilang.</span><button id="gScanBtn" class="btn-line" style="min-height:38px;padding:8px 14px">Pindai QR laptop</button></div>
+<div id="scanBar" hidden><span class="gstatus" id="scanHint">Foto di HP ini aman.</span><button id="gScanBtn" class="btn-line" style="min-height:38px;padding:8px 14px">Pindai QR laptop</button></div>
 
 <header class="topbar" data-od-id="topbar">
   <button class="ibtn" id="btnMenu" aria-label="Buka pengaturan" aria-expanded="false" title="Pengaturan">☰</button>
