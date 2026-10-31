@@ -217,6 +217,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   .ibtn{min-height:44px;min-width:44px}
 }
 @media print{
+  body.print-P .page-wrap[data-ori="landscape"]{display:none!important}
+  body.print-L .page-wrap[data-ori="portrait"]{display:none!important}
   .topbar,.panel,.stage-top,.page-bar,.film,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.divider,.hd,.divbadge{display:none!important}
   .shell{display:block;height:auto}
   .stage{background:#fff;padding:0}
@@ -291,8 +293,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       <div class="sect-h"><span class="n">03</span><div><h2>Tata letak</h2><p>Pola default halaman baru</p></div></div>
       <div class="sect-b">
         <div class="pat-grid" id="patGrid">
-          <button data-v="1">1</button><button data-v="2">2</button><button data-v="4" class="on">4</button>
-          <button data-v="6">6</button><button data-v="8">8</button><button data-v="4" title="acak">⧉</button>
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3B" title="1 besar + 2 kecil">3B</button><button data-v="3S" title="2 kecil + 1 besar">3S</button>
+          <button data-v="4" class="on">4</button><button data-v="6">6</button><button data-v="8">8</button>
         </div>
         <label class="f">Varian pola<select id="inVariant"><option value="grid">Grid seimbang (Recommended)</option><option value="rows">Baris penuh</option><option value="cols">Kolom penuh</option><option value="hero">1 hero + sisanya kecil</option></select></label>
         <button class="chipbtn" id="btnAddPage" style="width:100%;background:var(--bg0);color:var(--fg);border:1px dashed var(--line2)" data-od-id="btn-add-page">＋ Tambah halaman (pola di atas)</button>
@@ -327,6 +329,10 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 <div id="toasts" data-od-id="toasts"></div>
 <input type="file" id="filePick" accept="image/*" multiple hidden>
 <input type="file" id="camPick" accept="image/*" capture="environment" hidden>
+<input type="file" id="galPick" accept="image/*" multiple hidden>
+<div class="overlay" id="srcSheet"><div class="card"><div class="card-h"><h3>Tambah foto</h3><button class="x" data-close>✕</button></div>
+<div class="card-b"><p style="font-size:13px;color:var(--muted);margin:0">Pilih sumber foto.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-teal" id="srcCam" style="flex:1">📷 Kamera</button><button class="btn-line" id="srcGal" style="flex:1">🖼 Galeri / File</button></div></div></div></div>
 
 <div class="overlay" id="ovPrint" data-od-id="modal-print">
   <div class="card">
@@ -339,10 +345,13 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
         <div class="pf"><span>Mode</span><b id="pfMode">Campur orientasi OK</b></div>
       </div>
       <div class="hint">PDF primer me-render tiap halaman via canvas 200 DPI lalu menggabungkan portrait + landscape dalam satu file. Cetak browser hanya fallback bila tombol PDF gagal.</div>
+      <div class="hint" id="mixHint" hidden>⚠️ Halaman campur Portrait + Landscape. Unduh PDF menggabung otomatis 1 file — jalur Cetak butuh 2 dialog (P lalu L).</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn-teal" id="btnPdf2" style="flex:1">⬇ Unduh PDF</button>
         <button class="btn-line" id="btnDoPrint">Cetak via browser</button>
+        <button class="btn-line" id="btnMixPrint" hidden>Cetak 2 tahap</button>
       </div>
+      <div class="hint" id="safariNote" hidden>📱 <b>Kamu di Safari / iPhone?</b> Unduh PDF hasilkan file bersih tanpa tulisan tepi. Jalur Cetak di Safari sisipkan judul + link + tanggal tepi yang <b>tidak bisa dimatikan</b>.</div>
     </div>
   </div>
 </div>
@@ -378,7 +387,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const PAPER_MM={A4:[210,297],F4:[215,330],Letter:[216,279],Legal:[216,356],A3:[297,420]};
 let S={paper:'A4',ori:'portrait',margin:28,gap:10,pattern:4,variant:'grid',title:'LAPORAN DOKUMENTASI QC',sub:'Proyek — Lot / Area / Tanggal inspeksi',date:'',font:'display',align:'center',showHead:true,bold:true,pages:[],seq:1};
 const FONTMAP={display:'"Segoe UI",system-ui,sans-serif',body:'"Segoe UI",system-ui,sans-serif',mono:'ui-monospace,Menlo,Consolas,monospace'};
-function newPage(pattern){return{id:'p'+(S.seq++),pattern:pattern??S.pattern,ori:S.ori,colW:0.5,rowH:0.5,dividers:null,free:null,forceNew:false,slots:Array.from({length:pattern??S.pattern},()=>newSlot())}}
+function newPage(pattern){const pat=pattern??S.pattern;return{id:'p'+(S.seq++),pattern:pat,ori:S.ori,colW:0.5,rowH:0.5,dividers:null,free:null,forceNew:false,slots:Array.from({length:patCount(pat)},()=>newSlot())}}
 function newSlot(){return{id:'s'+Math.random().toString(36).slice(2,8),img:null,zoom:1,rot:0,px:0,py:0,cap:''}}
 if(!S.pages.length)S.pages.push(newPage(4));
 S.date=new Date().toISOString().slice(0,10);$('#inDate').value=S.date;
@@ -411,8 +420,16 @@ function rowsFor(p){return divsOf(p).rows.map(x=>x.toFixed(3)+'fr').join(' ')}
    fraksi area grid. SENGAJA tanpa fungsi pendorong/anti-tumpuk — overlay boleh tumpuk. */
 let ovlTop=20,suppressClick=false,colwPre=null;
 const HANDLES=['n','s','e','w','ne','nw','se','sw'];
-function gridShape(p){const n=p.slots.length;if(n===1)return[1,1];if(S.variant==='rows')return[1,n];if(S.variant==='cols')return[n,1];
-  if(n===2)return[1,2];if(n<=4)return[2,2];if(n<=6)return[2,3];return[2,4];}
+function gridShape(p){const n=p.slots.length,pat=p.pattern;
+  if(pat==='2H'||(n===2&&S.variant==='rows'))return[1,2];
+  if(pat==='2S'||(n===2&&S.variant!=='rows'))return[2,1];
+  if(n===1)return[1,1];if(S.variant==='rows')return[1,n];if(S.variant==='cols')return[n,1];
+  if(n===3)return[2,2];if(n<=4)return[2,2];if(n<=6)return[2,3];return[2,4];}
+/* 3B = slot 0 besar (span 2 kolom / 2 baris); 3S = slot terakhir besar. Adaptif orientasi. */
+function gridArea(p,si){const pat=p.pattern,ori=p.ori||S.ori;
+  if(pat==='3B'&&p.slots.length===3){if(si===0)return ori==='landscape'?'1/1/3/2':'1/1/2/3';return null;}
+  if(pat==='3S'&&p.slots.length===3){if(si===2)return ori==='landscape'?'1/2/3/3':'2/1/3/3';return null;}
+  return null;}
 function colWOf(p){let v=p.colW;if(v==null)return 0.5;if(v>1)v=v/100;return Math.min(0.7,Math.max(0.3,v));}
 function rowHOf(p){let v=p.rowH;if(v==null)return 0.5;if(v>1)v=v/100;return Math.min(0.85,Math.max(0.15,v));}
 function divsOf(p){const[c,r]=gridShape(p);const d=p.dividers;
@@ -564,10 +581,10 @@ function render(){
   $('#emptyHero').style.display=filled?'none':'block';
   $('#pfPaper').textContent=S.paper+' · '+cap(S.ori);$('#pfTotal').textContent=filled+' foto · '+S.pages.length+' hal';
   S.pages.forEach((p,pi)=>{
-    const d=document.createElement('div');d.className='page-wrap';d.dataset.odId='page-'+(pi+1);
     const ori=p.ori||S.ori;
+    const d=document.createElement('div');d.className='page-wrap';d.dataset.odId='page-'+(pi+1);d.dataset.ori=ori;
     d.innerHTML='<div class="page-bar"><span class="pg">HAL '+(pi+1)+'</span><span class="meta">'+p.slots.length+' foto · '+ori.toUpperCase()+'</span><span class="grow"></span>'+
-      '<select data-act="pat" title="Pola">'+[1,2,4,6,8].map(n=>'<option value="'+n+'"'+(p.slots.length===n?' selected':'')+'>'+n+' foto</option>').join('')+'</select>'+
+      '<select data-act="pat" title="Pola">'+[['1','1 penuh'],['2H','2 atas-bawah'],['2S','2 sejajar'],['3B','3 besar-atas'],['3S','3 besar-bawah'],['4','4 (2×2)'],['6','6 foto'],['8','8 foto']].map(o=>'<option value="'+o[0]+'"'+(String(p.pattern)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
       '<select data-act="ori" title="Orientasi"><option value="portrait"'+(ori==='portrait'?' selected':'')+'>Portrait</option><option value="landscape"'+(ori==='landscape'?' selected':'')+'>Landscape</option></select>'+
       '<button class="mini" data-act="break" title="Paksa halaman baru">⤵ Hal.baru</button>'+(gridShape(p)[0]>=2?'<label class="colw" title="Lebar kolom pertama">Kolom <input type="range" min="30" max="70" value="'+Math.round(colWOf(p)*100)+'" data-colw></label>':'')+'<button class="mini danger" data-act="delpage" title="Hapus halaman">Hapus</button></div>'+
       '<div class="sheet"><div class="sheet-inner"></div></div>';
@@ -587,6 +604,7 @@ function render(){
       const fb=freeBox(p,s);
       const el=document.createElement('div');el.className='slot'+(s.img?' filled':'')+(fb?' ovl':'');el.dataset.pid=p.id;el.dataset.sid=s.id;
       if(fb){el.style.position='absolute';el.style.left=(fb.x*100)+'%';el.style.top=(fb.y*100)+'%';el.style.width=(fb.w*100)+'%';el.style.height=(fb.h*100)+'%';el.style.zIndex=++ovlTop}
+      else{const ga=gridArea(p,si);if(ga)el.style.gridArea=ga;}
       if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">＋</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">−</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
@@ -624,7 +642,7 @@ function render(){
       colw.addEventListener('click',e=>e.stopPropagation());
       colw.addEventListener('input',e=>{e.stopPropagation();applyColW(p,+e.target.value/100,grid);save();});
       colw.addEventListener('change',()=>{pushUndoPre(colwPre);colwPre=null;save();render();});}
-    d.querySelector('[data-act=pat]').addEventListener('change',e=>{pushUndo();resizeSlots(p,parseInt(e.target.value));p.dividers=null;delete p.free;save();render()});
+    d.querySelector('[data-act=pat]').addEventListener('change',e=>{pushUndo();resizeSlots(p,e.target.value);p.dividers=null;delete p.free;save();render()});
     d.querySelector('[data-act=ori]').addEventListener('change',e=>{pushUndo();p.ori=e.target.value;p.dividers=null;delete p.free;save();render()});
     d.querySelector('[data-act=break]').addEventListener('click',e=>{pushUndo();p.forceNew=!p.forceNew;e.target.classList.toggle('on',p.forceNew);save();render();toast(p.forceNew?'Halaman '+(pi+1)+' dipaksa mulai di kertas baru':'Paksa halaman dibatalkan')});
     d.querySelector('[data-act=delpage]').addEventListener('click',()=>delPage(pi));
@@ -639,7 +657,9 @@ function fmtDate(v){if(!v)return'';try{return new Date(v+'T00:00').toLocaleDateS
 function globalIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slots){n++;if(pg===p&&sl===s)return n}return n}
 function applyImg(img,s){img.style.transform='translate(-50%,-50%) translate('+s.px+'px,'+s.py+'px) rotate('+s.rot+'deg) scale('+s.zoom+')';img.style.width=(220*s.zoom)+'px'}
 function pushPan(s,dx,dy,drag,img){s.px=drag.px+dx;s.py=drag.py+dy;applyImg(img,s)}
-function resizeSlots(p,n){const cur=p.slots;if(n>cur.length)for(let i=cur.length;i<n;i++)cur.push(newSlot());else p.slots=cur.slice(0,n);p.pattern=n;delete p.dividers;delete p.free}
+function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;return parseInt(pat)||4;}
+function resizeSlots(p,n){if(typeof n==='string'){const c=patCount(n);const cur=p.slots;if(c>cur.length)for(let i=cur.length;i<c;i++)cur.push(newSlot());else p.slots=cur.slice(0,c);p.pattern=n;delete p.dividers;delete p.free;return;}
+const cur=p.slots;if(n>cur.length)for(let i=cur.length;i<n;i++)cur.push(newSlot());else p.slots=cur.slice(0,n);p.pattern=n;delete p.dividers;delete p.free}
 function slotTool(p,s,t,img,el,grid){
   if(t==='free'){const gw=(grid&&grid.classList&&grid.classList.contains('gridwrap'))?grid:el.closest('.gridwrap');if(gw)detachSlot(p,s,el,gw);return}
   if(t==='dock'){pushUndo();setFree(p,s,null);save();render();return}
@@ -671,8 +691,16 @@ $('#filePick').addEventListener('change',e=>{if(pickTarget&&e.target.files.lengt
   if(pickTarget&&e.target.files.length===1){const f=e.target.files[0];const{p,s}=pickTarget;pickTarget=null;dropToSlot([f],p,s);e.target.value='';return}
   pickTarget=null;addFiles(e.target.files);e.target.value=''});
 $('#camPick').addEventListener('change',e=>{addFiles(e.target.files);e.target.value=''});
-$('#btnAdd').onclick=()=>$('#filePick').click();$('#btnEmptyAdd').onclick=()=>$('#filePick').click();
-$('#btnCam').onclick=()=>$('#camPick').click();$('#btnEmptyCam').onclick=()=>$('#camPick').click();
+const IS_ANDROID=/android/i.test(navigator.userAgent||'');
+function pickPhoto(cb){if(!IS_ANDROID){cb(null);return;}$('#srcSheet').classList.add('open');srcCb=cb;}
+let srcCb=null;
+function srcClose(){$('#srcSheet').classList.remove('open');srcCb=null;}
+$('#srcCam').onclick=()=>{const cb=srcCb;srcClose();if(cb)cb($('#camPick'));};
+$('#srcGal').onclick=()=>{const cb=srcCb;srcClose();if(cb)cb($('#galPick'));};
+$('#galPick').addEventListener('change',e=>{addFiles(e.target.files);e.target.value='';});
+function addVia(cb){pickPhoto(inp=>{if(inp)inp.click();else $('#filePick').click();});}
+$('#btnAdd').onclick=()=>addVia();$('#btnEmptyAdd').onclick=()=>addVia();
+$('#btnCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};$('#btnEmptyCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};
 $('#btnClear').onclick=()=>{if(!S.pages.flatMap(p=>p.slots).some(s=>s.img)){toast('Sudah kosong','warn');return}pushUndo();const bak=snap();S.pages=[newPage(S.pattern)];if(LINK.isGuest&&LINK.session){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]})}save();render();toast('Semua foto dikosongkan','warn',{label:'Urungkan',ms:8000,fn:()=>restore(bak)})};
 $('#btnUndo').onclick=()=>{if(!undoStack.length)return;redoStack.push(snap());restore(undoStack.pop());syncUndoBtns()};
 $('#btnRedo').onclick=()=>{if(!redoStack.length)return;undoStack.push(snap());restore(redoStack.pop());syncUndoBtns()};
@@ -689,13 +717,28 @@ $('#inGap').addEventListener('input',e=>{S.gap=+e.target.value;$('#vGap').textCo
 $('#inVariant').addEventListener('change',e=>{S.variant=e.target.value;save();render()});
 $('#segPaper').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!b.dataset.v||b.id==='morePaper')return;$$('#segPaper button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.paper=b.dataset.v;save();render()});
 $('#segOri').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#segOri button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.ori=b.dataset.v;S.pages.forEach(p=>p.ori=S.ori);save();render()});
-$('#patGrid').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#patGrid button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.pattern=parseInt(b.dataset.v)||4});
+$('#patGrid').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!b.dataset.v)return;$$('#patGrid button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.pattern=b.dataset.v});
 
 /* modals */
 function openOv(id){$(id).classList.add('open')}function closeOv(el){el.closest('.overlay').classList.remove('open')}
 $$('[data-close]').forEach(b=>b.onclick=()=>closeOv(b));
 $('#btnPrint').onclick=()=>openOv('#ovPrint');$('#btnPdf').onclick=()=>openOv('#ovPrint');$('#btnPdf2').onclick=()=>doPDF();
+/* Task3: cetak 2 tahap untuk halaman campur (printFilter per orientasi). Tahap-2 hanya via aksi toast — tanpa auto-print. */
+function mixedPages(){const s=new Set();S.pages.forEach(p=>s.add(p.ori||S.ori));return[...s];}
+function paintMixUI(){const mix=mixedPages().length>1;
+  const mh=$('#mixHint'),mb=$('#btnMixPrint');
+  if(mh)mh.hidden=!mix;if(mb)mb.hidden=!mix;
+  const sf=$('#safariNote');if(sf)sf.hidden=!(/iphone|ipad|ipod/i.test(navigator.userAgent||'')||/safari/i.test(navigator.userAgent||''));
+  const[w0,h0]=PAPER_MM[S.paper]||PAPER_MM.A4;
+  const pf=$('#pfPaper');if(pf)pf.textContent=S.paper+' '+w0+'×'+h0+' mm · '+cap(S.ori);
+  const filled=S.pages.flatMap(p=>p.slots).filter(s=>s.img).length;
+  const pt=$('#pfTotal');if(pt)pt.textContent=filled+' foto · '+S.pages.length+' hal · margin '+S.margin+'px';
+  const pm=$('#pfMode');if(pm)pm.textContent=mix?'Campur P+L — PDF gabung, cetak 2 tahap':'Tunggal '+(S.ori==='portrait'?'Portrait':'Landscape');}
+const _openOv=openOv;openOv=function(id){_openOv(id);if(id==='#ovPrint')paintMixUI();};
 $('#btnDoPrint').onclick=()=>window.print();
+const _mixBtn=$('#btnMixPrint');if(_mixBtn)_mixBtn.onclick=()=>{closeOv(_mixBtn);document.body.classList.add('print-P');window.print();
+  setTimeout(()=>document.body.classList.remove('print-P'),1000);
+  toast('Tahap 1 portrait dikirim.',{label:'Lanjut landscape',ms:8000,fn:()=>{document.body.classList.add('print-L');window.print();setTimeout(()=>document.body.classList.remove('print-L'),1000);}});};
 $('#btnPhone').onclick=()=>{openOv('#ovPhone');hostOpen()};
 
 /* PDF — jsPDF 200DPI, campur orientasi */
