@@ -227,6 +227,9 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   .slot .tools{opacity:1;transform:none}
   .ibtn{min-height:44px;min-width:44px}
 }
+.slot.broken .imgbox{display:none}
+.broken-ph{border:2px dashed var(--danger,#F0524F);border-radius:10px;background:rgba(240,82,79,.07);color:var(--muted)}
+.broken-ph .big{font-size:26px}
 @media print{
   body.print-P .page-wrap[data-ori="landscape"]{display:none!important}
   body.print-L .page-wrap[data-ori="portrait"]{display:none!important}
@@ -419,9 +422,23 @@ function toast(msg,type='',action){const t=document.createElement('div');t.class
 function firstEmptySlot(){for(const p of S.pages)for(const s of p.slots)if(!s.img)return{page:p,slot:s};return null}
 function addFiles(files){const imgs=[...files].filter(f=>f.type.startsWith('image/'));if(!imgs.length){toast('Bukan file gambar','warn');return}pushUndo();let need=imgs.length;while(!firstEmptySlot()||countEmpty()<need){S.pages.push(newPage(S.pattern));need-=S.pages.flatMap(p=>p.slots).filter(s=>!s.img).length;if(S.pages.length>40)break}
   let i=0;const readers=imgs.map(f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f)}));
-  Promise.all(readers).then(urls=>{for(const p of S.pages)for(const s of p.slots){if(i>=urls.length)break;if(!s.img){s.img=urls[i++];s.zoom=1;s.rot=0;s.px=0;s.py=0}}save();render();toast(urls.length+' foto ditambahkan')});}
+  Promise.all(readers).then(async urls=>{for(const p of S.pages)for(const s of p.slots){if(i>=urls.length)break;if(!s.img){s.img=urls[i++];s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);}}save();render();toast(urls.length+' foto ditambahkan')});}
 function countEmpty(){return S.pages.flatMap(p=>p.slots).filter(s=>!s.img).length}
-function save(){try{localStorage.setItem('kolase-qc-v2',snap())}catch(e){}}
+let _saveT=0,_quotaWarned=false;
+function save(){
+  /* cepat: metadata dulu agar UI responsif; blob dimigrasi async lalu simpan ulang */
+  const r=saveMeta();
+  if(!r.ok&&r.reason==='quota'&&!_quotaWarned){_quotaWarned=true;setTimeout(()=>{_quotaWarned=false;},30000);
+    toast('Penyimpanan penuh — foto besar dipindah ke arsip internal…','warn');}
+  const now=Date.now();if(now-_saveT<1500)return;_saveT=now;
+  (async()=>{
+    let moved=false;
+    for(const{slot}of allSlots()){if(slot.img&&!isIdbRef(slot.img)&&!slot.broken){
+      if(slot.img.indexOf('blob:')===0||slot.img.length>48*1024){if(await persistSlotImg(slot))moved=true;}}}
+    if(moved){const r2=saveMeta();
+      if(!r2.ok&&r2.reason==='quota')toast('Penyimpanan penuh — beberapa foto mungkin tidak pulih setelah reload. Unduh PDF dulu.','warn');}
+  })();
+}
 function load(){try{const j=localStorage.getItem('kolase-qc-v2');if(j){S=JSON.parse(j);bindDocInputs()}}catch(e){}}
 
 /* render */
@@ -618,10 +635,16 @@ function render(){
       const el=document.createElement('div');el.className='slot'+(s.img?' filled':'')+(fb?' ovl':'');el.dataset.pid=p.id;el.dataset.sid=s.id;
       if(fb){el.style.position='absolute';el.style.left=(fb.x*100)+'%';el.style.top=(fb.y*100)+'%';el.style.width=(fb.w*100)+'%';el.style.height=(fb.h*100)+'%';el.style.zIndex=++ovlTop}
       else{const ga=gridArea(p,si);if(ga)el.style.gridArea=ga;}
-      if(s.img){
+      if(s.broken&&!s.img){
+        el.classList.add('broken');
+        el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="ph broken-ph" tabindex="0"><span class="big">⚠</span><b>Foto gagal dimuat</b><span>File tidak pulih setelah reload (slot '+(si+1)+')</span></div><div class="tools"><button class="tbtn" data-t="del" title="Hapus slot rusak">🗑</button></div>';
+        el.querySelector('[data-t=del]').addEventListener('click',ev=>{ev.stopPropagation();pushUndo();const idx=p.slots.indexOf(s);if(idx>=0)p.slots.splice(idx,1);save();render();toast('Slot rusak dihapus');});
+      }
+      else if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">＋</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">−</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
-        const img=el.querySelector('img');img.src=s.img;applyImg(img,s);
+        const img=el.querySelector('img');img.src=showImgOf(s);applyImg(img,s);
+        img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat — slot ditandai, ketuk 🗑 untuk hapus','warn');};
         const box=el.querySelector('.imgbox');
         let drag=null;
         box.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,px:s.px,py:s.py};box.setPointerCapture(e.pointerId);box.style.cursor='grabbing'});
@@ -673,30 +696,32 @@ function pushPan(s,dx,dy,drag,img){s.px=drag.px+dx;s.py=drag.py+dy;applyImg(img,
 function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;return parseInt(pat)||4;}
 function resizeSlots(p,n){if(typeof n==='string'){const c=patCount(n);const cur=p.slots;if(c>cur.length)for(let i=cur.length;i<c;i++)cur.push(newSlot());else p.slots=cur.slice(0,c);p.pattern=n;delete p.dividers;delete p.free;return;}
 const cur=p.slots;if(n>cur.length)for(let i=cur.length;i<n;i++)cur.push(newSlot());else p.slots=cur.slice(0,n);p.pattern=n;delete p.dividers;delete p.free}
-function slotTool(p,s,t,img,el,grid){
+async function slotTool(p,s,t,img,el,grid){
   if(t==='free'){const gw=(grid&&grid.classList&&grid.classList.contains('gridwrap'))?grid:el.closest('.gridwrap');if(gw)detachSlot(p,s,el,gw);return}
   if(t==='dock'){pushUndo();setFree(p,s,null);save();render();return}
   if(t==='zin'){pushUndo();s.zoom=Math.min(3,s.zoom+0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
   if(t==='zout'){pushUndo();s.zoom=Math.max(.5,s.zoom-0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
   if(t==='rot'){pushUndo();s.rot=(s.rot+90)%360;applyImg(img,s);save()}
   if(t==='left'||t==='right'){pushUndo();moveSlot(p,s,t==='left'?-1:1);save();render()}
-  if(t==='del'){pushUndo();const bak={...s};s.img=null;s.cap='';if(LINK.isGuest&&LINK.session&&bak.pid)syncDel(bak.pid);save();render();
-    toast('Foto dihapus — 8 detik untuk urungkan','warn',{label:'Urungkan',ms:8000,fn:()=>{Object.assign(s,bak);save();render()}})}
+  if(t==='del'){pushUndo();const bak={...s};await removeSlotImg(s);s.cap='';if(LINK.isGuest&&LINK.session&&bak.pid)syncDel(bak.pid);save();render();
+    toast('Foto dihapus — 8 detik untuk urungkan','warn',{label:'Urungkan',ms:8000,fn:async()=>{Object.assign(s,bak);if(isIdbRef(s.img)){const b=await blobGet(s.img.slice(4));if(b){s.img=URL.createObjectURL(b);}else{s.img=null;s.broken=true;}}save();render()}})}
 }
 function moveSlot(p,s,d){const i=p.slots.indexOf(s),j=i+d;if(j<0||j>=p.slots.length){crossMove(p,s,d);return}const a=p.slots[i];p.slots[i]=p.slots[j];p.slots[j]=a}
 function crossMove(p,s,d){const pi=S.pages.indexOf(p),qi=pi+d;if(!S.pages[qi])return;const q=S.pages[qi];const i=p.slots.indexOf(s);p.slots.splice(i,1);if(!p.slots.length)p.slots.push(newSlot());q.slots.splice(d>0?0:q.slots.length,0,s)}
-function delPage(pi){if(S.pages.length<=1){toast('Minimal 1 halaman','warn');return}pushUndo();const gone=S.pages.splice(pi,1)[0];const n=gone.slots.filter(s=>s.img).length;save();render();
+function delPage(pi){if(S.pages.length<=1){toast('Minimal 1 halaman','warn');return}pushUndo();const gone=S.pages.splice(pi,1)[0];const n=gone.slots.filter(s=>s.img).length;
+  gone.slots.forEach(s=>{if(s.blobId){const id=s.blobId,ref=s.img;const still=allSlots().some(o=>o.slot.img===ref);if(!still)blobDel(id);}});
+  save();render();
   toast('Halaman '+(pi+1)+' dihapus ('+n+' foto)','warn',{label:'Urungkan',ms:8000,fn:()=>{S.pages.splice(pi,0,gone);save();render()}})}
 function renderFilm(){const f=$('#film');f.querySelectorAll('.thumb').forEach(e=>e.remove());const fh=$('#filmHint');if(fh)fh.remove();
   const all=[];S.pages.forEach((p,pi)=>p.slots.forEach((s,si)=>{if(s.img)all.push({p,s,pi,si})}));
   if(!all.length){const h=document.createElement('span');h.id='filmHint';h.style.cssText='color:var(--muted);font-size:12px';h.textContent='— kosong — seret file ke slot bernomor —';f.appendChild(h);return}
-  all.forEach((o,i)=>{const im=document.createElement('img');im.src=o.s.img;im.className='thumb';im.title='Foto '+(i+1)+' — klik untuk pindah halaman';im.alt='Thumb foto '+(i+1);
+  all.forEach((o,i)=>{const im=document.createElement('img');im.src=showImgOf(o.s);im.className='thumb';im.title='Foto '+(i+1)+' — klik untuk pindah halaman';im.alt='Thumb foto '+(i+1);
     im.addEventListener('click',()=>{pushUndo();const tgt=S.pages[(o.pi+1)%S.pages.length];o.p.slots.splice(o.p.slots.indexOf(o.s),1);if(!o.p.slots.length)o.p.slots.push(newSlot());tgt.slots.unshift(o.s);if(tgt.slots.length>8){const back=tgt.slots.pop();o.p.slots.push(back)}save();render();toast('Foto '+(i+1)+' dipindah ke HAL '+((o.pi+2)>S.pages.length?1:(o.pi+2)))});f.appendChild(im)})}
 
 /* intake helpers */
 let pickTarget=null;
 function pickFor(p,s){pickTarget={p,s};$('#filePick').click()}
-function dropToSlot(files,p,s){const f=[...files].find(f=>f.type.startsWith('image/'));if(!f)return;pushUndo();const r=new FileReader();r.onload=()=>{s.img=r.result;s.zoom=1;s.rot=0;s.px=0;s.py=0;save();render();toast('Foto masuk slot '+globalIndex(p,s))};r.readAsDataURL(f)}
+function dropToSlot(files,p,s){const f=[...files].find(f=>f.type.startsWith('image/'));if(!f)return;pushUndo();const r=new FileReader();r.onload=async()=>{s.img=r.result;s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);save();render();toast('Foto masuk slot '+globalIndex(p,s))};r.readAsDataURL(f)}
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length)addFiles(files)});
 
 /* controls */
@@ -718,7 +743,9 @@ $('#btnCam').onclick=()=>{pickPhoto(inp=>{(inp||$('#camPick')).click();});};$('#
 function setDrawer(open){document.body.classList.toggle('drawer',!!open);const b=$('#btnMenu');if(!b)return;b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'✕':'☰';b.setAttribute('aria-label',open?'Tutup pengaturan':'Buka pengaturan');}
 $('#btnMenu').onclick=()=>setDrawer(!document.body.classList.contains('drawer'));
 $('#scrim').onclick=()=>setDrawer(false);
-$('#btnClear').onclick=()=>{if(!S.pages.flatMap(p=>p.slots).some(s=>s.img)){toast('Sudah kosong','warn');return}pushUndo();const bak=snap();S.pages=[newPage(S.pattern)];if(LINK.isGuest&&LINK.session){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]})}save();render();toast('Semua foto dikosongkan','warn',{label:'Urungkan',ms:8000,fn:()=>restore(bak)})};
+$('#btnClear').onclick=async()=>{if(!S.pages.flatMap(p=>p.slots).some(s=>s.img)){toast('Sudah kosong','warn');return}pushUndo();const bak=snap();const oldRefs=allSlots().map(o=>o.slot.img).filter(isIdbRef);S.pages=[newPage(S.pattern)];if(LINK.isGuest&&LINK.session){LINK.sync.sentIds={};LINK.sync.queue=[];LINK.sync.unacked={};linkSend({t:"clear",pids:[]})}save();render();toast('Semua foto dikosongkan','warn',{label:'Urungkan',ms:8000,fn:()=>restore(bak)});
+  /* GC blob yatim bila tidak diurungkan: cek 9 detik */
+  setTimeout(()=>{if(!S.pages.some(p=>p.slots.some(s=>oldRefs.includes(s.img))))oldRefs.forEach(r=>blobDel(r.slice(4)));},9000);};
 $('#btnUndo').onclick=()=>{if(!undoStack.length)return;redoStack.push(snap());restore(undoStack.pop());syncUndoBtns()};
 $('#btnRedo').onclick=()=>{if(!redoStack.length)return;undoStack.push(snap());restore(redoStack.pop());syncUndoBtns()};
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){e.preventDefault();$('#btnUndo').click()}if((e.ctrlKey||e.metaKey)&&(e.key.toLowerCase()==='y'||(e.key.toLowerCase()==='z'&&e.shiftKey))){e.preventDefault();$('#btnRedo').click()}});
@@ -804,7 +831,7 @@ function flatIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slots
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
 async function drawCover(ctx,s,dx,dy,dw,dh){
-  const im=await loadImg(s.img);ctx.save();
+  const src=showImgOf(s);if(!src)return;const im=await loadImg(src);ctx.save();
   ctx.beginPath();ctx.rect(dx,dy,dw,dh);ctx.clip();ctx.fillStyle='#0E1418';ctx.fillRect(dx,dy,dw,dh);
   const rot=(s.rot||0)*Math.PI/180, zoom=s.zoom||1;
   const base=Math.max(dw/im.width,dh/im.height)*zoom;
@@ -831,18 +858,25 @@ function linkUrl(sid){return location.origin+location.pathname+'#s='+sid;}
 function dataUrlToBlob(u){const c=u.indexOf(','),h=u.slice(0,c),b=u.slice(c+1),m=h.match(/data:(.*?);/),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:(m&&m[1])||'image/jpeg'});}
 function blobToJpeg(blob,maxDim,q){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(blob);img.onload=()=>{URL.revokeObjectURL(u);let w=img.naturalWidth,h=img.naturalHeight;const s=Math.min(1,(maxDim||1920)/Math.max(w,h));w=Math.max(1,Math.round(w*s));h=Math.max(1,Math.round(h*s));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);res(cv.toDataURL('image/jpeg',q||0.85));};img.onerror=rej;img.src=u;});}
 /* slot.img redesign sudah dataURL — fetch lalu kompres ulang agar ringan di P2P */
-async function slotToDataUrl(s){const b=await (await fetch(s.img)).blob();return blobToJpeg(b,1920,0.85);}
+async function slotToDataUrl(s){const src=showImgOf(s);if(!src)throw new Error('empty');const b=await (await fetch(src)).blob();return blobToJpeg(b,1920,0.85);}
 /* ── pesan ringan tanpa gambar ── */
 function linkSend(o){const c=LINK.conn;if(!connOpen(c))return false;try{c.send(o);return true;}catch(e){return false;}}
 function allSlots(){const out=[];S.pages.forEach(p=>p.slots.forEach(s=>out.push({page:p,slot:s})));return out;}
-function hostApplyPhoto(pid,name,capText,imgDataUrl){
-  for(const{slot}of allSlots())if(slot.pid===pid){if(slot.img!==imgDataUrl){slot.img=imgDataUrl;}slot.capText=capText;slot.cap=capText||'';return slot;}
+async function hostApplyPhoto(pid,name,capText,imgDataUrl){
+  for(const{slot}of allSlots())if(slot.pid===pid){slot.img=imgDataUrl;slot.broken=false;slot.capText=capText;slot.cap=capText||'';await persistSlotImg(slot);return slot;}
   let tgt=firstEmptySlot();
   if(!tgt){S.pages.push(newPage(S.pattern));tgt=firstEmptySlot();}
   if(!tgt){S.pages.push(newPage(1));tgt={page:S.pages[S.pages.length-1],slot:S.pages[S.pages.length-1].slots[0]};}
-  tgt.slot.pid=pid;tgt.slot.img=imgDataUrl;tgt.slot.cap=capText||'';tgt.slot.capText=capText||'';
+  tgt.slot.pid=pid;tgt.slot.img=imgDataUrl;tgt.slot.broken=false;tgt.slot.cap=capText||'';tgt.slot.capText=capText||'';
   tgt.slot.zoom=1;tgt.slot.rot=0;tgt.slot.px=0;tgt.slot.py=0;
+  await persistSlotImg(tgt.slot);
   return tgt.slot;
+}
+/* Hapus foto + bersihkan blob IDB bila tak dipakai slot lain */
+async function removeSlotImg(slot){
+  const ref=slot.img,id=slot.blobId;
+  slot.img=null;slot.blobId=null;slot.broken=false;
+  if(id&&isIdbRef(ref)){const still=allSlots().some(o=>o.slot!==slot&&o.slot.img===ref);if(!still)blobDel(id);}
 }
 /* ── HOST (laptop) ── */
 async function hostOpen(){
@@ -862,7 +896,7 @@ async function hostOpen(){
   peer.on('connection',c=>{LINK.conn=c;LINK.sync.hostIds={};LINK.sync.unacked={};$('#lkStatus').textContent='HP terhubung — sync realtime aktif ✓';c.on('data',d=>hostOnData(d,c));c.on('close',()=>{if(LINK.conn===c){LINK.conn=null;$('#lkStatus').textContent='HP terputus. QR tetap aktif — buka lagi dari HP untuk sambung otomatis.';}});});
   peer.on('error',e=>{const t=(e&&e.type)||'';if(t==='unavailable-id')$('#lkStatus').textContent='Sesi kedaluwarsa — tutup lalu buat baru.';else $('#lkStatus').textContent='Koneksi gagal ('+t+'). Tutup & buat baru, atau pakai Import file.';});
 }
-function hostOnData(d,c){
+async function hostOnData(d,c){
   if(!d||typeof d!=='object')return;
   if(d.t==='hello'){LINK.meta={got:0,count:d.count||0};
     /* kirim daftar pid yg sudah ada -> HP hanya kirim yg kurang (anti duplikat) */
@@ -876,7 +910,7 @@ function hostOnData(d,c){
     const b=LINK.chunks[d.pid];if(!b||b.parts.some(x=>x==null))return;
     const blob=dataUrlToBlob(b.parts.join(''));
     pushUndo();
-    hostApplyPhoto(d.pid,b.name||('hp-'+d.pid+'.jpg'),b.cap,URL.createObjectURL(blob));
+    await hostApplyPhoto(d.pid,b.name||('hp-'+d.pid+'.jpg'),b.cap,URL.createObjectURL(blob));
     delete LINK.chunks[d.pid];
     LINK.sync.hostIds[d.pid]=1;LINK.meta.got++;
     $('#lkStatus').textContent='Sync '+LINK.meta.got+'/'+LINK.meta.count+' foto ✓ — realtime aktif';
@@ -886,7 +920,7 @@ function hostOnData(d,c){
     return;}
   else if(d.t==='del'){
     for(const p of S.pages){const i=p.slots.findIndex(s=>s.pid===d.pid);
-      if(i>=0){pushUndo();p.slots[i].img=null;p.slots[i].cap='';save();render();$('#lkCount').textContent=allSlots().filter(o=>o.slot.img).length+' foto di dokumen';break;}}
+      if(i>=0){pushUndo();await removeSlotImg(p.slots[i]);p.slots[i].cap='';save();render();$('#lkCount').textContent=allSlots().filter(o=>o.slot.img).length+' foto di dokumen';break;}}
     delete LINK.sync.hostIds[d.pid];
     try{c.send({t:'del-ack',pid:d.pid});}catch(e){}
     return;}
@@ -898,7 +932,7 @@ function hostOnData(d,c){
     const keep=new Set(d.pids||[]);
     /* hanya slot ber-pid (dari HP) yg diselaraskan; slot lokal laptop tak tersentuh */
     pushUndo();
-    for(const{slot}of allSlots())if(slot.pid&&!keep.has(slot.pid)){slot.img=null;slot.cap='';}
+    for(const{slot}of allSlots())if(slot.pid&&!keep.has(slot.pid)){await removeSlotImg(slot);slot.cap='';}
     save();render();$('#lkCount').textContent=allSlots().filter(o=>o.slot.img).length+' foto di dokumen';
     return;}
 }
@@ -910,7 +944,7 @@ $('#lkFile').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.photos))throw 0;
     pushUndo();
-    for(const ph of j.photos){if(!ph.dataUrl)continue;hostApplyPhoto(ph.pid||('p'+Math.random().toString(36).slice(2,10)),ph.name||'hp.jpg',ph.cap||'',URL.createObjectURL(dataUrlToBlob(ph.dataUrl)));}
+    for(const ph of j.photos){if(!ph.dataUrl)continue;await hostApplyPhoto(ph.pid||('p'+Math.random().toString(36).slice(2,10)),ph.name||'hp.jpg',ph.cap||'',URL.createObjectURL(dataUrlToBlob(ph.dataUrl)));}
     save();render();$('#lkCount').textContent=allSlots().filter(o=>o.slot.img).length+' foto di dokumen';$('#lkStatus').textContent='Import selesai — '+j.photos.length+' foto masuk.';
   }catch(_){$('#lkStatus').textContent='File tidak valid.';}
 };
@@ -1080,24 +1114,115 @@ function scanBarRefresh(){
   bar.hidden=!show;
 }
 /* ══ Draft otomatis (IndexedDB): foto HP selamat dari reload/pindah tab/scan QR ══ */
-const DRAFT_DB='kolase-qc-draft',DRAFT_STORE='photos';
-function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,2);r.onupgradeneeded=()=>{if(r.result.objectStoreNames.contains(DRAFT_STORE))r.result.deleteObjectStore(DRAFT_STORE);r.result.createObjectStore(DRAFT_STORE,{keyPath:'i'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+const DRAFT_DB='kolase-qc-draft',DRAFT_STORE='photos',BLOB_STORE='blobs';
+function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,3);r.onupgradeneeded=()=>{const db=r.result;if(db.objectStoreNames.contains(DRAFT_STORE))db.deleteObjectStore(DRAFT_STORE);db.createObjectStore(DRAFT_STORE,{keyPath:'i'});if(!db.objectStoreNames.contains(BLOB_STORE))db.createObjectStore(BLOB_STORE,{keyPath:'id'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
 function draftTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);}}catch(e){try{db.close();}catch(_){}rej(e);}}));}
-async function draftSaveAll(){try{const items=[];const filled=allSlots().filter(o=>o.slot.img);for(let i=0;i<filled.length;i++){const s=filled[i].slot;try{const b=await (await fetch(s.img)).blob();items.push({i,pid:s.pid||null,cap:s.cap||'',blob:b});}catch(e){}}await draftTx('readwrite',s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
+async function draftSaveAll(){try{const items=[];const filled=allSlots().filter(o=>showImgOf(o.slot));for(let i=0;i<filled.length;i++){const s=filled[i].slot;try{const b=await (await fetch(showImgOf(s))).blob();items.push({i,pid:s.pid||null,cap:s.cap||'',blob:b});}catch(e){}}await draftTx('readwrite',s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
 async function draftLoad(){try{const rows=await draftTx('readonly',s=>s.getAll());if(!rows||!rows.length)return false;rows.sort((a,b)=>a.i-b.i);pushUndo();for(const r of rows){try{
   let tgt=firstEmptySlot();if(!tgt){S.pages.push(newPage(S.pattern));tgt=firstEmptySlot();}
-  tgt.slot.pid=r.pid||undefined;tgt.slot.img=URL.createObjectURL(r.blob);tgt.slot.cap=r.cap||'';tgt.slot.capText=r.cap||'';tgt.slot.zoom=1;tgt.slot.rot=0;tgt.slot.px=0;tgt.slot.py=0;
+  tgt.slot.pid=r.pid||undefined;tgt.slot.img=URL.createObjectURL(r.blob);tgt.slot._url=tgt.slot.img;tgt.slot.cap=r.cap||'';tgt.slot.capText=r.cap||'';tgt.slot.zoom=1;tgt.slot.rot=0;tgt.slot.px=0;tgt.slot.py=0;tgt.slot.broken=false;
 }catch(e){}}save();return true;}catch(e){return false;}}
 async function draftClear(){try{await draftTx('readwrite',s=>s.clear());}catch(e){}}
+/* ══ Blob foto persisten (IndexedDB): localStorage hanya simpan metadata + s.img kecil.
+   Tiap slot foto besar dapat blobId stabil; s.img='idb:xxx' = referensi, dihidrasi saat boot.
+   Blob URL lama (blob:) tidak disimpan — selalu materialisasi ke blob dulu. == */
+function blobTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(BLOB_STORE,mode),s=t.objectStore(BLOB_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);}}catch(e){try{db.close();}catch(_){}rej(e);}}));}
+async function blobPut(id,blob){try{await blobTx('readwrite',s=>s.put({id,blob}));return true;}catch(e){return false;}}
+async function blobGet(id){try{const r=await blobTx('readonly',s=>s.get(id));return r&&r.blob||null;}catch(e){return null;}}
+async function blobDel(id){try{await blobTx('readwrite',s=>s.delete(id));}catch(e){}}
+function isIdbRef(img){return typeof img==='string'&&img.indexOf('idb:')===0;}
+function isBlobUrl(img){return typeof img==='string'&&img.indexOf('blob:')===0;}
+/* URL tampil runtime: blob hidup (_url) > idb mentah tak bisa render > dataURL inline */
+function srcOf(slot){if(!slot)return null;if(slot._url)return slot._url;if(slot.img&&!isIdbRef(slot.img)&&!isBlobUrl(slot.img))return slot.img;return null;}
+function showImgOf(slot){if(slot._url)return slot._url;return srcOf(slot);}
+async function imgToBlob(img){const r=await fetch(img);return await r.blob();}
+/* Materialisasi s.img jadi blob persisten. Return true bila slot kini aman (idb ref).
+   dataURL kecil (<48KB) boleh tetap inline agar hemat transaksi IDB. */
+async function persistSlotImg(slot){
+  if(!slot||!slot.img||slot.broken)return false;
+  if(isIdbRef(slot.img))return true;
+  try{
+    const blob=await imgToBlob(slot.img);
+    if(slot.img.length<48*1024&&slot.img.indexOf('data:')===0)return true; /* kecil: biarkan inline */
+    const id='b'+Math.random().toString(36).slice(2,10);
+    if(!(await blobPut(id,blob)))return false;
+    const old=slot.img;
+    slot.img='idb:'+id;slot.blobId=id;slot._url=URL.createObjectURL(blob);slot.broken=false;
+    if(isBlobUrl(old)){try{URL.revokeObjectURL(old);}catch(e){}}
+    return true;
+  }catch(e){return false;}
+}
+/* Hidrasi: ubah semua 'idb:xxx' jadi blob URL hidup. Slot yg blobnya hilang -> broken. */
+async function hydrateImgs(){
+  let changed=false;
+  for(const{slot}of allSlots()){
+    if(!isIdbRef(slot.img))continue;
+    const id=slot.img.slice(4),b=await blobGet(id);
+    if(b){slot.img=URL.createObjectURL(b);slot.blobId=id;}
+    else{slot.img=null;slot.blobId=null;slot.broken=true;}
+    changed=true;
+  }
+  return changed;
+}
+/* Simpan metadata (tanpa blob besar) ke localStorage. Return {ok, reason}. */
+function saveMeta(){
+  try{
+    const slim=JSON.parse(JSON.stringify(S,(k,v)=>{
+      if(k==='_url')return undefined; /* runtime saja, jangan simpan */
+      if(k!=='img'||typeof v!=='string')return v;
+      if(v.indexOf('blob:')===0)return null; /* URL sesi mati — jangan simpan */
+      if(isIdbRef(v))return v; /* referensi persisten — simpan */
+      if(v.indexOf('data:')===0&&v.length>48*1024)return null; /* base64 besar keluar — sudah dipindah ke IDB oleh persistSlotImg */
+      return v;
+    }));
+    localStorage.setItem('kolase-qc-v2',JSON.stringify(slim));
+    return{ok:true};
+  }catch(e){
+    const q=String(e&&e.name||e);
+    if(/quota/i.test(q))return{ok:false,reason:'quota'};
+    return{ok:false,reason:'err'};
+  }
+}
 function draftArm(){if(draftArm._on)return;draftArm._on=true;const saveD=()=>{if(S&&S.pages)draftSaveAll();};setInterval(()=>{if(!document.hidden)saveD();},4000);addEventListener('pagehide',saveD);addEventListener('beforeunload',saveD);}
 /* source shift for node --check */
 $('#stage').addEventListener('dragover',e=>e.preventDefault());
 $('#stage').addEventListener('drop',e=>{if(e.target.closest('.slot'))return;e.preventDefault();addFiles(e.dataTransfer.files)});
 
-load();render();syncUndoBtns();
+/* Boot: metadata localStorage → hidrasi blob IDB → render. Slot gambar mati/null ditandai. */
+load();
+(async()=>{
+  for(const{slot}of allSlots()){
+    if(!slot.img){slot._url=null;continue;}
+    if(isIdbRef(slot.img)){const id=slot.img.slice(4);slot.blobId=id;const b=await blobGet(id);
+      if(b){slot._url=URL.createObjectURL(b);slot.broken=false;}else{slot.img=null;slot.blobId=null;slot._url=null;slot.broken=true;}}
+    else if(isBlobUrl(slot.img)){slot.img=null;slot._url=null;slot.broken=true;} /* URL sesi lama: pasti mati */
+    else{slot._url=null;try{slot._url=URL.createObjectURL(await imgToBlob(slot.img));}catch(e){slot._url=null;}}
+  }
+  hydrateLegacyDraft();
+  render();syncUndoBtns();
+})();
 /* boot P2P/guest/draft: sebelum interaksi; load lama + render ulang bila draft pulih */
 draftArm();guestInit();scanBarRefresh();
 (async()=>{try{if(location.hash.match(/#s=/))return;const ok=await draftLoad();if(ok){save();render();}}catch(e){}})();
+/* Migrasi satu kali: draft blob lama (store photos) → blob store baru per slot */
+async function hydrateLegacyDraft(){
+  try{
+    const rows=await draftTx('readonly',s=>s.getAll());
+    if(!rows||!rows.length)return;
+    const empties=allSlots().filter(o=>!o.slot.img&&!o.slot.broken);
+    rows.sort((a,b)=>a.i-b.i);
+    for(const r of rows){
+      const tgt=empties.shift();if(!tgt)break;
+      if(!(r.blob instanceof Blob))continue;
+      const id='b'+Math.random().toString(36).slice(2,10);
+      if(!(await blobPut(id,r.blob)))continue;
+      tgt.slot.img='idb:'+id;tgt.slot.blobId=id;tgt.slot.pid=r.pid||tgt.slot.pid;
+      tgt.slot.cap=r.cap||tgt.slot.cap||'';tgt.slot.broken=false;
+      tgt.slot._url=URL.createObjectURL(r.blob);
+    }
+    save();
+  }catch(e){}
+}
 </script>
 </body>
 </html>
