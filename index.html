@@ -122,9 +122,11 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .stage-top .sp{flex:1}
 .chipbtn{border:1px solid var(--field-line);background:var(--field);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;min-height:40px}
 .chipbtn:hover{border-color:var(--accent-d)}
-.page-wrap{max-width:860px;margin:0 auto 26px;display:flex;flex-direction:column;align-items:center}
+.page-wrap{max-width:860px;margin:0 auto 26px;display:flex;flex-direction:column;align-items:stretch}
 .page-wrap>.sheet{align-self:stretch}
-.page-wrap.ori-portrait>.sheet{max-width:560px;margin-left:auto;margin-right:auto}
+.page-wrap.ori-portrait{max-width:520px}
+.page-wrap.ori-portrait>.sheet{margin-left:0;margin-right:0}
+.page-wrap.ori-landscape{max-width:860px}
 .page-bar{display:flex;align-items:center;gap:8px;background:var(--bg1);color:var(--fg);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:9px 12px;border:1px solid var(--line);border-bottom:none;flex-wrap:wrap}
 .page-bar .pg{font-weight:800;font-size:12.5px;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:3px 9px}
 .page-bar .meta{font-size:11px;color:var(--muted)}
