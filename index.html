@@ -163,9 +163,12 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .slot .tools{position:absolute;left:8px;right:8px;bottom:44px;z-index:6;display:flex;gap:6px;justify-content:center;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;flex-wrap:wrap;background:var(--toolsbg2);border:1px solid var(--toolbd);border-radius:10px;padding:6px}
 .slot:hover .tools,.slot:focus-within .tools,.slot.touched .tools{opacity:1;transform:none}
 /* Task2: divider tarik + overlay bebas. Grid dibungkus .gridwrap (relative); divider absolute di atasnya. */
-.gridwrap{position:relative;flex:1;display:grid;min-height:260px;grid-column:1/-1}
-.slot{position:relative;min-height:190px}
+.gridwrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:260px;grid-column:1/-1}
+.gridrow{position:relative;display:grid;flex:1 1 0;min-height:0}
+.slot{position:relative;min-height:120px}
 .divider{position:absolute;z-index:20;touch-action:none;opacity:0;pointer-events:none;transition:opacity .15s}
+.divider.rowdiv{position:relative;left:auto!important;top:auto!important;width:auto;height:12px;margin:-6px 0;cursor:row-resize;flex:none}
+.divider.rowdiv::after{content:"";position:absolute;top:5px;left:0;right:0;height:2px}
 .divider::after{content:"";position:absolute;background:var(--div-line);border-radius:3px;transition:background .15s}
 .divider:hover,.divider.on{opacity:1;pointer-events:auto}
 .divider.v{top:0;bottom:0;width:14px;margin-left:-7px;cursor:col-resize}
@@ -564,31 +567,96 @@ function dragDivider(d,grid,p,vertical,idx,sx,sy){
     pushUndoPre(pre);save();render();};
   window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
 }
-function addDividers(grid,p){
-  const[c,r]=gridShape(p);if(c<2&&r<2)return;const dv=divsOf(p);
-  const mk=(vertical,idx)=>{const d=document.createElement('div');d.className='divider '+(vertical?'v':'h');
-    d.title=vertical?'Tarik untuk ubah lebar kolom':'Tarik untuk ubah tinggi baris';
-    let edge=0;const a=vertical?dv.cols:dv.rows;for(let i=0;i<=idx;i++)edge+=a[i];
-    if(vertical)d.style.left=(edge*100)+'%';else d.style.top=(edge*100)+'%';
-    d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();dragDivider(d,grid,p,vertical,idx,e.clientX,e.clientY);});
-    d._v=vertical;d._i=idx;grid.appendChild(d);};
-  for(let i=0;i<c-1;i++)mk(true,i);
-  for(let i=0;i<r-1;i++)mk(false,i);
+function rowColsOf(p,ri,dv0){if(ri===0)return dv0.cols.length;if(p.rowCols&&p.rowCols[ri]!=null)return p.rowCols[ri];return dv0.cols.length;}
+function rowFrOf(p,ri,n){const fr=p['rowFr_'+ri];if(fr&&fr.length===n)return[...fr];return Array(n).fill(+(1/n).toFixed(3));}
+function addRowDividers(grid,p,rows){
+  const[cN,rN]=gridShape(p);const dv=divsOf(p);
+  rows.forEach((row,ri)=>{
+    const n=row.querySelectorAll(':scope > .slot').length||rowColsOf(p,ri,dv);
+    const fr=rowFrOf(p,ri,n);
+    row.style.gridTemplateColumns=fr.map(x=>x.toFixed(3)+'fr').join(' ');
+    for(let ci=0;ci<n-1;ci++){
+      const d=document.createElement('div');d.className='divider v';d.title='Tarik untuk ubah lebar kolom baris ini';
+      let edge=0;for(let k=0;k<=ci;k++)edge+=fr[k];d.style.left=(edge*100)+'%';
+      d._ri=ri;d._ci=ci;
+      d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();dragColDivider(d,e.currentTarget.parentElement,p,ri,ci,e.clientX);});
+      row.appendChild(d);
+    }
+  });
 }
-function gridEdgeHandle(e,p,hd,grid,el){
-  let vertical=(hd==='e'||hd==='w');
-  if(hd.length===2){vertical=hd.includes('e')||hd.includes('w');hd=vertical?(hd.includes('e')?'e':'w'):(hd.includes('s')?'s':'n');}
-  const fr=cellRectFrac(grid,el);
-  const edge=vertical?(hd==='e'?fr.x+fr.w:fr.x):(hd==='s'?fr.y+fr.h:fr.y);
-  const dv=divsOf(p),a=vertical?dv.cols:dv.rows;let acc=0,best=-1,bd=9;
-  for(let i=0;i<a.length-1;i++){acc+=a[i];const dd=Math.abs(acc-edge);if(dd<bd){bd=dd;best=i;}}
-  if(best<0)return;
-  const d=[...grid.querySelectorAll('.divider')].find(o=>o._v===vertical&&o._i===best);
-  if(d)dragDivider(d,grid,p,vertical,best,e.clientX,e.clientY);
+function dragColDivider(d,rowEl,p,ri,ci,sx){
+  d.classList.add('on');
+  const row=rowEl||d.parentElement;
+  const n=row.querySelectorAll(':scope > .slot').length||2;
+  const r0=row.getBoundingClientRect(),size=r0.width||1;
+  const fr0=rowFrOf(p,ri,Math.max(2,n));const arr0=[...fr0];const lo=0.12,pre=snap();
+  const mm=gridPhysMm(p,row.closest('.gridwrap'));
+  const badge=document.createElement('div');badge.className='divbadge';row.appendChild(badge);
+  const show=a=>{const rr=row.getBoundingClientRect();let edge=0;for(let k=0;k<=ci;k++)edge+=a[k];
+    d.style.left=(edge*100)+'%';badge.style.left=(edge*rr.width)+'px';badge.style.top=(rr.height/2)+'px';badge.style.transform='translate(12px,-50%)';
+    badge.textContent=Math.round(a[ci]*mm.contentW)+' mm · '+Math.round(a[ci+1]*mm.contentW)+' mm';};
+  show(fr0);
+  const move=me=>{
+    if(Math.abs(me.clientX-sx)>2)suppressClick=true;
+    const df=(me.clientX-sx)/size;
+    const a=rowFrOf(p,ri,arr0.length);
+    let na=arr0[ci]+df;na=Math.min(1-lo,Math.max(lo,na));
+    const nb=arr0[ci]+arr0[ci+1]-na;if(nb<lo||nb>1-lo)return;
+    const fr=[...arr0];fr[ci]=+na.toFixed(3);fr[ci+1]=+nb.toFixed(3);
+    p['rowFr_'+ri]=fr;
+    if(ri===0){const dv=divsOf(p);dv.cols=fr.length===dv.cols.length?[...fr]:dv.cols;p.dividers={cols:[...dv.cols],rows:[...dv.rows]};p.colW=+fr[0].toFixed(3);}
+    row.style.gridTemplateColumns=fr.map(x=>x.toFixed(3)+'fr').join(' ');
+    show(fr);save();};
+  const up=()=>{badge.remove();d.classList.remove('on');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
 }
-function attachGridBits(el,p,grid){
-  HANDLES.forEach(hd=>{const d=document.createElement('div');d.className='hd '+hd;d.title='Tarik untuk atur ukuran kolom/baris';
-    d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();gridEdgeHandle(e,p,hd,grid,el);});
+function dragRowDivider(d,grid,p,ri,sy){
+  d.classList.add('on');
+  const[cN,rN]=gridShape(p);const dv=divsOf(p);
+  const rows=dv.rows.length===rN?[...dv.rows]:Array(rN).fill(+(1/rN).toFixed(3));
+  const r0=grid.getBoundingClientRect(),size=r0.height||1,arr0=[...rows],lo=0.1,pre=snap();
+  const badge=document.createElement('div');badge.className='divbadge';grid.appendChild(badge);
+  const rowEls=[...grid.querySelectorAll(':scope > .gridrow')];
+  const mm=gridPhysMm(p,grid);
+  const apply=a=>{rowEls.forEach((re,k)=>{re.style.flexGrow=(a[k]||0)*100;re.style.flexShrink=1;re.style.flexBasis='0%';});
+    badge.textContent=Math.round((a[ri]||0)*mm.contentH)+' mm · '+Math.round((a[ri+1]||0)*mm.contentH)+' mm';
+    const rr=grid.getBoundingClientRect();let edge=0;for(let k=0;k<=ri;k++)edge+=a[k];
+    badge.style.left=(rr.width/2)+'px';badge.style.top=(edge*rr.height)+'px';badge.style.transform='translate(-50%,-50%)';};
+  apply(arr0);
+  const move=me=>{
+    if(Math.abs(me.clientY-sy)>2)suppressClick=true;
+    const df=(me.clientY-sy)/size;
+    let na=arr0[ri]+df;na=Math.min(1-lo,Math.max(lo,na));
+    const nb=arr0[ri]+arr0[ri+1]-na;if(nb<lo||nb>1-lo)return;
+    const a=[...arr0];a[ri]=+na.toFixed(3);a[ri+1]=+nb.toFixed(3);
+    p.dividers={cols:[...dv.cols],rows:[...a]};p.rowH=+a[0].toFixed(3);
+    apply(a);save();};
+  const up=()=>{badge.remove();d.classList.remove('on');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
+}
+function gridEdgeHandle(e,p,hd,row,el){
+  if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();
+  const ri=+(row.dataset.row||0);
+  const n=row.querySelectorAll(':scope > .slot').length;
+  const fr=rowFrOf(p,ri,Math.max(1,n));
+  const rfr=cellRectFrac(row,el);
+  const isV=hd.includes('e')||hd.includes('w');
+  if(isV){
+    const edge=hd.includes('e')?rfr.x+rfr.w:rfr.x;
+    let acc=0,best=-1,bd=9;
+    for(let k=0;k<fr.length-1;k++){acc+=fr[k];const dd=Math.abs(acc-edge);if(dd<bd){bd=dd;best=k;}}
+    if(best<0)return;
+    const d=[...row.querySelectorAll('.divider.v')][best];
+    if(d)dragColDivider(d,row,p,ri,best,e.clientX);
+    return;
+  }
+  const grid=row.closest('.gridwrap');
+  const rd=[...grid.querySelectorAll(':scope > .divider.rowdiv')][hd.includes('s')?ri:ri-1];
+  if(rd)dragRowDivider(rd,grid,p,hd.includes('s')?ri:ri-1,e.clientY);
+}
+function attachGridBits(el,p,row){
+  HANDLES.forEach(hd=>{const d=document.createElement('div');d.className='hd '+hd;d.title=hd.includes('e')||hd.includes('w')?'Tarik: kolom baris ini':(hd.includes('s')||hd.includes('n')?'Tarik: tinggi baris ini':'Tarik: kolom/tinggi baris ini');
+    d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();gridEdgeHandle(e,p,hd,row,el);});
     el.appendChild(d);});
   const mv=document.createElement('div');mv.className='mv crop-on';mv.title='Klik foto untuk geser/zoom di dalam bingkai';el.insertBefore(mv,el.firstChild);
 }
@@ -697,14 +765,38 @@ function render(){
       if(p.headH){p.headH=Math.max(0,Math.min(48,p.headH));if(p.headH)pad.style.height=p.headH+'px';}
       const hd=h.querySelector('.headdrag');
       hd.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();
-        const y0=e.clientY,h0=p.headH||0,pre=snap();
-        const move=me=>{if(Math.abs(me.clientY-y0)>2)suppressClick=true;let v=h0+(me.clientY-y0);v=Math.max(0,Math.min(48,v));p.headH=Math.round(v);pad.style.height=p.headH+'px';save();};
-        const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
-        window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);});}
+        const y0=e.clientY,h0=Math.max(0,Math.min(48,+p.headH||0)),pre=snap();
+        const badge=document.createElement('div');badge.className='divbadge';inner.appendChild(badge);
+        const show=v=>{const rr=h.getBoundingClientRect();badge.style.left=(rr.width/2)+'px';badge.style.top=(rr.height-6)+'px';badge.style.transform='translate(-50%,0)';badge.textContent='kop +'+Math.round(v)+'px';};show(h0);
+        const move=me=>{if(Math.abs(me.clientY-y0)>2)suppressClick=true;let v=h0+(me.clientY-y0);v=Math.max(0,Math.min(48,v));p.headH=Math.round(v);pad.style.height=p.headH+'px';show(p.headH);save();};
+        const up=()=>{badge.remove();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
+        window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);});
+      hd.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pushUndo();p.headH=0;delete p.headH;pad.style.height='';save();render();toast('Ruang kop direset');});}
     const grid=document.createElement('div');grid.className='gridwrap';
-    grid.style.gridTemplateColumns=colsFor(p);grid.style.gridTemplateRows=rowsFor(p);grid.style.gap=S.gap+'px';
+    grid.style.gap=S.gap+'px';
     inner.appendChild(grid);
+    const[cN,rN]=gridShape(p);
+    const dv0=divsOf(p);
+    const rows=[];
+    for(let ri=0;ri<rN;ri++){
+      const row=document.createElement('div');row.className='gridrow';row.dataset.row=ri;
+      const nCols=rowColsOf(p,ri,dv0);
+      const cols=rowFrOf(p,ri,nCols);
+      row.style.gridTemplateColumns=cols.map(x=>x.toFixed(3)+'fr').join(' ');
+      const rf=(dv0.rows&&dv0.rows[ri]!=null)?dv0.rows[ri]:1/rN;
+      row.style.flexGrow=rf*100;row.style.flexShrink=1;row.style.flexBasis='0%';
+      row.style.gap=S.gap+'px';
+      grid.appendChild(row);rows.push(row);
+      if(ri<rN-1){
+        const rd=document.createElement('div');rd.className='divider rowdiv h';rd.title='Tarik untuk ubah tinggi baris';
+        rd.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();dragRowDivider(rd,grid,p,ri,e.clientY);});
+        rd._ri=ri;grid.appendChild(rd);
+      }
+    }
+    const rowOfSlot=si=>{let acc=0;for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv0);if(si<acc+n)return ri;acc+=n;}return rN-1;};
     p.slots.forEach((s,si)=>{
+      const row=rows[rowOfSlot(si)]||rows[rows.length-1];
+      const rowEl=row;
       const fb=freeBox(p,s);
       const el=document.createElement('div');el.className='slot'+(s.img?' filled':'')+(fb?' ovl':'');el.dataset.pid=p.id;el.dataset.sid=s.id;
       if(fb){el.style.position='absolute';el.style.left=(fb.x*100)+'%';el.style.top=(fb.y*100)+'%';el.style.width=(fb.w*100)+'%';el.style.height=(fb.h*100)+'%';el.style.zIndex=++ovlTop}
@@ -747,11 +839,11 @@ function render(){
         el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
         el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover');dropToSlot(e.dataTransfer.files,p,s)});
       }
-      grid.appendChild(el);
-      if(!fb)attachGridBits(el,p,grid);
-      if(s.img&&fb)makeOverlayBits(el,p,s,grid);
+      rowEl.appendChild(el);
+      if(!fb)attachGridBits(el,p,rowEl);
+      if(s.img&&fb)makeOverlayBits(el,p,s,rowEl);
     });
-    addDividers(grid,p);
+    addRowDividers(grid,p,rows);
     const colw=d.querySelector('[data-colw]');
     if(colw){colw.addEventListener('pointerdown',e=>{e.stopPropagation();colwPre=snap();});
       colw.addEventListener('click',e=>e.stopPropagation());
