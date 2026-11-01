@@ -350,7 +350,9 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
           <label class="f" style="flex:1">Font<select id="inFont"><option value="display">Display / Tegas</option><option value="body">Body / Netral</option><option value="mono">Mono / Teknis</option></select></label>
           <label class="f" style="flex:1">Rata<select id="inAlign"><option value="center">Tengah</option><option value="left">Kiri</option><option value="right">Kanan</option></select></label>
         </div>
-        <div class="switchrow"><span><b>Tampilkan kop</b><br><small style="color:var(--muted)">Judul + sub + tanggal</small></span><span class="sw"><input type="checkbox" id="inShowHead" checked><i></i></span></div>
+        <div class="switchrow"><span><b>Tampilkan judul</b></span><span class="sw"><input type="checkbox" id="inShowTitle" checked><i></i></span></div>
+        <div class="switchrow"><span><b>Tampilkan subjudul</b></span><span class="sw"><input type="checkbox" id="inShowSub" checked><i></i></span></div>
+        <div class="switchrow"><span><b>Tampilkan tanggal</b></span><span class="sw"><input type="checkbox" id="inShowDate" checked><i></i></span></div>
         <div class="switchrow"><span>Judul tebal</span><span class="sw"><input type="checkbox" id="inBold" checked><i></i></span></div>
       </div>
     </div>
@@ -390,6 +392,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   <main class="stage" id="stage" data-od-id="canvas">
     <div class="stage-top" data-od-id="stage-top">
       <span class="doc-tag" id="stageTag">Pratinjau kertas · A4 Portrait</span><span class="sp"></span>
+      <label class="f" style="display:flex;align-items:center;gap:8px;color:var(--ink);font-size:12px">Tampilan<input type="range" id="inZoom" min="50" max="110" value="80" style="width:110px;accent-color:var(--accent-d)"><span id="zoomVal" style="font-family:var(--font-m)">80%</span></label>
       <button class="chipbtn" id="btnAddPage2">＋ Halaman</button>
     </div>
     <div id="pages"></div>
@@ -461,7 +464,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const PAPER_MM={A4:[210,297],F4:[215,330],Letter:[216,279],Legal:[216,356],A3:[297,420]};
-let S={paper:'A4',ori:'portrait',margin:28,gap:10,pattern:4,variant:'grid',title:'LAPORAN DOKUMENTASI QC',sub:'Proyek — Lot / Area / Tanggal inspeksi',date:'',font:'display',align:'center',showHead:true,bold:true,pages:[],seq:1};
+let S={paper:'A4',ori:'portrait',margin:28,gap:10,pattern:4,variant:'grid',title:'LAPORAN DOKUMENTASI QC',sub:'Proyek — Lot / Area / Tanggal inspeksi',date:'',font:'display',align:'center',showTitle:true,showSub:true,showDate:true,bold:true,zoomUI:80,pages:[],seq:1};
+function kopOn(){return S.showTitle!==false||S.showSub!==false||S.showDate!==false;}
 const FONTMAP={display:'"Segoe UI",system-ui,sans-serif',body:'"Segoe UI",system-ui,sans-serif',mono:'ui-monospace,Menlo,Consolas,monospace'};
 function newPage(pattern){const pat=pattern??S.pattern;return{id:'p'+(S.seq++),pattern:pat,ori:S.ori,colW:0.5,rowH:0.5,headH:0,dividers:null,free:null,forceNew:false,slots:Array.from({length:patCount(pat)},()=>newSlot())}}
 function newSlot(){return{id:'s'+Math.random().toString(36).slice(2,8),img:null,zoom:1,rot:0,px:0,py:0,cap:''}}
@@ -757,10 +761,12 @@ function render(){
     inner.style.setProperty('--m',S.margin+'px');inner.style.setProperty('--gap',S.gap+'px');
     inner.style.setProperty('--t1',(parseInt($('#inTSize').value)||22)+'px');
     inner.style.setProperty('--align',S.align);
-    if(S.showHead){const h=document.createElement('div');h.className='doc-head';
+    if(kopOn()){const h=document.createElement('div');h.className='doc-head';
       h.innerHTML='<h3 style="font-weight:'+(S.bold?'800':'500')+';font-family:'+FONTMAP[S.font]+'"></h3><div class="sub"></div><div class="dt"></div><div class="headpad"></div><div class="headdrag" title="Tarik naik-turun: ruang kop"></div>';
-      h.querySelector('h3').textContent=S.title||'LAPORAN DOKUMENTASI QC';h.querySelector('.sub').textContent=S.sub||'';h.querySelector('.dt').textContent=fmtDate(S.date)+' · '+S.paper+' '+cap(ori);
-      if(!S.sub)h.querySelector('.sub').remove();inner.appendChild(h);
+      if(S.showTitle!==false)h.querySelector('h3').textContent=S.title||'LAPORAN DOKUMENTASI QC';else h.querySelector('h3').remove();
+      if(S.showSub!==false)h.querySelector('.sub').textContent=S.sub||'';else h.querySelector('.sub').remove();
+      if(S.showDate!==false)h.querySelector('.dt').textContent=fmtDate(S.date)+' · '+S.paper+' '+cap(ori);else h.querySelector('.dt').remove();
+      inner.appendChild(h);
       const pad=h.querySelector('.headpad');
       if(p.headH){p.headH=Math.max(0,Math.min(48,p.headH));if(p.headH)pad.style.height=p.headH+'px';}
       const hd=h.querySelector('.headdrag');
@@ -808,7 +814,7 @@ function render(){
       }
       else if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
-        '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
+        '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="rep" title="Ganti foto">⇄</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
         const img=el.querySelector('img');img.src=showImgOf(s);applyImg(img,s);
         img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat — slot ditandai, ketuk hapus untuk buang','warn');};
         const box=el.querySelector('.imgbox');
@@ -874,6 +880,7 @@ async function slotTool(p,s,t,img,el,grid){
   if(t==='zin'){pushUndo();s.zoom=Math.min(3,s.zoom+0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
   if(t==='zout'){pushUndo();s.zoom=Math.max(.5,s.zoom-0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
   if(t==='rot'){pushUndo();s.rot=(s.rot+90)%360;applyImg(img,s);save()}
+  if(t==='rep'){pickFor(p,s);return}
   if(t==='left'||t==='right'){pushUndo();moveSlot(p,s,t==='left'?-1:1);save();render()}
   if(t==='del'){pushUndo();const bak={...s};await removeSlotImg(s);s.cap='';if(LINK.isGuest&&LINK.session&&bak.pid)syncDel(bak.pid);save();render();
     toast('Foto dihapus — 8 detik untuk urungkan','warn',{label:'Urungkan',ms:8000,fn:async()=>{Object.assign(s,bak);if(isIdbRef(s.img)){const b=await blobGet(s.img.slice(4));if(b){s.img=URL.createObjectURL(b);}else{s.img=null;s.broken=true;}}save();render()}})}
@@ -919,9 +926,13 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 $('#btnAddPage').onclick=$('#btnAddPage2').onclick=()=>{pushUndo();S.pages.push(newPage(S.pattern));save();render();document.querySelector('.stage').scrollTop=1e6;toast('Halaman '+S.pages.length+' ditambah (pola '+S.pattern+')')};
 
 /* doc + paper bindings */
-function bindDocInputs(){$('#inTitle').value=S.title;$('#inSub').value=S.sub;$('#inDate').value=S.date;$('#inFont').value=S.font;$('#inAlign').value=S.align;$('#inVariant').value=S.variant;$('#inShowHead').checked=S.showHead;$('#inBold').checked=S.bold;$('#inMargin').value=S.margin;$('#inGap').value=S.gap;$('#vMargin').textContent=S.margin+'px';$('#vGap').textContent=S.gap+'px'}
+function bindDocInputs(){$('#inTitle').value=S.title;$('#inSub').value=S.sub;$('#inDate').value=S.date;$('#inFont').value=S.font;$('#inAlign').value=S.align;$('#inVariant').value=S.variant;$('#inShowTitle').checked=S.showTitle!==false;$('#inShowSub').checked=S.showSub!==false;$('#inShowDate').checked=S.showDate!==false;$('#inBold').checked=S.bold;$('#inMargin').value=S.margin;$('#inGap').value=S.gap;$('#vMargin').textContent=S.margin+'px';$('#vGap').textContent=S.gap+'px';$('#inZoom').value=S.zoomUI||80;$('#zoomVal').textContent=(S.zoomUI||80)+'%';applyZoom()}
+function applyZoom(){const z=S.zoomUI||80;const pages=$('#pages');if(pages)pages.style.zoom=(z/80)}
 ['inTitle','inSub','inDate','inFont','inAlign','inTSize'].forEach(id=>$('#'+id).addEventListener('input',()=>{S.title=$('#inTitle').value;S.sub=$('#inSub').value;S.date=$('#inDate').value;S.font=$('#inFont').value;S.align=$('#inAlign').value;save();render()}));
-$('#inShowHead').addEventListener('change',e=>{S.showHead=e.target.checked;save();render()});
+$('#inShowTitle').addEventListener('change',e=>{S.showTitle=e.target.checked;save();render()});
+$('#inShowSub').addEventListener('change',e=>{S.showSub=e.target.checked;save();render()});
+$('#inShowDate').addEventListener('change',e=>{S.showDate=e.target.checked;save();render()});
+$('#inZoom').addEventListener('input',e=>{S.zoomUI=+e.target.value;$('#zoomVal').textContent=S.zoomUI+'%';applyZoom();save()});
 $('#inBold').addEventListener('change',e=>{S.bold=e.target.checked;save();render()});
 $('#inMargin').addEventListener('input',e=>{S.margin=+e.target.value;$('#vMargin').textContent=S.margin+'px';save();render()});
 $('#inGap').addEventListener('input',e=>{S.gap=+e.target.value;$('#vGap').textContent=S.gap+'px';save();render()});
@@ -973,15 +984,18 @@ async function doPDF(){
       const scale=200/25.4; // px per mm
       const cv=document.createElement('canvas');cv.width=Math.round(pw*scale);cv.height=Math.round(ph*scale);
       const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
-      const mmm=8, gmm=3;const mx=mmm*scale,my=(mmm+14)*scale,gx=gmm*scale;
+      const mmm=S.margin*0.264583, gmm=S.gap*0.264583;const mx=mmm*scale,my=(mmm+14)*scale,gx=gmm*scale;
       // kop
-      if(S.showHead){ctx.fillStyle='#142027';ctx.textAlign=S.align==='left'?'left':S.align==='right'?'right':'center';
+      if(kopOn()){const showT=S.showTitle!==false,showS=S.showSub!==false,showD=S.showDate!==false;
+        ctx.fillStyle='#142027';ctx.textAlign=S.align==='left'?'left':S.align==='right'?'right':'center';
         const cx=S.align==='left'?mx:S.align==='right'?cv.width-mx:cv.width/2;
-        ctx.font='800 '+Math.round(cv.width*0.045)+'px "Segoe UI",sans-serif';ctx.fillText(S.title||'LAPORAN DOKUMENTASI QC',cx,my*0.55);
+        let ly=my;
+        if(showT){ctx.font='800 '+Math.round(cv.width*0.045)+'px "Segoe UI",sans-serif';ctx.fillText(S.title||'LAPORAN DOKUMENTASI QC',cx,my*0.55);ly=my*0.55+8;}
         ctx.fillStyle='#54616D';ctx.font=Math.round(cv.width*0.022)+'px "Segoe UI",sans-serif';
-        if(S.sub)ctx.fillText(S.sub,cx,my*0.85);
-        ctx.strokeStyle='#142027';ctx.lineWidth=3;ctx.beginPath();const ly=my+8+((p.headH||0)/28*mmm*scale*0.5);ctx.moveTo(mx,ly);ctx.lineTo(cv.width-mx,ly);ctx.stroke()}
-      const top=S.showHead?my+26+((p.headH||0)/28*mmm*scale*0.5):mx;
+        if(showS&&S.sub){ctx.fillText(S.sub,cx,my*0.85);ly=my*0.85+8;}
+        if(showD){const dt=fmtDate(S.date)+' · '+S.paper+' '+cap(ori);ctx.fillText(dt,cx,ly+Math.round(cv.width*0.022));ly+=Math.round(cv.width*0.022)+8;}
+        ctx.strokeStyle='#142027';ctx.lineWidth=3;ctx.beginPath();const ly2=ly+8+((p.headH||0)/28*mmm*scale*0.5);ctx.moveTo(mx,ly2);ctx.lineTo(cv.width-mx,ly2);ctx.stroke()}
+      const top=kopOn()?my+26+((p.headH||0)/28*mmm*scale*0.5):mx;
       const areaW=cv.width-2*mx, areaH=cv.height-top-mx;
       const n=p.filled.length;let cols=n===1?1:n<=2?(S.variant==='rows'?1:2):n<=4?2:n<=6?3:4;
       if(S.variant==='cols')cols=n;if(S.variant==='rows')cols=1;
