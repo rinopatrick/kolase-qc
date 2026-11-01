@@ -161,15 +161,15 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 /* Task2: divider tarik + overlay bebas. Grid dibungkus .gridwrap (relative); divider absolute di atasnya. */
 .gridwrap{position:relative;flex:1;display:grid;min-height:260px;grid-column:1/-1}
 .slot{position:relative;min-height:190px}
-.divider{position:absolute;z-index:20;touch-action:none;opacity:1;transition:opacity .15s}
+.divider{position:absolute;z-index:20;touch-action:none;opacity:0;pointer-events:none;transition:opacity .15s}
 .divider::after{content:"";position:absolute;background:var(--div-line);border-radius:3px;transition:background .15s}
-.divider:hover,.divider.on,.gridwrap:hover .divider{opacity:1}
+.divider:hover,.divider.on{opacity:1;pointer-events:auto}
 .divider.v{top:0;bottom:0;width:14px;margin-left:-7px;cursor:col-resize}
 .divider.h{left:0;right:0;height:14px;margin-top:-7px;cursor:row-resize}
 .divider.v::after{left:6px;top:0;bottom:0;width:2px}
 .divider.h::after{top:6px;left:0;right:0;height:2px}
 .divider:hover::after,.divider.on::after{background:var(--accent)}
-.gridwrap:hover .divider,.divider.on{opacity:1;z-index:21}
+.gridwrap.has-sel .divider,.divider.on{opacity:1!important;pointer-events:auto;z-index:21}
 .divbadge{position:absolute;z-index:32;background:var(--badge);color:var(--paper-ink);font-size:11px;font-weight:700;font-family:var(--font-m);padding:3px 9px;border-radius:7px;pointer-events:none;white-space:nowrap}
 /* Task2: slot overlay bebas (absolute) + handle Figma */
 .slot.ovl{position:absolute;z-index:20;overflow:visible;border-color:var(--accent-d);min-height:0}
@@ -179,7 +179,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .slot .mv.crop-on{pointer-events:none}
 .slot.ovl .mv{pointer-events:auto}
 .slot.ovl .mv{cursor:move}
-.hd{position:absolute;background:var(--field);border:2px solid var(--accent-d);z-index:34;touch-action:none;box-shadow:0 1px 4px var(--hd-line);opacity:0;transition:opacity .15s;pointer-events:auto}
+.hd{position:absolute;background:var(--field);border:2px solid var(--accent-d);z-index:34;touch-action:none;box-shadow:0 1px 4px var(--hd-line);transition:opacity .15s;pointer-events:auto}
 .slot.ovl .hd{z-index:35}
 .hd.nw,.hd.ne,.hd.se,.hd.sw{width:14px;height:14px;border-radius:50%}
 .hd.n,.hd.s{width:26px;height:10px;border-radius:6px}
@@ -192,11 +192,11 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .hd.nw{left:-9px;top:-9px;cursor:nwse-resize}
 .hd.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 .hd.sw{left:-9px;bottom:-9px;cursor:nesw-resize}
-.slot .hd{opacity:.38;pointer-events:auto}
-.slot:hover .hd,.slot:focus-within .hd,.slot.touched .hd,.slot.ovl .hd{opacity:.38}
-.slot.sel .hd,.slot.ovl.sel .hd{opacity:1}
-.slot .hd{cursor:inherit}
-@media (pointer:coarse){.slot .hd{opacity:.55}.hd.nw,.hd.ne,.hd.se,.hd.sw{width:20px;height:20px}.hd.n,.hd.s{width:32px;height:14px}.hd.e,.hd.w{width:14px;height:32px}}
+.slot .hd{opacity:0;pointer-events:none;cursor:inherit}
+.gridwrap .slot.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.gridwrap .slot.sel .hd,.gridwrap .slot.ovl.sel .hd{opacity:1!important;pointer-events:auto;transition:none}
+.gridwrap.has-sel .divider{opacity:1!important;transition:none}
+@media (pointer:coarse){.gridwrap .slot.sel .hd,.gridwrap .slot.ovl.sel .hd{opacity:1}.hd.nw,.hd.ne,.hd.se,.hd.sw{width:20px;height:20px}.hd.n,.hd.s{width:32px;height:14px}.hd.e,.hd.w{width:14px;height:32px}}
 .colw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--font-m)}
 .colw input{width:80px;accent-color:var(--accent)}
 .tbtn{min-width:40px;min-height:40px;border-radius:9px;border:1px solid var(--toolbd);background:var(--toolbg);color:var(--paper-ink);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0 9px;font-family:var(--font-m);transition:background .15s,transform .15s}
@@ -722,12 +722,14 @@ function render(){
           b.addEventListener('click',ev=>{ev.stopPropagation();slotTool(p,s,b.dataset.t,img,el,grid)});
         });
         el.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}
-          const gr=el.closest('.gridwrap')||grid;gr.querySelectorAll('.slot.sel').forEach(o=>{if(o!==el)o.classList.remove('sel');});
-          el.classList.add('sel');el.classList.add('touched');setTimeout(()=>el.classList.remove('touched'),2500)});
+          const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));
+          if(!was)el.classList.add('sel');gr.classList.toggle('has-sel',!was);save()});
       }else{
         el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+' — seret foto / tarik garis & handle</b><span>JPG · PNG · WEBP — paste Ctrl+V juga bisa</span></div>';
         const ph=el.querySelector('.ph');
-        ph.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}pickFor(p,s)});
+        ph.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}
+          const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));
+          if(!was){el.classList.add('sel');gr.classList.add('has-sel');pickFor(p,s);}else{gr.classList.remove('has-sel');}});
         ph.addEventListener('keydown',e=>{if(e.key==='Enter')pickFor(p,s)});
         el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover')});
         el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
@@ -780,12 +782,12 @@ function delPage(pi){if(S.pages.length<=1){toast('Minimal 1 halaman','warn');ret
   toast('Halaman '+(pi+1)+' dihapus ('+n+' foto)','warn',{label:'Urungkan',ms:8000,fn:()=>{S.pages.splice(pi,0,gone);save();render()}})}
 /* intake helpers */
 let pickTarget=null;
-function pickFor(p,s){pickTarget={p,s};$('#filePick').click()}
+function pickFor(p,s){pickTarget={p,s};const inp=$('#filePick');const clear=()=>{document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));inp.removeEventListener('change',clear);inp.removeEventListener('cancel',clear);window.removeEventListener('focus',clear)};inp.addEventListener('change',clear);inp.addEventListener('cancel',clear);window.addEventListener('focus',clear);inp.click()}
 function dropToSlot(files,p,s){const f=[...files].find(f=>f.type.startsWith('image/'));if(!f)return;pushUndo();const r=new FileReader();r.onload=async()=>{s.img=r.result;s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);save();render();toast('Foto masuk slot '+globalIndex(p,s))};r.readAsDataURL(f)}
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length)addFiles(files)});
 
 /* controls */
-$('#filePick').addEventListener('change',e=>{if(pickTarget&&e.target.files.length===1&&![...e.target.files][0])return;
+$('#filePick').addEventListener('change',e=>{document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));if(pickTarget&&e.target.files.length===1&&![...e.target.files][0])return;
   if(pickTarget&&e.target.files.length===1){const f=e.target.files[0];const{p,s}=pickTarget;pickTarget=null;dropToSlot([f],p,s);e.target.value='';return}
   pickTarget=null;addFiles(e.target.files);e.target.value=''});
 $('#camPick').addEventListener('change',e=>{addFiles(e.target.files);e.target.value=''});
