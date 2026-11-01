@@ -647,6 +647,10 @@ function render(){
       '<button class="mini" data-act="break" title="Paksa halaman baru">⤵ Hal.baru</button>'+(gridShape(p)[0]>=2?'<label class="colw" title="Lebar kolom pertama">Kolom <input type="range" min="30" max="70" value="'+Math.round(colWOf(p)*100)+'" data-colw></label>':'')+'<button class="mini danger" data-act="delpage" title="Hapus halaman">Hapus</button></div>'+
       '<div class="sheet"><div class="sheet-inner"></div></div>';
     if(p.forceNew)d.querySelector('.pg').textContent+=' ⤵';
+    /* Lembar jujur: rasio pratinjau = rasio mm kertas x orientasi halaman */
+    const sh=d.querySelector('.sheet');
+    {let[sw,shh]=PAPER_MM[S.paper]||PAPER_MM.A4;if(ori==='landscape')[sw,shh]=[shh,sw];
+    sh.style.aspectRatio=sw+' / '+shh;sh.style.maxHeight='82vh';sh.style.overflow='hidden';}
     const inner=d.querySelector('.sheet-inner');
     inner.style.setProperty('--m',S.margin+'px');inner.style.setProperty('--gap',S.gap+'px');
     inner.style.setProperty('--t1',(parseInt($('#inTSize').value)||22)+'px');
