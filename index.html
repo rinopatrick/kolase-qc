@@ -152,7 +152,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .slot .ph span{font-size:11.5px}
 .slot .ph .num{position:absolute;top:9px;left:9px;font-size:11px;font-weight:700;background:var(--slot-bg);color:var(--paper);border-radius:6px;padding:2px 8px}
 .slot .imgbox{position:relative;flex:1;min-height:190px;max-height:100%;overflow:hidden;cursor:grab;touch-action:pan-x pan-y pinch-zoom;background:var(--slot-bg)}
-.slot .imgbox img{position:absolute;left:50%;top:50%;transform-origin:center;user-select:none;-webkit-user-drag:none;pointer-events:none;max-width:none;max-height:none}
+.slot .imgbox img{position:absolute;left:50%;top:50%;transform-origin:center;user-select:none;-webkit-user-drag:none;pointer-events:none;max-width:none;max-height:none;will-change:transform}
 .slot .cap{border:none;border-top:1px solid var(--field-line);padding:9px 12px;font-size:12.5px;width:100%;outline:none;background:var(--field);color:var(--ink)}
 .slot .cap:focus{border-top-color:var(--accent-d)}
 .slot .num{position:absolute;top:9px;left:9px;z-index:5;font-family:var(--font-m);font-size:11px;font-weight:700;background:var(--slotnum);color:var(--paper);border-radius:6px;padding:3px 9px;border:1px solid var(--slotnum-line)}
@@ -364,7 +364,12 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       <div class="sect-b">
         <div class="pat-grid" id="patGrid">
           <button data-v="1">1</button><button data-v="2">2</button><button data-v="3B" title="1 besar + 2 kecil">3B</button><button data-v="3S" title="2 kecil + 1 besar">3S</button>
-          <button data-v="4" class="on">4</button><button data-v="6">6</button><button data-v="8">8</button>
+          <button data-v="4" class="on">4</button><button data-v="6">6</button><button data-v="5" title="1 besar + 4 kecil">5</button><button data-v="8">8</button>
+        </div>
+        <div class="row" style="display:flex;gap:8px">
+          <label class="f" style="flex:1">Baris<input type="text" id="inRows" inputmode="numeric" value="" placeholder="cth 2"></label>
+          <label class="f" style="flex:1">Kolom<input type="text" id="inCols" inputmode="numeric" value="" placeholder="cth 3"></label>
+          <label class="f" style="align-self:end"><span>&nbsp;</span><button class="chipbtn" id="btnCustomGrid" style="width:100%" title="Bentuk grid bebas B×K">Terapkan</button></label>
         </div>
         <label class="f">Varian pola<select id="inVariant"><option value="grid">Grid seimbang (Recommended)</option><option value="rows">Baris penuh</option><option value="cols">Kolom penuh</option><option value="hero">1 hero + sisanya kecil</option></select></label>
         <button class="chipbtn" id="btnAddPage" style="width:100%;background:var(--bg0);color:var(--fg);border:1px dashed var(--line2)" data-od-id="btn-add-page">＋ Tambah halaman (pola di atas)</button>
@@ -497,6 +502,7 @@ function rowsFor(p){return divsOf(p).rows.map(x=>x.toFixed(3)+'fr').join(' ')}
 let ovlTop=20,suppressClick=false,colwPre=null;
 const HANDLES=['n','s','e','w','ne','nw','se','sw'];
 function gridShape(p){const n=p.slots.length,pat=p.pattern;
+  const cg=customGridOf(pat);if(cg)return cg;
   if(pat==='2H'||(n===2&&S.variant==='rows'))return[1,2];
   if(pat==='2S'||(n===2&&S.variant!=='rows'))return[2,1];
   if(n===1)return[1,1];if(S.variant==='rows')return[1,n];if(S.variant==='cols')return[n,1];
@@ -699,9 +705,12 @@ function render(){
         img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat — slot ditandai, ketuk hapus untuk buang','warn');};
         const box=el.querySelector('.imgbox');
         let drag=null;
-        box.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,px:s.px,py:s.py};box.setPointerCapture(e.pointerId);box.style.cursor='grabbing'});
-        box.addEventListener('pointermove',e=>{if(!drag)return;pushPan(s,(e.clientX-drag.x),(e.clientY-drag.y),drag,img)});
-        box.addEventListener('pointerup',()=>{if(drag){pushUndoLite();drag=null;box.style.cursor='grab';save()}});
+        box.addEventListener('pointerdown',e=>{if(e.button!==undefined&&e.button!==0)return;drag={x:e.clientX,y:e.clientY,px:s.px,py:s.py,pre:snap()};try{box.setPointerCapture(e.pointerId)}catch(_){}box.style.cursor='grabbing'});
+        box.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)>2||Math.abs(dy)>2)suppressClick=true;pushPan(s,dx,dy,drag,img)});
+        box.addEventListener('pointerup',e=>{if(!drag)return;pushUndoPre(drag.pre);drag=null;box.style.cursor='grab';save()});
+        box.addEventListener('pointercancel',()=>{drag=null;box.style.cursor='grab'});
+        box.addEventListener('wheel',e=>{e.preventDefault();e.stopPropagation();s.zoom=Math.min(3,Math.max(.5,s.zoom*(e.deltaY<0?1.08:0.93)));applyImg(img,s);const zi=el.querySelector('input[data-t=zoom]');if(zi)zi.value=Math.round(s.zoom*100);save()},{passive:false});
+        box.addEventListener('dblclick',e=>{e.preventDefault();pushUndo();s.zoom=1;s.px=0;s.py=0;applyImg(img,s);const zi=el.querySelector('input[data-t=zoom]');if(zi)zi.value=100;save()});
         el.querySelector('.cap').addEventListener('input',e=>{s.cap=e.target.value;save()});
         el.querySelector('.cap').addEventListener('change',e=>{if(LINK.isGuest&&LINK.session&&s.pid)syncCap(s.pid,e.target.value)});
         el.querySelectorAll('[data-t]').forEach(b=>{
@@ -745,7 +754,8 @@ function fmtDate(v){if(!v)return'';try{return new Date(v+'T00:00').toLocaleDateS
 function globalIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slots){n++;if(pg===p&&sl===s)return n}return n}
 function applyImg(img,s){img.style.transform='translate(-50%,-50%) translate('+s.px+'px,'+s.py+'px) rotate('+s.rot+'deg) scale('+s.zoom+')';img.style.width=(220*s.zoom)+'px'}
 function pushPan(s,dx,dy,drag,img){s.px=drag.px+dx;s.py=drag.py+dy;applyImg(img,s)}
-function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;return parseInt(pat)||4;}
+function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===5||pat==='5')return 5;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;const m=String(pat).match(/^(\d+)x(\d+)$/);if(m)return Math.min(12,Math.max(1,(+m[1])*(+m[2])));return parseInt(pat)||4;}
+function customGridOf(pat){const m=String(pat||'').match(/^(\d+)x(\d+)$/);if(!m)return null;const r=Math.min(6,Math.max(1,+m[1])),c=Math.min(6,Math.max(1,+m[2]));return[r,c];}
 function resizeSlots(p,n){if(typeof n==='string'){const c=patCount(n);const cur=p.slots;if(c>cur.length)for(let i=cur.length;i<c;i++)cur.push(newSlot());else p.slots=cur.slice(0,c);p.pattern=n;delete p.dividers;delete p.free;return;}
 const cur=p.slots;if(n>cur.length)for(let i=cur.length;i<n;i++)cur.push(newSlot());else p.slots=cur.slice(0,n);p.pattern=n;delete p.dividers;delete p.free}
 async function slotTool(p,s,t,img,el,grid){
@@ -812,6 +822,10 @@ $('#patGrid').addEventListener('click',e=>{const b=e.target.closest('button');if
   const tgt=[...S.pages].reverse().find(p=>!p.slots.some(s=>s.img))||S.pages[S.pages.length-1];
   if(tgt){resizeSlots(tgt,S.pattern);tgt.dividers=null;delete tgt.free;}
   save();render();setTimeout(()=>toast('Pola '+S.pattern+' diterapkan ke halaman '+(S.pages.indexOf(tgt)+1)+' + halaman baru'),60)});
+$('#btnCustomGrid').addEventListener('click',()=>{const r=Math.min(6,Math.max(1,parseInt($('#inRows').value)||0)),c=Math.min(6,Math.max(1,parseInt($('#inCols').value)||0));if(!r||!c){toast('Isi Baris dan Kolom dulu, cth 2 × 3','warn');return;}$$('#patGrid button').forEach(x=>x.classList.remove('on'));const v=r+'x'+c;S.pattern=v;pushUndo();
+  const tgt=[...S.pages].reverse().find(p=>!p.slots.some(s=>s.img))||S.pages[S.pages.length-1];
+  if(tgt){resizeSlots(tgt,v);tgt.dividers=null;delete tgt.free;}
+  save();render();setTimeout(()=>toast('Grid bebas '+v+' ('+(r*c)+' slot) diterapkan ke halaman '+(S.pages.indexOf(tgt)+1)),60)});
 
 /* modals */
 function openOv(id){$(id).classList.add('open')}function closeOv(el){el.closest('.overlay').classList.remove('open')}
