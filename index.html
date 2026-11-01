@@ -123,10 +123,11 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .chipbtn{border:1px solid var(--field-line);background:var(--field);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;min-height:40px}
 .chipbtn:hover{border-color:var(--accent-d)}
 .page-wrap{max-width:860px;margin:0 auto 26px;display:flex;flex-direction:column;align-items:stretch}
-.page-wrap>.sheet{align-self:stretch}
-.page-wrap.ori-portrait{max-width:520px}
-.page-wrap.ori-portrait>.sheet{margin-left:0;margin-right:0}
-.page-wrap.ori-landscape{max-width:860px}
+.page-wrap>.sheet{align-self:stretch;aspect-ratio:var(--sheet-ar,210/297)}
+.page-wrap>.page-bar,.page-wrap>.sheet{width:100%}
+.page-wrap.ori-portrait{--sheet-ar:210/297;max-width:min(560px,100%)}
+.page-wrap.ori-landscape{--sheet-ar:297/210;max-width:min(860px,100%)}
+.sheet-inner{height:100%}
 .page-bar{display:flex;align-items:center;gap:8px;background:var(--bg1);color:var(--fg);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:9px 12px;border:1px solid var(--line);border-bottom:none;flex-wrap:wrap}
 .page-bar .pg{font-weight:800;font-size:12.5px;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:3px 9px}
 .page-bar .meta{font-size:11px;color:var(--muted)}
@@ -657,7 +658,7 @@ function render(){
   $('#pfPaper').textContent=S.paper+' · '+cap(S.ori);$('#pfTotal').textContent=filled+' foto · '+S.pages.length+' hal';
   S.pages.forEach((p,pi)=>{
     const ori=p.ori||S.ori;
-    const d=document.createElement('div');d.className='page-wrap';d.dataset.odId='page-'+(pi+1);d.dataset.ori=ori;
+    const d=document.createElement('div');d.className='page-wrap ori-'+ori;d.dataset.odId='page-'+(pi+1);d.dataset.ori=ori;
     d.innerHTML='<div class="page-bar"><span class="pg">HAL '+(pi+1)+'</span><span class="meta">'+p.slots.length+' foto · '+ori.toUpperCase()+'</span><span class="grow"></span>'+
       '<select data-act="pat" title="Pola">'+[['1','1 penuh'],['2H','2 atas-bawah'],['2S','2 sejajar'],['3B','3 besar-atas'],['3S','3 besar-bawah'],['4','4 (2×2)'],['6','6 foto'],['8','8 foto']].map(o=>'<option value="'+o[0]+'"'+(String(p.pattern)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
       '<select data-act="ori" title="Orientasi"><option value="portrait"'+(ori==='portrait'?' selected':'')+'>Portrait</option><option value="landscape"'+(ori==='landscape'?' selected':'')+'>Landscape</option></select>'+
