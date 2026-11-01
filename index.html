@@ -176,9 +176,10 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .slot.ovl.sel{border:2px solid var(--accent);box-shadow:0 10px 30px var(--ovl-shadow)}
 .slot.ovl .imgbox{min-height:0}
 .slot .mv{position:absolute;inset:0;bottom:38px;z-index:15;touch-action:none;pointer-events:none}
+.slot .mv.crop-on{pointer-events:none}
 .slot.ovl .mv{pointer-events:auto}
 .slot.ovl .mv{cursor:move}
-.hd{position:absolute;background:var(--field);border:2px solid var(--accent-d);z-index:34;touch-action:none;box-shadow:0 1px 4px var(--hd-line);opacity:0;transition:opacity .15s}
+.hd{position:absolute;background:var(--field);border:2px solid var(--accent-d);z-index:34;touch-action:none;box-shadow:0 1px 4px var(--hd-line);opacity:0;transition:opacity .15s;pointer-events:auto}
 .slot.ovl .hd{z-index:35}
 .hd.nw,.hd.ne,.hd.se,.hd.sw{width:14px;height:14px;border-radius:50%}
 .hd.n,.hd.s{width:26px;height:10px;border-radius:6px}
@@ -191,9 +192,10 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .hd.nw{left:-9px;top:-9px;cursor:nwse-resize}
 .hd.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 .hd.sw{left:-9px;bottom:-9px;cursor:nesw-resize}
-.slot .hd{opacity:.38}
+.slot .hd{opacity:.38;pointer-events:auto}
 .slot:hover .hd,.slot:focus-within .hd,.slot.touched .hd,.slot.ovl .hd{opacity:.38}
 .slot.sel .hd,.slot.ovl.sel .hd{opacity:1}
+.slot .hd{cursor:inherit}
 @media (pointer:coarse){.slot .hd{opacity:.55}.hd.nw,.hd.ne,.hd.se,.hd.sw{width:20px;height:20px}.hd.n,.hd.s{width:32px;height:14px}.hd.e,.hd.w{width:14px;height:32px}}
 .colw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--font-m)}
 .colw input{width:80px;accent-color:var(--accent)}
@@ -584,6 +586,7 @@ function attachGridBits(el,p,grid){
   HANDLES.forEach(hd=>{const d=document.createElement('div');d.className='hd '+hd;d.title='Tarik untuk atur ukuran kolom/baris';
     d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();gridEdgeHandle(e,p,hd,grid,el);});
     el.appendChild(d);});
+  const mv=document.createElement('div');mv.className='mv crop-on';mv.title='Klik foto untuk geser/zoom di dalam bingkai';el.insertBefore(mv,el.firstChild);
 }
 function freeBox(p,s){return(p.free||{})[s.id]||null;}
 function setFree(p,s,b){if(!p.free)p.free={};if(b)p.free[s.id]={...b};else{delete p.free[s.id];if(!Object.keys(p.free).length)delete p.free;}}
@@ -601,7 +604,7 @@ function makeOverlayBits(el,p,s,grid){
   const tb=el.querySelector('.tools');
   if(tb&&!tb.querySelector('[data-t=dock]')){const rs=document.createElement('button');rs.className='tbtn';rs.dataset.t='dock';rs.title='Kembalikan ke pola grid';rs.textContent='⤺';
     rs.addEventListener('click',e=>{e.stopPropagation();pushUndo();setFree(p,s,null);save();render();});tb.insertBefore(rs,tb.firstChild);}
-  mv.addEventListener('pointerdown',e=>ovlMove(e,p,s,grid,el));
+  mv.addEventListener('pointerdown',e=>ovlMove(e,p,s,grid,el,mv));
   el.addEventListener('pointerdown',()=>{const par=el.parentElement;if(par)par.querySelectorAll('.slot.ovl.sel').forEach(o=>{if(o!==el)o.classList.remove('sel');});
     el.classList.add('sel');el.style.zIndex=++ovlTop;},{capture:true});
 }
@@ -632,11 +635,12 @@ function ovlResize(e,p,s,hd,grid,el){
   const up=()=>{badge.remove();el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);pushUndoPre(pre);save();render();};
   el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);
 }
-function ovlMove(e,p,s,grid,el){
+function ovlMove(e,p,s,grid,el,mv){
   if(e.isPrimary===false)return;if(e.button!==undefined&&e.button!==0)return;
   const b0=freeBox(p,s);if(!b0)return;
   e.preventDefault();e.stopPropagation();
-  try{if(el.setPointerCapture)el.setPointerCapture(e.pointerId);}catch(_){}
+  const capTgt=(mv&&mv.setPointerCapture)?mv:(el.setPointerCapture?el:null);
+  try{if(capTgt)capTgt.setPointerCapture(e.pointerId);}catch(_){}
   const r=grid.getBoundingClientRect(),x0=e.clientX,y0=e.clientY,pre=snap();
   const move=me=>{
     if(Math.abs(me.clientX-x0)>3||Math.abs(me.clientY-y0)>3)suppressClick=true;
@@ -644,8 +648,8 @@ function ovlMove(e,p,s,grid,el){
     x=Math.min(1-b0.w,Math.max(0,x));y=Math.min(1-b0.h,Math.max(0,y));
     setFree(p,s,{...b0,x:+x.toFixed(3),y:+y.toFixed(3)});
     el.style.left=(x*100)+'%';el.style.top=(y*100)+'%';save();};
-  const up=()=>{el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);pushUndoPre(pre);save();render();};
-  el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);
+  const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
 }
 function applyColW(p,w,grid){
   p.colW=+w.toFixed(3);
