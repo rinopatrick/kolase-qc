@@ -728,8 +728,8 @@ function render(){
         el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+' — seret foto / tarik garis & handle</b><span>JPG · PNG · WEBP — paste Ctrl+V juga bisa</span></div>';
         const ph=el.querySelector('.ph');
         ph.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}
-          const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));
-          if(!was){el.classList.add('sel');gr.classList.add('has-sel');pickFor(p,s);}else{gr.classList.remove('has-sel');}});
+          const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));gr.classList.remove('has-sel');
+          if(!was){el.classList.add('sel');gr.classList.add('has-sel');}else{pickFor(p,s);}});
         ph.addEventListener('keydown',e=>{if(e.key==='Enter')pickFor(p,s)});
         el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover')});
         el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
@@ -782,7 +782,7 @@ function delPage(pi){if(S.pages.length<=1){toast('Minimal 1 halaman','warn');ret
   toast('Halaman '+(pi+1)+' dihapus ('+n+' foto)','warn',{label:'Urungkan',ms:8000,fn:()=>{S.pages.splice(pi,0,gone);save();render()}})}
 /* intake helpers */
 let pickTarget=null;
-function pickFor(p,s){pickTarget={p,s};const inp=$('#filePick');const clear=()=>{document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));inp.removeEventListener('change',clear);inp.removeEventListener('cancel',clear);window.removeEventListener('focus',clear)};inp.addEventListener('change',clear);inp.addEventListener('cancel',clear);window.addEventListener('focus',clear);inp.click()}
+function pickFor(p,s){pickTarget={p,s};const inp=$('#filePick');const clear=()=>{pickTarget=null;inp.value='';inp.removeEventListener('change',clear);inp.removeEventListener('cancel',clear);window.removeEventListener('focus',clear)};inp.addEventListener('change',clear);inp.addEventListener('cancel',clear);window.addEventListener('focus',clear);inp.click()}
 function dropToSlot(files,p,s){const f=[...files].find(f=>f.type.startsWith('image/'));if(!f)return;pushUndo();const r=new FileReader();r.onload=async()=>{s.img=r.result;s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);save();render();toast('Foto masuk slot '+globalIndex(p,s))};r.readAsDataURL(f)}
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length)addFiles(files)});
 
