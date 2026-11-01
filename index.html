@@ -725,16 +725,16 @@ function render(){
           const gr=el.closest('.gridwrap')||grid;gr.querySelectorAll('.slot.sel').forEach(o=>{if(o!==el)o.classList.remove('sel');});
           el.classList.add('sel');el.classList.add('touched');setTimeout(()=>el.classList.remove('touched'),2500)});
       }else{
-        el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+' — klik / seret foto</b><span>JPG · PNG · WEBP — paste Ctrl+V juga bisa</span></div>';
+        el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+' — seret foto / tarik garis & handle</b><span>JPG · PNG · WEBP — paste Ctrl+V juga bisa</span></div>';
         const ph=el.querySelector('.ph');
-        ph.addEventListener('click',()=>{pickFor(p,s)});
+        ph.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}pickFor(p,s)});
         ph.addEventListener('keydown',e=>{if(e.key==='Enter')pickFor(p,s)});
         el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover')});
         el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
         el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover');dropToSlot(e.dataTransfer.files,p,s)});
       }
       grid.appendChild(el);
-      if(s.img&&!fb)attachGridBits(el,p,grid);
+      if(!fb)attachGridBits(el,p,grid);
       if(s.img&&fb)makeOverlayBits(el,p,s,grid);
     });
     addDividers(grid,p);
