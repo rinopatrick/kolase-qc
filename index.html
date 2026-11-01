@@ -496,7 +496,7 @@ function save(){
       if(!r2.ok&&r2.reason==='quota')toast('Penyimpanan penuh — beberapa foto mungkin tidak pulih setelah reload. Unduh PDF dulu.','warn');}
   })();
 }
-function load(){try{const j=localStorage.getItem('kolase-qc-v2');if(j){S=JSON.parse(j);let mx=0;for(const p of S.pages||[]){const n=parseInt(String(p.id||'').slice(1))||0;if(n>mx)mx=n;}S.seq=Math.max(S.seq||1,mx+1);bindDocInputs()}}catch(e){}}
+function load(){try{const j=localStorage.getItem('kolase-qc-v2');if(j){S=JSON.parse(j);let mx=0;for(const p of S.pages||[]){const n=parseInt(String(p.id||'').slice(1))||0;if(n>mx)mx=n;if(p.headH!=null){p.headH=Math.max(0,Math.min(48,+p.headH||0));if(!p.headH)delete p.headH;}}S.seq=Math.max(S.seq||1,mx+1);bindDocInputs()}}catch(e){}}
 
 /* render */
 function colsFor(p){return divsOf(p).cols.map(x=>x.toFixed(3)+'fr').join(' ')}
@@ -694,11 +694,11 @@ function render(){
       h.querySelector('h3').textContent=S.title||'LAPORAN DOKUMENTASI QC';h.querySelector('.sub').textContent=S.sub||'';h.querySelector('.dt').textContent=fmtDate(S.date)+' · '+S.paper+' '+cap(ori);
       if(!S.sub)h.querySelector('.sub').remove();inner.appendChild(h);
       const pad=h.querySelector('.headpad');
-      if(p.headH)pad.style.height=p.headH+'px';
+      if(p.headH){p.headH=Math.max(0,Math.min(48,p.headH));if(p.headH)pad.style.height=p.headH+'px';}
       const hd=h.querySelector('.headdrag');
       hd.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();
         const y0=e.clientY,h0=p.headH||0,pre=snap();
-        const move=me=>{if(Math.abs(me.clientY-y0)>2)suppressClick=true;let v=h0+(me.clientY-y0);v=Math.max(0,Math.min(160,v));p.headH=Math.round(v);pad.style.height=p.headH+'px';save();};
+        const move=me=>{if(Math.abs(me.clientY-y0)>2)suppressClick=true;let v=h0+(me.clientY-y0);v=Math.max(0,Math.min(48,v));p.headH=Math.round(v);pad.style.height=p.headH+'px';save();};
         const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
         window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);});}
     const grid=document.createElement('div');grid.className='gridwrap';
