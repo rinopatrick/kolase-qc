@@ -21,6 +21,8 @@ Lokasi proyek (debu, cahaya menyilaukan, sarung tangan), lalu meja kantor (print
 ## Capabilities and Constraints
 Tambah foto (klik/seret/tempel/kamera/QR dari HP), atur per slot (pan/zoom/putar/caption/pindah/hapus), pola 1/2/3B/3S/4/6/8 per halaman, orientasi per halaman, divider tarik, kotak bebas overlay, undo/redo, unduh PDF jsPDF 200DPI (campur P+L gabung), cetak browser fallback, pending-hapus 8 detik, foto persisten IndexedDB. Tanpa alert/confirm. Tanpa akun/server.
 
+Formulir QC: tab Checklist QC (12 baris Passed/Reject/N-A + remarks, kop GML-EG-02-F-01) + tab Penyimpangan (auto-isi dari item REJECT, kop GML-MT-08-F-01). Pratinjau kertas A4 mirip dokumen asli. Unduh .docx via JSZip (struktur tabel + kop/logo persis template) atau PDF/cetak via print browser. State formulir di localStorage `kolase-qc-formulir`. Generate .docx butuh CDN JSZip sekali (online); selebihnya offline.
+
 ## Brand Commitments
 Nama "Kolase QC", aksen teal. Tidak ada logo/brandbook lain yang mengikat.
 
