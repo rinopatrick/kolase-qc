@@ -229,25 +229,27 @@ body[data-mode="qc"] .only-dev,body[data-mode="dev"] .only-qc{display:none}
 #qcView[hidden]{display:none}
 body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #stageTopKolase,body[data-mode="dev"] #stageTopKolase{display:none}
 /* Formulir QC: kertas A4 jujur di atas meja malam */
-.qcsheet{background:#fff;color:#111;border-radius:10px;box-shadow:0 2px 12px var(--sheet-shadow);padding:26px 26px 30px;font-family:"Segoe UI",system-ui,sans-serif;font-size:12.5px;line-height:1.5}
-.qcsheet .kop{display:grid;grid-template-columns:1fr 92px;gap:8px;border:1.5px solid #111;padding:10px 12px;margin-bottom:12px}
-.qcsheet .kop .t1{font-style:italic;font-weight:700;font-size:11px}
-.qcsheet .kop .t2{font-weight:800;font-size:14px}
-.qcsheet .kop img{width:92px;height:auto;justify-self:end;align-self:start}
-.qcsheet .kopmeta{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;border:1px solid #111;border-top:none;margin-top:-12px;margin-bottom:12px;font-size:10.5px}
-.qcsheet .kopmeta div{border-right:1px solid #111;padding:3px 6px}
+.qcsheet{background:#fff;color:#000;border-radius:10px;box-shadow:0 2px 12px var(--sheet-shadow);padding:26px 26px 30px;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.35}
+.qcsheet .kop{display:grid;grid-template-columns:1fr 96px;gap:8px;border:1px solid #000;padding:8px 10px;margin-bottom:0}
+.qcsheet .kop .t1{font-style:italic;font-weight:700;font-size:12pt}
+.qcsheet .kop .t2{font-weight:700;font-size:12pt}
+.qcsheet .kop img{width:96px;height:auto;justify-self:center;align-self:center}
+.qcsheet .kopmeta{display:grid;grid-template-columns:1.1fr 1.1fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr;gap:0;border:1px solid #000;border-top:none;margin-bottom:12px;font-size:9pt}
+.qcsheet .kopmeta div{border-right:1px solid #000;padding:2px 5px;white-space:nowrap;overflow:hidden}
 .qcsheet .kopmeta div:last-child{border-right:none}
-.qcsheet .kopmeta b{display:block;font-size:10px}
-.qcsheet table{border-collapse:collapse;width:100%;font-size:11.5px}
-.qcsheet table,.qcsheet th,.qcsheet td{border:1px solid #111}
-.qcsheet th,.qcsheet td{padding:5px 7px;vertical-align:top}
-.qcsheet th{background:#F0F0F0}
+.qcsheet .kopmeta b{font-size:9pt}
+.qcsheet table{border-collapse:collapse;width:100%;font-size:11pt}
+.qcsheet table,.qcsheet th,.qcsheet td{border:1px solid #000}
+.qcsheet th,.qcsheet td{padding:2px 6px;vertical-align:middle;font-weight:400}
+.qcsheet th{background:none;font-weight:700}
+.qcsheet td.grpno{font-weight:700}
 .qcsheet .ctr{text-align:center}
-.qcsheet .grp td{background:#F2F2F2;font-weight:800}
-.qcsheet .city{text-align:right;margin:10px 0 2px;font-size:12px}
-.qcsheet .sign4{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:11.5px;margin-top:2px}
-.qcsheet .sign4 .nm{margin-top:44px;font-weight:700}
-.qcsheet .sign4 .rl{font-size:10.5px;color:#333}
+.qcsheet .rgt{text-align:right}
+.qcsheet .grp td{font-weight:700}
+.qcsheet .sym{font-family:"Segoe UI Symbol",Calibri,sans-serif}
+.qcsheet .strike{text-decoration:line-through}
+.qcsheet .city{margin:10px 0 2px;font-size:11pt}
+.qcsheet .sign4{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:11pt;margin-top:2px}
 /* panel form gelap */
 .qcform{background:var(--bg1);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
 .qcform h3{margin:0;font-size:14px}
@@ -1424,10 +1426,10 @@ function defaultQcRows(){
     {no:'3',label:'KELENGKAPAN ALAT',st:'na',remark:'',grp:1},
     {no:'3.1',label:'Packing list',st:'na',remark:'-'},
     {no:'3.2',label:'Kesesuaian packaging list dan isi',st:'na',remark:'-'},
-    {no:'3.3',label:'Kelengkapan dokumen (Manual book, COO, Sertifikat kalibrasi pabrikan)',st:'na',remark:'-'},
+    {no:'3.3',label:'Kelengkapan dokumen',st:'na',remark:'-'},
     {no:'4',label:'DOKUMENTASI',st:'na',remark:'',grp:1},
     {no:'4.1',label:'Testing pengoperasian',st:'passed',remark:'Visual Checking'},
-    {no:'4.2',label:'Foto* (* ada / tidak ada foto)',st:'passed',remark:'* ada / tidak ada foto'}
+    {no:'4.2',label:'Foto*',st:'passed',remark:''}
   ];
 }
 function defaultQC(){return{nama:'',merk:'',tipe:'',noseri:'-',jenis:'Non ALKES',note:'',noform:'',tanggal:new Date().toISOString().slice(0,10),rows:defaultQcRows(),city:'Jakarta',pelaksana:'',pelaksanaRole:'Teknisi',memeriksa:'',memeriksaRole:'Manager Teknis',menyetujui:'',menyetujuiRole:'Penanggung Jawab Teknis',mengetahui:'',mengetahuiRole:'Staff Gudang',dev:{nopenyimp:'',produk:'',lokasi:'Ruang QC',tanggal:new Date().toISOString().slice(0,10),rincian:'',sebab:'',sementara:'',perbaikan:'',catatan:'',nama1:'',nama2:'',tgl1:new Date().toISOString().slice(0,10),tgl2:new Date().toISOString().slice(0,10)}};}
@@ -1558,33 +1560,40 @@ function refreshQcPrev(){const p=$('#qcPrev');if(!p)return;p.innerHTML=(document
 function gmlLogo(){try{if(typeof GML_LOGO_B64!=='undefined'&&GML_LOGO_B64&&GML_LOGO_B64.length>100)return('data:image/png;base64,'+GML_LOGO_B64);}catch(e){}return'';}
 /* ══ GENERATOR DOCX: bangun file Word persis struktur dokumen asli ══ */
 function kopHtml(title){return '<div class="kop"><div><div class="t1">Formulir</div><div class="t2">'+title+'</div></div>'+(gmlLogo()?'<img src="'+gmlLogo()+'" alt="GML">':'<div></div>')+'</div>';}
-function kopMetaCheck(){return '<div class="kopmeta" style="grid-template-columns:1.2fr 1.6fr 1fr 1.4fr"><div><b>No Dok. :</b>GML-EG-02-F-01</div><div><b>Rev. No</b>01</div><div><b>Tanggal Efektif:</b>13 Agustus 2025</div><div><b>Hal:</b>1 of 1</div></div>';}
-function kopMetaDev(){return '<div class="kopmeta" style="grid-template-columns:1.2fr 1.6fr 1fr 1.4fr"><div><b>No Dok. :</b>GML-MT-08-F-01</div><div><b>Rev. No</b>01</div><div><b>Tanggal Efektif :</b>19 Oktober 2021</div><div><b>Hal:</b>1 of 1</div></div>';}
+function kopMetaCheck(){return '<div class="kopmeta" style="grid-template-columns:1.35fr 0.85fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr"><div><b>No Dok. :</b> GML-EG-02-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif:</b></div><div>13 Agustus 2025</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
+function kopMetaDev(){return '<div class="kopmeta" style="grid-template-columns:1.35fr 0.85fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr"><div><b>No Dok. :</b> GML-MT-08-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif :</b></div><div>19 Oktober 2021</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
 function rowMark(r){if(r.grp)return '';if(r.st==='passed')return '<span style="font-size:15px">✓</span>';if(r.st==='rejected')return '<span style="font-size:15px">✕</span>';return '<span style="color:#666">-</span>';}
 function checkPreview(){
   const jenisAlkes=QC.jenis==='ALKES';
+  const alkesBox=jenisAlkes?'☑':'\u25A1';
   let h='<div class="qcsheet">'+kopHtml('CHECKLIST QUALITY CONTROL BARANG MASUK')+kopMetaCheck();
-  h+='<table style="margin-bottom:10px"><tr><th style="width:16%">NAMA</th><td style="width:36%">'+esc(QC.nama||'')+'</td><th style="width:16%">NO FORM</th><td>'+esc(QC.noform||'')+'</td></tr>'
+  h+='<table style="margin-bottom:12px"><tr><th style="width:16%">NAMA</th><td style="width:38%">'+esc(QC.nama||'')+'</td><th style="width:16%">NO FORM</th><td>'+esc(QC.noform||'')+'</td></tr>'
     +'<tr><th>MERK</th><td>'+esc(QC.merk||'')+'</td><th>TANGGAL</th><td>'+esc(fmtId(QC.tanggal))+'</td></tr>'
     +'<tr><th>TIPE</th><td>'+esc(QC.tipe||'')+'</td><th>NOMOR SERI</th><td>'+esc(QC.noseri||'')+'</td></tr>'
-    +'<tr><th>JENIS</th><td>'+(jenisAlkes?'☑':'☐')+' ALKES</td><td colspan="2">'+(!jenisAlkes?'☑':'☐')+' Non ALKES</td></tr>'
+    +'<tr><th>JENIS</th><td><span class="sym">'+alkesBox+'</span> '+(jenisAlkes?'<b>ALKES</b>':'ALKES')+'</td><td colspan="2">'+(!jenisAlkes?'<span class="sym">✓</span> <b>Non ALKES</b>':'<span class="sym">☐</span> Non ALKES')+'</td></tr>'
     +'<tr><th><i>NOTE</i></th><td colspan="3">'+esc(QC.note||'')+'</td></tr></table>';
-  h+='<table><tr><th style="width:7%">NO</th><th style="width:42%">PARAMETER ALAT/BARANG</th><th colspan="2" style="width:22%">RESULT</th><th>REMARKS</th></tr>'
-    +'<tr><th></th><th></th><th style="width:11%">PASSED</th><th style="width:11%">REJECTED</th><th></th></tr>';
+  h+='<table><tr><th style="width:7%">NO</th><th style="width:38%">PARAMETER ALAT/BARANG</th><th colspan="2" style="width:20%"><i>RESULT</i></th><th><i>REMARKS</i></th></tr>'
+    +'<tr><th></th><th></th><th style="width:10%"><i>PASSED</i></th><th style="width:10%"><i>REJECTED</i></th><th></th></tr>';
+  const label33='<span>Kelengkapan dokumen</span><br><span>Manual book</span><br><span>COO</span><br><span>Sertifikat kalibrasi pabrikan</span><br><span>……………..</span><br><span>……………..</span>';
   QC.rows.forEach(r=>{
-    if(r.grp){h+='<tr class="grp"><td class="ctr">'+esc(r.no)+'</td><td colspan="4">'+esc(r.label)+'</td></tr>';return;}
-    h+='<tr><td class="ctr">'+esc(r.no)+'</td><td>'+esc(r.label)+'</td>'
-      +'<td class="ctr">'+(r.st==='passed'?'✓':'')+'</td><td class="ctr">'+(r.st==='rejected'?'✓':'')+(r.st==='na'?'–':'')+'</td>'
-      +'<td>'+esc(r.remark||'')+'</td></tr>';
+    if(r.grp){h+='<tr><td class="grpno">'+esc(r.no)+'</td><td colspan="4" class="grpno">'+esc(r.label)+'</td></tr>';return;}
+    const noCls=(r.no.indexOf('.')>=0)?'rgt':'grpno';
+    let param=esc(r.label), remark=esc(r.remark||'');
+    if(r.no==='3.3'){param=label33;}
+    if(r.no==='4.2'&&!remark){remark='* ada / <span class="strike">tidak ada foto</span>';}
+    else if(r.no==='4.2'&&remark){remark=remark;}
+    h+='<tr><td class="'+noCls+'">'+esc(r.no)+'</td><td>'+(r.no==='1'?'<b>'+param+'</b>':param)+'</td>'
+      +'<td class="ctr">'+(r.st==='passed'?'<span class="sym">✓</span>':(r.st==='na'?'-':''))+'</td><td class="ctr">'+(r.st==='rejected'?'<span class="sym">✓</span>':'')+'</td>'
+      +'<td class="ctr">'+remark+'</td></tr>';
   });
   h+='</table>';
   h+='<div class="city">'+esc(QC.city||'Jakarta')+', '+esc(fmtId(QC.tanggal))+'</div>';
-  h+='<table><tr><th>Yang Melaksanakan,</th><th>Memeriksa,</th><th>Menyetujui,</th><th>Mengetahui</th></tr>'
-    +'<tr><td style="height:52px"></td><td></td><td></td><td></td></tr>'
-    +'<tr><td class="ctr">('+esc(QC.pelaksana||'&nbsp;')+')<div class="rl">'+esc(QC.pelaksanaRole||'Teknisi')+'</div></td>'
-    +'<td class="ctr">('+esc(QC.memeriksa||'&nbsp;')+')<div class="rl">'+esc(QC.memeriksaRole||'Manager Teknis')+'</div></td>'
-    +'<td class="ctr">('+esc(QC.menyetujui||'&nbsp;')+')<div class="rl">'+esc(QC.menyetujuiRole||'Penanggung Jawab Teknis')+'</div></td>'
-    +'<td class="ctr">('+esc(QC.mengetahui||'&nbsp;')+')<div class="rl">'+esc(QC.mengetahuiRole||'Staff Gudang')+'</div></td></tr></table>';
+  h+='<table><tr><td class="ctr">Yang Melaksanakan,</td><td class="ctr">Memeriksa,</td><td class="ctr">Menyetujui,</td><td class="ctr">Mengetahui</td></tr>'
+    +'<tr><td style="height:64px"></td><td></td><td></td><td></td></tr>'
+    +'<tr><td class="ctr">('+esc(QC.pelaksana||'&nbsp;')+')<br>'+esc(QC.pelaksanaRole||'Teknisi')+'</td>'
+    +'<td class="ctr">('+esc(QC.memeriksa||'&nbsp;')+')<br>'+esc(QC.memeriksaRole||'Manager Teknis')+'</td>'
+    +'<td class="ctr">('+esc(QC.menyetujui||'&nbsp;')+')<br>'+esc(QC.menyetujuiRole||'Penanggung Jawab Teknis')+'</td>'
+    +'<td class="ctr">('+esc(QC.mengetahui||'&nbsp;')+')<br>'+esc(QC.mengetahuiRole||'Staff Gudang')+'</td></tr></table>';
   h+='</div>';
   return h;
 }
@@ -1593,10 +1602,10 @@ function devPreview(){
   const rows=[['Penyimpangan no:',d.nopenyimp||''],['Nama Produk',d.produk||''],['Lokasi Penyimpangan',d.lokasi||''],['Tanggal Penyimpangan',fmtId(d.tanggal)],['Rincian Penyimpangan yang terjadi',d.rincian||''],['Kenapa Penyimpangan bisa timbul ?',d.sebab||''],['Rincian Tindakan Sementara yang diambil',d.sementara||''],['Tindakan Perbaikan dan Pencegahan penyimpangan',d.perbaikan||''],['Catatan',d.catatan||'']];
   let h='<div class="qcsheet">'+kopHtml('LAPORAN PENYIMPANGAN')+kopMetaDev();
   h+='<table>';
-  rows.forEach(r=>{h+='<tr><th style="width:34%">'+esc(r[0])+'</th><td>'+esc(r[1]).replace(/\n/g,'<br>')+'</td></tr>';});
-  h+='<tr><td colspan="2"><b>Dilaksanakan dan diketahui oleh:</b></td></tr>';
-  h+='<tr><td><b>Nama, '+esc(d.nama1||'')+'</b></td><td><b>Tanda Tangan</b><span style="float:right"><b>Tanggal </b>'+esc(fmtId(d.tgl1))+'</span></td></tr>';
-  h+='<tr><td>'+esc(d.nama2||'')+'</td><td style="height:44px"></td></tr>';
+  rows.forEach(r=>{h+='<tr><th style="width:30%">'+esc(r[0])+'</th><td>'+esc(r[1]).replace(/\n/g,'<br>')+'</td></tr>';});
+  h+='<tr><td colspan="2" class="ctr"><b>Dilaksanakan dan diketahui oleh:</b></td></tr>';
+  h+='<tr><td style="width:30%"><b>Nama, '+esc(d.nama1||'')+'</b></td><td><b>Tanda Tangan</b><span style="float:right"><b>Tanggal </b>'+esc(fmtId(d.tgl1))+'</span></td></tr>';
+  h+='<tr><td>'+esc(d.nama2||'')+'</td><td style="height:52px"></td></tr>';
   for(let i=0;i<3;i++)h+='<tr><td>&nbsp;</td><td></td></tr>';
   h+='</table></div>';
   return h;
@@ -1604,15 +1613,21 @@ function devPreview(){
 
 /* ══ GENERATOR DOCX: bangun file Word persis struktur dokumen asli ══ */
 function docxEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function docxPara(text,o){
-  o=o||{};
+function docxPara(text,o,jc2){
+  o=o||{};if(jc2&&jc2.jc)o.jc=jc2.jc;
   const jc=o.jc?('<w:jc w:val="'+o.jc+'"/>'):'';
   const b=o.b?'<w:b/><w:bCs/>':'';
   const i=o.i?'<w:i/><w:iCs/>':'';
+  const strike=o.strike?'<w:strike/>':'';
   const sz='<w:sz w:val="'+(o.sz||22)+'"/><w:szCs w:val="'+(o.sz||22)+'"/>';
   const parts=String(text==null?'':text).split('\n');
-  const runs=parts.map((p,ix)=>'<w:r><w:rPr>'+b+i+sz+'</w:rPr>'+(p==='' ?'<w:t xml:space="preserve"></w:t>':('<w:t xml:space="preserve">'+docxEsc(p)+'</w:t>'))+'</w:r>'+(ix<parts.length-1?'<w:r><w:br/></w:r>':''));
-  return '<w:p><w:pPr>'+jc+'<w:rPr>'+b+i+sz+'</w:rPr></w:pPr>'+runs.join('')+'</w:p>';
+  const runs=parts.map((p,ix)=>'<w:r><w:rPr>'+b+i+strike+sz+'</w:rPr>'+(p==='' ?'<w:t xml:space="preserve"></w:t>':('<w:t xml:space="preserve">'+docxEsc(p)+'</w:t>'))+'</w:r>'+(ix<parts.length-1?'<w:r><w:br/></w:r>':''));
+  return '<w:p><w:pPr>'+jc+'<w:rPr>'+b+i+strike+sz+'</w:rPr></w:pPr>'+runs.join('')+'</w:p>';
+}
+function docxRuns(runs,jc){
+  const j=jc?('<w:jc w:val="'+jc+'"/>'):'';
+  const body=runs.map(r=>'<w:r><w:rPr>'+(r.b?'<w:b/><w:bCs/>':'')+(r.i?'<w:i/><w:iCs/>':'')+(r.strike?'<w:strike/>':'')+(r.sym?'<w:rFonts w:ascii="Segoe UI Symbol" w:hAnsi="Segoe UI Symbol" w:cs="Segoe UI Symbol"/>':'')+'<w:sz w:val="'+(r.sz||22)+'"/><w:szCs w:val="'+(r.sz||22)+'"/></w:rPr><w:t xml:space="preserve">'+docxEsc(r.t)+'</w:t></w:r>').join('');
+  return '<w:p><w:pPr>'+j+'</w:pPr>'+body+'</w:p>';
 }
 function docxCheckSym(passed){
   if(passed)return '<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Segoe UI Symbol" w:hAnsi="Segoe UI Symbol"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>\u2713</w:t></w:r></w:p>';
@@ -1635,12 +1650,21 @@ function docxTbl(gridW,borders,rows){
   return '<w:tbl><w:tblPr><w:tblW w:w="'+gridW.reduce((a,b)=>a+b,0)+'" w:type="dxa"/><w:tblBorders><w:top w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/><w:left w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/><w:bottom w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/><w:right w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/><w:insideH w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/><w:insideV w:val="'+bd+'" w:sz="'+sz+'" w:space="0" w:color="000000"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>'+gridW.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>'+rows.join('')+'</w:tbl>';
 }
 function docxRow(cells){return '<w:tr>'+cells.join('')+'</w:tr>';}
-function docxHDR(title,noDok,rev,tgl){
+function docxHDR(title,noDok,rev,tgl,isDev){
+  if(isDev&&noDok==='GML-MT-08-F-01')noDok='GML-MT-08\u00a0-F-01';
   const logo=docxLogoDrawing();
+  const t1run=title==='CHECKLIST QUALITY CONTROL BARANG MASUK'
+    ? '<w:p><w:pPr><w:rPr><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:i/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">'+docxEsc(title.split(' BARANG ')[0])+'</w:t></w:r><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve"> BARANG </w:t></w:r><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>MASUK</w:t></w:r></w:p>'
+    : docxPara(title,{b:1,sz:24});
+  const nodokRuns=noDok==='GML-EG-02-F-01'
+    ? '<w:p><w:pPr><w:rPr><w:b/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr>'+['GML-','EG','-','02','-F-','01'].map(s=>'<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">'+s+'</w:t></w:r>').join('')+'</w:p>'
+    : docxPara(noDok,{b:1,sz:18});
+  const tglLbl=isDev?'Tanggal Efektif :':'Tanggal Efektif:';
+  const tglLblXml=isDev?docxRuns([{t:'Tanggal',b:1},{t:' ',b:1},{t:'Efektif',b:1},{t:':',b:1}]):null;
   return '<w:tbl><w:tblPr><w:tblW w:w="9343" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="1185"/><w:gridCol w:w="1794"/><w:gridCol w:w="1024"/><w:gridCol w:w="512"/><w:gridCol w:w="1721"/><w:gridCol w:w="1532"/><w:gridCol w:w="620"/><w:gridCol w:w="955"/></w:tblGrid>'
   +docxRow([docxCell(docxPara('Formulir',{b:1,i:1,sz:24}),6237,{span:'5'}),docxCell(logo,3107,{span:'3',vmerge:'restart'})])
-  +docxRow([docxCell(docxPara(title,{b:1,sz:24}),6237,{span:'5'}),docxCell('<w:p/>',3107,{span:'3',vcont:1})])
-  +docxRow([docxCell(docxPara('No Dok. :',{sz:18}),1185,{}),docxCell(docxPara(noDok,{sz:18}),2818,{span:'2'}),docxCell(docxPara('Rev. No',{sz:18}),1721,{}),docxCell(docxPara(rev,{sz:18}),1532,{}),docxCell(docxPara('Tanggal Efektif:',{sz:18}),1575,{span:'2'}),docxCell(docxPara(tgl,{sz:18}),955,{})])
+  +docxRow([docxCell(t1run,6237,{span:'5'}),docxCell('<w:p/>',3107,{span:'3',vcont:1})])
+  +docxRow([docxCell(docxPara('No Dok. :',{b:1,sz:18}),1185,{}),docxCell(nodokRuns,2818,{span:'2'}),docxCell(docxPara('Rev. No',{b:1,sz:18}),1721,{}),docxCell(docxPara(rev,{b:1,sz:18}),1532,{}),docxCell((isDev?tglLblXml:docxPara(tglLbl,{b:1,sz:18})),1575,{span:'2'}),docxCell(docxPara(tgl,{b:1,sz:18}),955,{})])
   +'</w:tbl>';
 }
 function docxBody(o){
@@ -1709,6 +1733,33 @@ function qcCheckTbl(head,rows){
   body+='</w:tblGrid>'+hr+rows.join('')+'</w:tbl>';
   return body;
 }
+function qcLabelCell(r){
+  if(r.no==='3.3')return docxPara('Kelengkapan dokumen')+docxPara('Manual book')+docxPara('COO')+docxPara('Sertifikat kalibrasi pabrikan')+docxPara('\u2026\u2026\u2026\u2026\u2026..')+docxPara('\u2026\u2026\u2026\u2026\u2026..');
+  if(r.no==='3.1')return docxRuns([{t:'Packing list',i:1}]);
+  if(r.no==='3.2')return docxRuns([{t:'Kesesuaian '},{t:'packaging list',i:1},{t:' dan isi'}]);
+  return docxPara(r.label,(r.no==='1')?{b:1}:{});
+}function qcPassedCell(r,passed,na){
+  if(passed)return docxCheckSym(true);
+  if(r.no==='3.3')return docxPara('-',{},{jc:'center'})+docxPara('-',{},{jc:'center'})+docxPara('-',{},{jc:'center'});
+  if(na)return docxDash();
+  return docxPara('',{},{jc:'center'});
+}
+function qcRemarkCell(r){
+  if(r.no==='4.2'){
+    if(!r.remark||/^\* ada/.test(r.remark))return docxRuns([{t:'* ada / '},{t:'tidak ada foto',strike:1}],'center');
+    return docxPara(r.remark,{},{jc:'center'});
+  }
+  if(r.no==='3.3'){
+    if(r.st==='passed'||r.st==='na')return docxPara('-',{},{jc:'center'});
+    return docxPara(r.remark||'-',{},{jc:'center'});
+  }
+  if(r.no==='4.1')return docxPara(r.remark||'',{},{jc:'center'});
+  if(r.st==='na'&&(r.no==='3.1'||r.no==='3.2'))return docxPara('-',{},{jc:'center'});
+  return docxPara(r.remark||'',{},{jc:'center'});
+}
+function qcSignCell(nama,role){
+  return docxPara('('+nama+')',{},{jc:'center'})+docxPara(role||'',{},{jc:'center'});
+}
 function qcDevTbl(rows){
   var body='<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="1413"/><w:gridCol w:w="1134"/><w:gridCol w:w="1276"/><w:gridCol w:w="5193"/></w:tblGrid>';
   body+=rows.join('')+'</w:tbl>';
@@ -1717,8 +1768,8 @@ function qcDevTbl(rows){
 
 function downloadCheckDocx(){
   const jenisAlkes=QC.jenis==='ALKES';
-  const markA=jenisAlkes?docxPara('\u2713',{jc:'left'}):docxPara('\u2610 ALKES',{jc:'left'});
-  const markN=!jenisAlkes?docxPara('\u2713 Non ALKES',{jc:'left'}):docxPara('\u2610 Non ALKES',{jc:'left'});
+  const markA=docxRuns([{t:'\u25A1 ALKES'}],'left');
+  const markN=!jenisAlkes?docxRuns([{t:'\u2713',sym:1},{t:' '},{t:'Non ALKES',b:1}]):docxRuns([{t:'\u25A1 Non ALKES'}]);
   const t0=docxTbl([2400,2520,1820,2299],'12',[
     docxRow([docxCell(docxPara('NAMA',{b:1}),2400,{}),docxCell(docxPara(QC.nama||''),2520,{}),docxCell(docxPara('NO FORM',{b:1}),1820,{}),docxCell(docxPara(QC.noform||''),2299,{})]),
     docxRow([docxCell(docxPara('MERK',{b:1}),2400,{}),docxCell(docxPara(QC.merk||''),2520,{}),docxCell(docxPara('TANGGAL',{b:1}),1820,{}),docxCell(docxPara(fmtId(QC.tanggal)),2299,{})]),
@@ -1727,42 +1778,53 @@ function downloadCheckDocx(){
     docxRow([docxCell(docxPara('NOTE',{b:1,i:1}),2400,{}),docxCell(docxPara(QC.note||''),6639,{span:'3'})])
   ]);
   const head=docxTbl([704,3119,1121,1390,2733],'12',[
-    docxRow([docxCell(docxPara('NO',{b:1},{jc:'center'}),704,{vmerge:'restart'}),docxCell(docxPara('PARAMETER ALAT/BARANG',{b:1},{jc:'center'}),3119,{vmerge:'restart'}),docxCell(docxPara('RESULT',{b:1},{jc:'center'}),2511,{span:'2'}),docxCell(docxPara('REMARKS',{b:1},{jc:'center'}),2733,{vmerge:'restart'})]),
-    docxRow([docxCell(docxPara('',{},{jc:'center'}),704,{vcont:1}),docxCell(docxPara('',{},{jc:'center'}),3119,{vcont:1}),docxCell(docxPara('PASSED',{b:1},{jc:'center'}),1121,{}),docxCell(docxPara('REJECTED',{b:1},{jc:'center'}),1390,{}),docxCell(docxPara('',{},{jc:'center'}),2733,{vcont:1})])
+    docxRow([docxCell(docxPara('NO',{b:1},{jc:'center'}),704,{vmerge:'restart'}),docxCell(docxPara('PARAMETER ALAT/BARANG',{b:1},{jc:'center'}),3119,{vmerge:'restart'}),docxCell(docxPara('RESULT',{b:1,i:1},{jc:'center'}),2511,{span:'2'}),docxCell(docxPara('REMARKS',{b:1,i:1},{jc:'center'}),2733,{vmerge:'restart'})]),
+    docxRow([docxCell(docxPara('',{},{jc:'center'}),704,{vcont:1}),docxCell(docxPara('',{},{jc:'center'}),3119,{vcont:1}),docxCell(docxPara('PASSED',{b:1,i:1},{jc:'center'}),1121,{}),docxCell(docxPara('REJECTED',{b:1,i:1},{jc:'center'}),1390,{}),docxCell(docxPara('',{},{jc:'center'}),2733,{vcont:1})])
   ]);
   const bodyRows=[head];
   const rows=[];
   QC.rows.forEach(r=>{
-    if(r.grp){rows.push(docxRow([docxCell(docxPara(r.no,{b:1},{jc:'right'}),704,{}),docxCell(docxPara(r.label,{b:1}),8363,{span:'4'})]));return;}
+    if(r.grp){rows.push(docxRow([docxCell(docxPara(r.no,{b:1}),704,{}),docxCell(docxPara(r.label,{b:1}),3119,{}),docxCell(docxPara(''),1121,{}),docxCell(docxPara(''),1390,{}),docxCell(docxPara(''),2733,{})]));return;}
     const passed=r.st==='passed',rej=r.st==='rejected',na=r.st==='na';
     rows.push(docxRow([
-      docxCell(docxPara(r.no,{},{jc:'right'}),704,{}),
-      docxCell(docxPara(r.label),3119,{}),
-      docxCell(passed?docxCheckSym(true):(na?docxNa():docxDash()),1121,{}),
+      docxCell(docxPara(r.no,(r.no==='1'||!isNaN(parseInt(r.no))&&r.no.indexOf('.')<0)?{}:{jc:'right'}),704,{}),
+      docxCell(qcLabelCell(r),3119,{}),
+      docxCell(qcPassedCell(r,passed,na),1121,{}),
       docxCell(rej?docxCheckSym(true):docxPara('',{},{jc:'center'}),1390,{}),
-      docxCell(docxPara(r.remark||''),2733,{})
+      docxCell(qcRemarkCell(r),2733,{})
     ]));
   });
   const t1=qcCheckTbl(head,rows);
 
-  const city=docxPara(QC.city+', '+fmtId(QC.tanggal),{},{jc:'right'});
+  const city=docxPara(QC.city+', '+fmtId(QC.tanggal),{});
   const t2=docxTbl([2235,2424,2820,1985],'12',[
-    docxRow([docxCell(docxPara('Yang Melaksanakan,',{b:1},{jc:'center'}),2235,{}),docxCell(docxPara('Memeriksa,',{b:1},{jc:'center'}),2424,{}),docxCell(docxPara('Menyetujui,',{b:1},{jc:'center'}),2820,{}),docxCell(docxPara('Mengetahui',{b:1},{jc:'center'}),1985,{})]),
-    docxRow([docxCell(docxPara('\u00a0'),2235,{}),docxCell(docxPara('\u00a0'),2424,{}),docxCell(docxPara('\u00a0'),2820,{}),docxCell(docxPara('\u00a0'),1985,{})]),
-    docxRow([docxCell(docxPara('('+QC.pelaksana+')\n'+QC.pelaksanaRole,{},{jc:'center'}),2235,{}),docxCell(docxPara('('+QC.memeriksa+')\n'+QC.memeriksaRole,{},{jc:'center'}),2424,{}),docxCell(docxPara('('+QC.menyetujui+')\n'+QC.menyetujuiRole,{},{jc:'center'}),2820,{}),docxCell(docxPara('('+QC.mengetahui+')\n'+QC.mengetahuiRole,{},{jc:'center'}),1985,{})])
+    docxRow([docxCell(docxPara('Yang Melaksanakan,',{},{jc:'center'}),2235,{}),docxCell(docxPara('Memeriksa,',{},{jc:'center'}),2424,{}),docxCell(docxPara('Menyetujui,',{},{jc:'center'}),2820,{}),docxCell(docxPara('Mengetahui',{},{jc:'center'}),1985,{})]),
+    docxRow([docxCell(docxPara('')+docxPara('')+docxPara('')+docxPara(''),2235,{}),docxCell(docxPara(''),2424,{}),docxCell(docxPara(''),2820,{}),docxCell(docxPara(''),1985,{})]),
+    docxRow([docxCell(qcSignCell(QC.pelaksana,QC.pelaksanaRole),2235,{}),docxCell(qcSignCell(QC.memeriksa,QC.memeriksaRole),2424,{}),docxCell(qcSignCell(QC.menyetujui,QC.menyetujuiRole),2820,{}),docxCell(qcSignCell(QC.mengetahui,QC.mengetahuiRole),1985,{})])
   ]);
   const body=docxBody({content:'<w:p/>'+t0+'<w:p/>'+t1+'<w:p/>'+city+t2});
   docxSave(docxParts(docxHDR('CHECKLIST QUALITY CONTROL BARANG MASUK','GML-EG-02-F-01','01','13 Agustus 2025'),body,''),'Checklist-QC-'+fileStem(QC.nama||QC.noform||'barang-masuk')+'.docx');
 }
 function downloadDevDocx(){
   const d=QC.dev;
-  const lab=[['Penyimpangan no:',d.nopenyimp||''],['Nama Produk',d.produk||''],['Lokasi Penyimpangan',d.lokasi||''],['Tanggal Penyimpangan',fmtId(d.tanggal)],['Rincian Penyimpangan yang terjadi',d.rincian||''],['Kenapa Penyimpangan bisa timbul ?',d.sebab||''],['Rincian Tindakan Sementara yang diambil',d.sementara||''],['Tindakan Perbaikan dan Pencegahan penyimpangan',d.perbaikan||''],['Catatan',d.catatan||'']];
-  const dgrid=[2547,6471];
-  const rows=lab.map(x=>docxRow([docxCell(docxPara(x[0],{b:1}),2547,{}),docxCell(docxPara(x[1]),6471,{})]));
-  rows.push(docxRow([docxCell(docxPara('Dilaksanakan dan diketahui oleh:',{b:1}),9018,{span:'2'})]));
-  rows.push(docxRow([docxCell(docxPara('Nama, '+d.nama1,{b:1}),3000,{}),docxCell(docxPara('Tanda Tangan',{b:1}),3018,{span:'2'}),docxCell(docxPara('Tanggal '+fmtId(d.tgl1),{b:1}),3000,{})]));
-  rows.push(docxRow([docxCell(docxPara(d.nama2||''),3000,{}),docxCell(docxPara('',{jc:'center'}),3018,{span:'2'}),docxCell(docxPara(fmtId(d.tgl2||'')),3000,{})]));
-  for(let i=0;i<3;i++)rows.push(docxRow([docxCell(docxPara(''),3000,{}),docxCell(docxPara('',{jc:'center'}),3018,{span:'2'}),docxCell(docxPara(''),3000,{})]));
+  const P=(t,b)=>docxPara(t,b?{b:1}:{});
+  const PP=(arr)=>arr.map(t=>docxPara(t)).join('');
+  const rows=[
+    docxRow([docxCell(P('Penyimpangan no:',1),2547,{}),docxCell(P(d.nopenyimp||''),6471,{})]),
+    docxRow([docxCell(P('Nama Produk',1),2547,{}),docxCell(P(d.produk||''),6471,{})]),
+    docxRow([docxCell(P('Lokasi Penyimpangan',1),2547,{}),docxCell(P(d.lokasi||''),6471,{})]),
+    docxRow([docxCell(P('Tanggal Penyimpangan',1),2547,{}),docxCell(PP(['',fmtId(d.tanggal),'']),6471,{})]),
+    docxRow([docxCell(P('Rincian Penyimpangan yang terjadi',1),2547,{}),docxCell(P(d.rincian||''),6471,{})]),
+    docxRow([docxCell(PP(['Kenapa Penyimpangan bisa timbul ?','','','']),2547,{}),docxCell(P(d.sebab||''),6471,{})]),
+    docxRow([docxCell(PP(['Rincian Tindakan Sementara yang diambil','','']),2547,{}),docxCell(P(d.sementara||''),6471,{})]),
+    docxRow([docxCell(PP(['Tindakan Perbaikan dan Pencegahan penyimpangan','','']),2547,{}),docxCell(P(d.perbaikan||''),6471,{})]),
+    docxRow([docxCell(P('Catatan',1),2547,{}),docxCell(PP(['','','']),6471,{})]),
+    docxRow([docxCell(docxPara('Dilaksanakan dan diketahui oleh:',{b:1},{jc:'center'}),9018,{span:'2'})]),
+  ];
+  // (lanjutan rows di atas)
+  rows.push(docxRow([docxCell(PP(['Nama,','','',('Nama, '+d.nama1).slice(6),'','']),1413,{}),docxCell(docxPara('Tanda Tangan',{}),2410,{span:'2'}),docxCell(PP(['Tanggal','','',fmtId(d.tgl1),'']),5193,{})]));
+  rows.push(docxRow([docxCell(PP(['','',d.nama2||'']),1413,{}),docxCell(docxPara('',{jc:'center'}),2410,{span:'2'}),docxCell(PP(['','',fmtId(d.tgl2||''),' ']),5193,{})]));
+  for(let i=0;i<3;i++)rows.push(docxRow([docxCell(docxPara(''),1413,{}),docxCell(docxPara('',{jc:'center'}),2410,{span:'2'}),docxCell(docxPara(''),5193,{})]));
   const t=qcDevTbl(rows);
 
   const body=docxBody({content:'<w:p/>'+t});
