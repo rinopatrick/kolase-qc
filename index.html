@@ -6,6 +6,7 @@
 <title>Kolase QC — Field Tool Dokumentasi</title>
 <meta name="description" content="Kolase QC: susun foto dokumentasi lapangan jadi halaman kolase siap cetak PDF. Tanpa install, tersimpan otomatis di browser.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* Hallmark v2.0.0 · Shape: Workbench (app screen, code-led) · Theme: Arsip Lapangan (custom: malam solid + kertas jujur + teal hemat) · Signature: lembar kertas putih di atas meja malam · Sweep: pending */
 /* critique: sloplintDeposit — FAIL legislative, REFLEX bernalar, WARN dinilai */
@@ -213,6 +214,65 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .tbtn:active{transform:scale(.96);transition:transform 150ms ease-out}
 .tbtn.zoom{font-size:12px;gap:5px;font-family:inherit}
 .tbtn input[type=range]{width:74px;accent-color:var(--accent)}
+
+/* ===== MODE TABS (Kolase / Checklist / Penyimpangan) ===== */
+.modetabs{display:flex;gap:8px;padding:10px 14px 0;background:var(--bg0);position:sticky;top:56px;z-index:40}
+.modetabs button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg1);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.modetabs button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+body[data-mode="qc"] .only-kolase,body[data-mode="dev"] .only-kolase{display:none}
+body[data-mode="kolase"] .only-qc,body[data-mode="kolase"] .only-dev{display:none}
+body[data-mode="qc"] .only-dev,body[data-mode="dev"] .only-qc{display:none}
+#qcView{display:grid;gap:14px;max-width:860px;margin:0 auto}
+#qcView[hidden]{display:none}
+body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #stageTopKolase,body[data-mode="dev"] #stageTopKolase{display:none}
+/* Formulir QC: kertas A4 jujur di atas meja malam */
+.qcsheet{background:#fff;color:#111;border-radius:10px;box-shadow:0 2px 12px var(--sheet-shadow);padding:26px 26px 30px;font-family:"Segoe UI",system-ui,sans-serif;font-size:12.5px;line-height:1.5}
+.qcsheet .kop{display:grid;grid-template-columns:1fr 92px;gap:8px;border:1.5px solid #111;padding:10px 12px;margin-bottom:12px}
+.qcsheet .kop .t1{font-style:italic;font-weight:700;font-size:11px}
+.qcsheet .kop .t2{font-weight:800;font-size:14px}
+.qcsheet .kop img{width:92px;height:auto;justify-self:end;align-self:start}
+.qcsheet .kopmeta{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;border:1px solid #111;border-top:none;margin-top:-12px;margin-bottom:12px;font-size:10.5px}
+.qcsheet .kopmeta div{border-right:1px solid #111;padding:3px 6px}
+.qcsheet .kopmeta div:last-child{border-right:none}
+.qcsheet .kopmeta b{display:block;font-size:10px}
+.qcsheet table{border-collapse:collapse;width:100%;font-size:11.5px}
+.qcsheet table,.qcsheet th,.qcsheet td{border:1px solid #111}
+.qcsheet th,.qcsheet td{padding:5px 7px;vertical-align:top}
+.qcsheet th{background:#F0F0F0}
+.qcsheet .ctr{text-align:center}
+.qcsheet .grp td{background:#F2F2F2;font-weight:800}
+.qcsheet .city{text-align:right;margin:10px 0 2px;font-size:12px}
+.qcsheet .sign4{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:11.5px;margin-top:2px}
+.qcsheet .sign4 .nm{margin-top:44px;font-weight:700}
+.qcsheet .sign4 .rl{font-size:10.5px;color:#333}
+/* panel form gelap */
+.qcform{background:var(--bg1);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.qcform h3{margin:0;font-size:14px}
+.qcform .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qcform .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:640px){.qcform .grid2,.qcform .grid3{grid-template-columns:1fr}}
+.qcform textarea{background:var(--bg0);border:1px solid var(--line2);color:var(--fg);border-radius:8px;padding:10px;font-size:13px;width:100%;min-height:64px;font-family:inherit;resize:vertical}
+.qcrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;background:var(--bg0);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.qcrow .plab{font-size:12.5px}
+.qcrow .plab small{display:block;color:var(--muted);font-size:11px}
+.qcseg{display:flex;background:var(--bg1);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;min-width:210px}
+.qcseg button{flex:1;border:none;background:transparent;color:var(--muted);border-radius:7px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px}
+.qcseg button.on-p{background:var(--accent);color:var(--accent-ink)}
+.qcseg button.on-r{background:var(--danger);color:#fff}
+.qcseg button.on-n{background:var(--bg3);color:var(--fg)}
+.qcwarn{background:var(--err-bg);border:1px solid var(--err-line);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--fg)}
+.qcbtnrow{display:flex;gap:8px;flex-wrap:wrap}
+.qcbtnrow .chipbtn{background:var(--bg0);color:var(--fg);border:1px solid var(--line2);font-family:inherit}
+.qcbtnrow .chipbtn.teal{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
+.qcbtnrow .chipbtn.dangerb{border-color:var(--danger);color:var(--danger-soft)}
+@media print{
+  body[data-mode="qc"] .modetabs,body[data-mode="dev"] .modetabs,body[data-mode="qc"] .qcform,body[data-mode="dev"] .qcform,body[data-mode="qc"] .qcbtnrow,body[data-mode="dev"] .qcbtnrow{display:none!important}
+  body[data-mode="qc"] .panel,body[data-mode="dev"] .panel{display:none!important}
+  body[data-mode="qc"] .shell,body[data-mode="dev"] .shell{display:block;height:auto}
+  body[data-mode="qc"] .stage,body[data-mode="dev"] .stage{background:#fff;padding:0;overflow:visible}
+  body[data-mode="qc"] #qcView,body[data-mode="dev"] #qcView{max-width:none}
+  body[data-mode="qc"] .qcsheet,body[data-mode="dev"] .qcsheet{box-shadow:none;border-radius:0;padding:0}
+}
 .dragover{outline:3px solid var(--accent);outline-offset:-3px}
 .empty-hero{max-width:860px;margin:6px auto 24px;background:var(--field);border:1.5px dashed var(--slot-line);border-radius:10px;padding:34px 28px;text-align:center;color:var(--ink);box-shadow:0 2px 12px var(--sheet-shadow)}
 .empty-hero h2{margin:0 0 6px;font-family:var(--font-d);font-size:22px;letter-spacing:-.01em}
@@ -335,11 +395,15 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
   </div>
 </header>
 
+<nav class="modetabs" aria-label="Mode kerja">
+  <button data-mode="kolase" class="on">🖼 Kolase</button><button data-mode="qc">✓ Checklist QC</button><button data-mode="dev">⚠ Penyimpangan</button>
+</nav>
+
 <div id="scrim" aria-hidden="true"></div>
 <div class="shell">
   <aside class="panel" data-od-id="settings-panel" aria-label="Pengaturan dokumen">
     <button class="ibtn" id="btnDrawerClose" aria-label="Tutup pengaturan" style="display:none;width:100%;margin-bottom:10px">✕ Tutup pengaturan</button>
-    <div class="sect" data-od-id="sect-doc">
+    <div class="sect only-kolase" data-od-id="sect-doc">
       <div class="sect-h"><span class="n">01</span><div><h2>Dokumen</h2><p>Kop tiap halaman cetak</p></div></div>
       <div class="sect-b">
         <label class="f">Judul dokumen<input type="text" id="inTitle" value="LAPORAN DOKUMENTASI QC"></label>
@@ -359,7 +423,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       </div>
     </div>
 
-    <div class="sect" data-od-id="sect-paper">
+    <div class="sect only-kolase" data-od-id="sect-paper">
       <div class="sect-h"><span class="n">02</span><div><h2>Kertas</h2><p>A4 / F4 / Letter / Legal / A3</p></div></div>
       <div class="sect-b">
         <div class="seg" id="segPaper">
@@ -372,7 +436,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       </div>
     </div>
 
-    <div class="sect" data-od-id="sect-layout">
+    <div class="sect only-kolase" data-od-id="sect-layout">
       <div class="sect-h"><span class="n">03</span><div><h2>Tata letak</h2><p>Pola default halaman baru</p></div></div>
       <div class="sect-b">
         <div class="pat-grid" id="patGrid">
@@ -389,15 +453,36 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
       </div>
     </div>
 
+    <div class="sect only-qc" data-od-id="sect-qc">
+      <div class="sect-h"><div><h2>Checklist QC</h2></div></div>
+      <div class="sect-b">
+        <div class="hint" id="qcSideHint">Isi dari tab <b>Checklist QC</b> di kanvas. Ada REJECT → banner penyimpangan muncul otomatis.</div>
+        <button class="chipbtn" id="btnSideQcDocx" style="width:100%">⬇ Word Checklist (.docx)</button>
+        <button class="chipbtn" id="btnSideQcPdf" style="width:100%">⬇ PDF Checklist</button>
+        <button class="chipbtn" id="btnSideDevDocx" style="width:100%">⬇ Word Penyimpangan (.docx)</button>
+        <button class="chipbtn" id="btnSideDevPdf" style="width:100%">⬇ PDF Penyimpangan</button>
+      </div>
+    </div>
+
+    <div class="sect only-dev" data-od-id="sect-dev">
+      <div class="sect-h"><div><h2>Penyimpangan</h2></div></div>
+      <div class="sect-b">
+        <div class="hint">Terisi otomatis dari checklist yang REJECT. Lengkapkan + unduh.</div>
+        <button class="chipbtn" id="btnSideDevDocx2" style="width:100%">⬇ Word Penyimpangan (.docx)</button>
+        <button class="chipbtn" id="btnSideDevPdf2" style="width:100%">⬇ PDF Penyimpangan</button>
+      </div>
+    </div>
+
   </aside>
 
   <main class="stage" id="stage" data-od-id="canvas">
-    <div class="stage-top" data-od-id="stage-top">
+    <div class="stage-top" data-od-id="stage-top" id="stageTopKolase">
       <span class="doc-tag" id="stageTag">Pratinjau kertas · A4 Portrait</span><span class="sp"></span>
       <label class="f" style="display:flex;align-items:center;gap:8px;color:var(--ink);font-size:12px">Tampilan<input type="range" id="inZoom" min="50" max="110" value="80" style="width:110px;accent-color:var(--accent-d)"><span id="zoomVal" style="font-family:var(--font-m)">80%</span></label>
       <button class="chipbtn" id="btnAddPage2">＋ Halaman</button>
     </div>
     <div id="pages"></div>
+    <div id="qcView" hidden></div>
     <div class="empty-hero" id="emptyHero" data-od-id="empty-state" style="display:none">
       <h2>Belum ada foto</h2>
       <p>Kolase siap begitu foto masuk, tanpa perlu atur manual.</p>
@@ -836,7 +921,7 @@ function render(){
           const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));
           if(!was)el.classList.add('sel');gr.classList.toggle('has-sel',!was);save()});
       }else{
-        el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+'</b><span>JPG · PNG · WEBP — paste Ctrl+V juga bisa</span></div>';
+        el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+'</b><span>JPG · PNG · WEBP</span></div>';
         const ph=el.querySelector('.ph');
         ph.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}
           const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));gr.classList.remove('has-sel');
@@ -1308,7 +1393,206 @@ function scanBarRefresh(){
   const show=!LINK.isGuest&&isPhoneDevice();
   bar.hidden=!show;
 }
-/* ══ Draft otomatis (IndexedDB): foto HP selamat dari reload/pindah tab/scan QR ══ */
+/* ══ MODE TABS + FORMULIR QC/PENYIMPANGAN (tanpa ganggu kolase) ══ */
+if(!document.body.dataset.mode)document.body.dataset.mode='kolase';
+$$('.modetabs button').forEach(b=>b.onclick=()=>{
+  $$('.modetabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.body.dataset.mode=b.dataset.mode;
+  if(b.dataset.mode==='qc')renderQc();
+  if(b.dataset.mode==='dev'){syncDevFromQc(false);renderQc();}
+  try{document.querySelector('.stage').scrollTop=0;}catch(e){}
+});
+
+/* state formulir — dipisah dari S kolase, simpan sendiri */
+let QC=null;
+function defaultQcRows(){
+  return[
+    {no:'1',label:'LABEL/ IDENTITAS ALAT',st:'passed',remark:'-'},
+    {no:'2',label:'KONDISI FISIK',st:'na',remark:'',grp:1},
+    {no:'2.1',label:'Kondisi fisik bungkusan',st:'passed',remark:'-'},
+    {no:'2.2',label:'Kondisi fisik bungkusan dalam (bila ada)',st:'passed',remark:'-'},
+    {no:'2.3',label:'Kondisi fisik alat/barang',st:'passed',remark:'-'},
+    {no:'3',label:'KELENGKAPAN ALAT',st:'na',remark:'',grp:1},
+    {no:'3.1',label:'Packing list',st:'na',remark:'-'},
+    {no:'3.2',label:'Kesesuaian packaging list dan isi',st:'na',remark:'-'},
+    {no:'3.3',label:'Kelengkapan dokumen (Manual book, COO, Sertifikat kalibrasi pabrikan)',st:'na',remark:'-'},
+    {no:'4',label:'DOKUMENTASI',st:'na',remark:'',grp:1},
+    {no:'4.1',label:'Testing pengoperasian',st:'passed',remark:'Visual Checking'},
+    {no:'4.2',label:'Foto* (* ada / tidak ada foto)',st:'passed',remark:'* ada / tidak ada foto'}
+  ];
+}
+function defaultQC(){return{nama:'',merk:'',tipe:'',noseri:'-',jenis:'Non ALKES',note:'',noform:'',tanggal:new Date().toISOString().slice(0,10),rows:defaultQcRows(),city:'Jakarta',pelaksana:'',pelaksanaRole:'Teknisi',memeriksa:'',memeriksaRole:'Manager Teknis',menyetujui:'',menyetujuiRole:'Penanggung Jawab Teknis',mengetahui:'',mengetahuiRole:'Staff Gudang',dev:{nopenyimp:'',produk:'',lokasi:'Ruang QC',tanggal:new Date().toISOString().slice(0,10),rincian:'',sebab:'',sementara:'',perbaikan:'',catatan:'',nama1:'',nama2:'',tgl1:new Date().toISOString().slice(0,10),tgl2:new Date().toISOString().slice(0,10)}};}
+function loadQc(){try{const j=localStorage.getItem('kolase-qc-formulir');if(j){QC=JSON.parse(j);if(!QC.rows||!QC.rows.length)QC.rows=defaultQcRows();if(!QC.dev)QC.dev=defaultQC().dev;return;}}catch(e){}QC=defaultQC();}
+function saveQc(){try{localStorage.setItem('kolase-qc-formulir',JSON.stringify(QC));}catch(e){}}
+loadQc();
+const GML_LOGO_B64='__GML_LOGO__';
+function fmtId(d){if(!d)return'';try{return new Date(d+'T00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}catch(e){return d}}
+function qcRejects(){return QC.rows.filter(r=>!r.grp&&r.st==='rejected');}
+function syncDevFromQc(overwrite){
+  const rej=qcRejects();
+  const bits=[];
+  if(QC.nama)bits.push(QC.nama);
+  if(rej.length)bits.push('item yang REJECT: '+rej.map(r=>r.no+' '+r.label+(r.remark&&r.remark!=='-'?(' ('+r.remark+')'):'')).join('; '));
+  const auto='Saat pengecekan Checklist Quality Control Barang Masuk'+(QC.noform?(' (No Form '+QC.noform+')'):'')+', ditemukan ketidaksesuaian pada '+(bits.join(' — ')||'barang')+'.';
+  if(overwrite||!QC.dev.rincian)QC.dev.rincian=auto;
+  if(overwrite||!QC.dev.produk)QC.dev.produk=QC.nama||'';
+  if(overwrite||!QC.dev.tanggal)QC.dev.tanggal=QC.tanggal;
+}
+
+function triBtn(r,idx){
+  return '<div class="qcseg" data-row="'+idx+'"><button data-v="passed" class="'+(r.st==='passed'?'on-p':'')+'">✓ Passed</button><button data-v="rejected" class="'+(r.st==='rejected'?'on-r':'')+'">✕ Reject</button><button data-v="na" class="'+(r.st==='na'?'on-n':'')+'">– N/A</button></div>';
+}
+function renderQc(){
+  const v=$('#qcView');if(!v)return;
+  const mode=document.body.dataset.mode;
+  v.hidden=(mode==='kolase');
+  if(mode==='kolase')return;
+  const rej=qcRejects();
+  const showDev=(mode==='dev');
+  let h='';
+  if(!showDev){
+    h+='<div class="qcform"><h3>Checklist Quality Control Barang Masuk <span style="color:var(--muted);font-weight:400">· GML-EG-02-F-01</span></h3>';
+    h+='<div class="grid2">'
+      +'<label class="f">NAMA<input type="text" id="q_nama" value="'+esc(QC.nama)+'" placeholder="Nama alat/barang"></label>'
+      +'<label class="f">NO FORM<input type="text" id="q_noform" value="'+esc(QC.noform||'')+'" placeholder="No form arsip"></label>'
+      +'<label class="f">MERK<input type="text" id="q_merk" value="'+esc(QC.merk)+'" placeholder="Merk"></label>'
+      +'<label class="f">TANGGAL<input type="date" id="q_tanggal" value="'+esc(QC.tanggal||'')+'"></label>'
+      +'<label class="f">TIPE<input type="text" id="q_tipe" value="'+esc(QC.tipe)+'" placeholder="Tipe"></label>'
+      +'<label class="f">NOMOR SERI<input type="text" id="q_noseri" value="'+esc(QC.noseri||'')+'" placeholder="- bila kosong"></label>'
+      +'</div>';
+    h+='<div class="grid2"><label class="f">JENIS<select id="q_jenis"><option'+(QC.jenis==='ALKES'?' selected':'')+'>ALKES</option><option'+(QC.jenis!=='ALKES'?' selected':'')+'>Non ALKES</option></select></label>'
+      +'<label class="f">NOTE (RS / lokasi)<input type="text" id="q_note" value="'+esc(QC.note)+'" placeholder="RSUP …"></label></div>';
+    h+='<div class="grid3"><label class="f">Kota dokumen<input type="text" id="q_city" value="'+esc(QC.city||'Jakarta')+'"></label>'
+      +'<label class="f">Pelaksana<input type="text" id="q_pel" value="'+esc(QC.pelaksana)+'" placeholder="Nama teknisi"></label>'
+      +'<label class="f">Jabatan pelaksana<input type="text" id="q_pelr" value="'+esc(QC.pelaksanaRole||'Teknisi')+'"></label>'
+      +'<label class="f">Memeriksa<input type="text" id="q_mem" value="'+esc(QC.memeriksa)+'" placeholder="Nama"></label>'
+      +'<label class="f">Menyetujui<input type="text" id="q_men" value="'+esc(QC.menyetujui)+'" placeholder="Nama"></label>'
+      +'<label class="f">Mengetahui<input type="text" id="q_meg" value="'+esc(QC.mengetahui)+'" placeholder="Nama"></label></div>';
+    h+='<div id="qcRows">';
+    QC.rows.forEach((r,i)=>{
+      if(r.grp){h+='<div class="qcrow" style="background:var(--bg1)"><div class="plab"><b>'+esc(r.no)+' · '+esc(r.label)+'</b></div><div></div></div>';return;}
+      h+='<div class="qcrow"><div><div class="plab"><b>'+esc(r.no)+'</b> · '+esc(r.label)+'</div>'
+        +'<input type="text" data-remark="'+i+'" value="'+esc(r.remark||'')+'" placeholder="Remarks" style="margin-top:6px;background:var(--bg1);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px;font-size:12.5px;width:100%">'
+        +'</div>'+triBtn(r,i)+'</div>';
+    });
+    h+='</div>';
+    if(rej.length){h+='<div class="qcwarn">⚠ <b>'+rej.length+' item REJECTED</b>: '+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'.<br>Form penyimpangan sudah terisi otomatis — buka tab <b>Penyimpangan</b> untuk melengkapi lalu generate Word/PDF.</div>';}
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="q_docx">⬇ Word Checklist (.docx)</button><button class="chipbtn" id="q_pdf">🖨 PDF / Cetak Checklist</button><button class="chipbtn dangerb" id="q_goto_dev">Lanjut ke Penyimpangan →</button><button class="chipbtn" id="q_reset">Reset</button></div></div>';
+    h+='<div id="qcPrev">'+checkPreview()+'</div>';
+  }else{
+    syncDevFromQc(false);
+    const d=QC.dev;
+    h+='<div class="qcform"><h3>Laporan Penyimpangan <span style="color:var(--muted);font-weight:400">· GML-MT-08-F-01</span></h3>';
+    if(rej.length){h+='<div class="qcwarn">Terhubung ke checklist: <b>'+rej.length+' REJECT</b> ('+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'). Rincian di bawah terisi otomatis — sesuaikan bila perlu.</div>';}
+    else{h+='<div class="hint">Tidak ada item REJECT di checklist. Form tetap bisa diisi manual.</div>';}
+    h+='<div class="grid2">'
+      +'<label class="f">Penyimpangan no<input type="text" id="d_no" value="'+esc(d.nopenyimp)+'" placeholder="No penyimpangan"></label>'
+      +'<label class="f">Tanggal Penyimpangan<input type="date" id="d_tgl" value="'+esc(d.tanggal||'')+'"></label>'
+      +'<label class="f">Nama Produk<input type="text" id="d_prod" value="'+esc(d.produk)+'" placeholder="Nama produk"></label>'
+      +'<label class="f">Lokasi Penyimpangan<input type="text" id="d_lok" value="'+esc(d.lokasi)+'" placeholder="Ruang QC"></label>'
+      +'</div>'
+      +'<label class="f">Rincian Penyimpangan yang terjadi<textarea id="d_rinci">'+esc(d.rincian)+'</textarea></label>'
+      +'<label class="f">Kenapa Penyimpangan bisa timbul?<textarea id="d_sebab">'+esc(d.sebab)+'</textarea></label>'
+      +'<label class="f">Rincian Tindakan Sementara yang diambil<textarea id="d_semen">'+esc(d.sementara)+'</textarea></label>'
+      +'<label class="f">Tindakan Perbaikan dan Pencegahan penyimpangan<textarea id="d_perb">'+esc(d.perbaikan)+'</textarea></label>'
+      +'<label class="f">Catatan<textarea id="d_cat">'+esc(d.catatan)+'</textarea></label>';
+    h+='<div class="grid3"><label class="f">Nama (ttd 1)<input type="text" id="d_n1" value="'+esc(d.nama1)+'" placeholder="Nama lengkap"></label>'
+      +'<label class="f">Nama (ttd 2)<input type="text" id="d_n2" value="'+esc(d.nama2)+'" placeholder="Nama lengkap"></label>'
+      +'<label class="f">Tanggal ttd<input type="date" id="d_t1" value="'+esc(d.tgl1||'')+'"></label></div>';
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx">⬇ Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf">🖨 PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto">↺ Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back">← Kembali ke Checklist</button></div></div>';
+    h+='<div id="qcPrev">'+devPreview()+'</div>';
+  }
+  v.innerHTML=h;
+  bindQc();
+}
+function bindQc(){
+  const mode=document.body.dataset.mode;
+  const on=(id,ev,fn)=>{const e=$(id);if(e)e.addEventListener(ev,fn);};
+  if(mode==='qc'){
+    [['#q_nama','nama'],['#q_noform','noform'],['#q_merk','merk'],['#q_tipe','tipe'],['#q_noseri','noseri'],['#q_note','note'],['#q_city','city'],['#q_pel','pelaksana'],['#q_pelr','pelaksanaRole'],['#q_mem','memeriksa'],['#q_men','menyetujui'],['#q_meg','mengetahui']].forEach(([id,k])=>on(id,'input',e=>{QC[k]=e.target.value;saveQc();refreshQcPrev();}));
+    on('#q_jenis','change',e=>{QC.jenis=e.target.value;saveQc();refreshQcPrev();});
+    on('#q_tanggal','change',e=>{QC.tanggal=e.target.value;saveQc();refreshQcPrev();});
+    $$('#qcView [data-remark]').forEach(inp=>inp.addEventListener('input',()=>{QC.rows[+inp.dataset.remark].remark=inp.value;saveQc();refreshQcPrev();}));
+    $$('#qcView .qcseg').forEach(seg=>seg.addEventListener('click',e=>{
+      const b=e.target.closest('button');if(!b)return;
+      const i=+seg.dataset.row;QC.rows[i].st=b.dataset.v;saveQc();
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on-p','on-r','on-n'));
+      b.classList.add(b.dataset.v==='passed'?'on-p':b.dataset.v==='rejected'?'on-r':'on-n');
+      syncDevFromQc(false);refreshQcPrev();
+      const rej=qcRejects();
+      if(b.dataset.v==='rejected')toast('REJECT dicatat ('+QC.rows[i].no+'). Penyimpangan terisi otomatis ('+rej.length+' reject)','warn',{label:'Buka Penyimpangan',ms:6000,fn:()=>{$$('.modetabs button').forEach(x=>x.classList.toggle('on',x.dataset.mode==='dev'));document.body.dataset.mode='dev';renderQc();}});
+    }));
+    on('#q_docx','click',()=>downloadCheckDocx());
+    on('#q_pdf','click',()=>window.print());
+    on('#q_goto_dev','click',()=>{syncDevFromQc(false);saveQc();$$('.modetabs button').forEach(x=>x.classList.toggle('on',x.dataset.mode==='dev'));document.body.dataset.mode='dev';renderQc();});
+    on('#q_reset','click',()=>{if(!confirm('Reset formulir checklist?'))return;const dev=QC.dev;QC=defaultQC();QC.dev=dev;saveQc();renderQc();});
+  }else{
+    const d=QC.dev;
+    [['#d_no','nopenyimp'],['#d_prod','produk'],['#d_lok','lokasi'],['#d_rinci','rincian'],['#d_sebab','sebab'],['#d_semen','sementara'],['#d_perb','perbaikan'],['#d_cat','catatan'],['#d_n1','nama1'],['#d_n2','nama2']].forEach(([id,k])=>on(id,'input',e=>{d[k]=e.target.value;saveQc();refreshQcPrev();}));
+    on('#d_tgl','change',e=>{d.tanggal=e.target.value;saveQc();refreshQcPrev();});
+    on('#d_t1','change',e=>{d.tgl1=e.target.value;d.tgl2=e.target.value;saveQc();refreshQcPrev();});
+    on('#d_docx','click',()=>downloadDevDocx());
+    on('#d_pdf','click',()=>window.print());
+    on('#d_auto','click',()=>{syncDevFromQc(true);saveQc();renderQc();toast('Form diisi ulang dari checklist');});
+    on('#d_back','click',()=>{$$('.modetabs button').forEach(x=>x.classList.toggle('on',x.dataset.mode==='qc'));document.body.dataset.mode='qc';renderQc();});
+  }
+  const s1=$('#btnSideQcDocx'),s2=$('#btnSideQcPdf'),s3=$('#btnSideDevDocx'),s4=$('#btnSideDevPdf'),s5=$('#btnSideDevDocx2'),s6=$('#btnSideDevPdf2');
+  if(s1)s1.onclick=()=>downloadCheckDocx();
+  if(s2)s2.onclick=()=>window.print();
+  if(s3)s3.onclick=()=>downloadDevDocx();
+  if(s4)s4.onclick=()=>window.print();
+  if(s5)s5.onclick=()=>downloadDevDocx();
+  if(s6)s6.onclick=()=>window.print();
+}
+function refreshQcPrev(){const p=$('#qcPrev');if(!p)return;p.innerHTML=(document.body.dataset.mode==='dev')?devPreview():checkPreview();}
+
+function gmlLogo(){try{if(typeof GML_LOGO_B64!=='undefined'&&GML_LOGO_B64&&GML_LOGO_B64.length>100)return('data:image/png;base64,'+GML_LOGO_B64);}catch(e){}return'';}
+/* ══ GENERATOR DOCX: bangun file Word persis struktur dokumen asli ══ */
+function kopHtml(title){return '<div class="kop"><div><div class="t1">Formulir</div><div class="t2">'+title+'</div></div>'+(gmlLogo()?'<img src="'+gmlLogo()+'" alt="GML">':'<div></div>')+'</div>';}
+function kopMetaCheck(){return '<div class="kopmeta" style="grid-template-columns:1.2fr 1.6fr 1fr 1.4fr"><div><b>No Dok. :</b>GML-EG-02-F-01</div><div><b>Rev. No</b>01</div><div><b>Tanggal Efektif:</b>13 Agustus 2025</div><div><b>Hal:</b>1 of 1</div></div>';}
+function kopMetaDev(){return '<div class="kopmeta" style="grid-template-columns:1.2fr 1.6fr 1fr 1.4fr"><div><b>No Dok. :</b>GML-MT-08-F-01</div><div><b>Rev. No</b>01</div><div><b>Tanggal Efektif :</b>19 Oktober 2021</div><div><b>Hal:</b>1 of 1</div></div>';}
+function rowMark(r){if(r.grp)return '';if(r.st==='passed')return '<span style="font-size:15px">✓</span>';if(r.st==='rejected')return '<span style="font-size:15px">✕</span>';return '<span style="color:#666">-</span>';}
+function checkPreview(){
+  const jenisAlkes=QC.jenis==='ALKES';
+  let h='<div class="qcsheet">'+kopHtml('CHECKLIST QUALITY CONTROL BARANG MASUK')+kopMetaCheck();
+  h+='<table style="margin-bottom:10px"><tr><th style="width:16%">NAMA</th><td style="width:36%">'+esc(QC.nama||'')+'</td><th style="width:16%">NO FORM</th><td>'+esc(QC.noform||'')+'</td></tr>'
+    +'<tr><th>MERK</th><td>'+esc(QC.merk||'')+'</td><th>TANGGAL</th><td>'+esc(fmtId(QC.tanggal))+'</td></tr>'
+    +'<tr><th>TIPE</th><td>'+esc(QC.tipe||'')+'</td><th>NOMOR SERI</th><td>'+esc(QC.noseri||'')+'</td></tr>'
+    +'<tr><th>JENIS</th><td>'+(jenisAlkes?'☑':'☐')+' ALKES</td><td colspan="2">'+(!jenisAlkes?'☑':'☐')+' Non ALKES</td></tr>'
+    +'<tr><th><i>NOTE</i></th><td colspan="3">'+esc(QC.note||'')+'</td></tr></table>';
+  h+='<table><tr><th style="width:7%">NO</th><th style="width:42%">PARAMETER ALAT/BARANG</th><th colspan="2" style="width:22%">RESULT</th><th>REMARKS</th></tr>'
+    +'<tr><th></th><th></th><th style="width:11%">PASSED</th><th style="width:11%">REJECTED</th><th></th></tr>';
+  QC.rows.forEach(r=>{
+    if(r.grp){h+='<tr class="grp"><td class="ctr">'+esc(r.no)+'</td><td colspan="4">'+esc(r.label)+'</td></tr>';return;}
+    h+='<tr><td class="ctr">'+esc(r.no)+'</td><td>'+esc(r.label)+'</td>'
+      +'<td class="ctr">'+(r.st==='passed'?'✓':'')+'</td><td class="ctr">'+(r.st==='rejected'?'✓':'')+(r.st==='na'?'–':'')+'</td>'
+      +'<td>'+esc(r.remark||'')+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<div class="city">'+esc(QC.city||'Jakarta')+', '+esc(fmtId(QC.tanggal))+'</div>';
+  h+='<table><tr><th>Yang Melaksanakan,</th><th>Memeriksa,</th><th>Menyetujui,</th><th>Mengetahui</th></tr>'
+    +'<tr><td style="height:52px"></td><td></td><td></td><td></td></tr>'
+    +'<tr><td class="ctr">('+esc(QC.pelaksana||'&nbsp;')+')<div class="rl">'+esc(QC.pelaksanaRole||'Teknisi')+'</div></td>'
+    +'<td class="ctr">('+esc(QC.memeriksa||'&nbsp;')+')<div class="rl">'+esc(QC.memeriksaRole||'Manager Teknis')+'</div></td>'
+    +'<td class="ctr">('+esc(QC.menyetujui||'&nbsp;')+')<div class="rl">'+esc(QC.menyetujuiRole||'Penanggung Jawab Teknis')+'</div></td>'
+    +'<td class="ctr">('+esc(QC.mengetahui||'&nbsp;')+')<div class="rl">'+esc(QC.mengetahuiRole||'Staff Gudang')+'</div></td></tr></table>';
+  h+='</div>';
+  return h;
+}
+function devPreview(){
+  const d=QC.dev;
+  const rows=[['Penyimpangan no:',d.nopenyimp||''],['Nama Produk',d.produk||''],['Lokasi Penyimpangan',d.lokasi||''],['Tanggal Penyimpangan',fmtId(d.tanggal)],['Rincian Penyimpangan yang terjadi',d.rincian||''],['Kenapa Penyimpangan bisa timbul ?',d.sebab||''],['Rincian Tindakan Sementara yang diambil',d.sementara||''],['Tindakan Perbaikan dan Pencegahan penyimpangan',d.perbaikan||''],['Catatan',d.catatan||'']];
+  let h='<div class="qcsheet">'+kopHtml('LAPORAN PENYIMPANGAN')+kopMetaDev();
+  h+='<table>';
+  rows.forEach(r=>{h+='<tr><th style="width:34%">'+esc(r[0])+'</th><td>'+esc(r[1]).replace(/\n/g,'<br>')+'</td></tr>';});
+  h+='<tr><td colspan="2"><b>Dilaksanakan dan diketahui oleh:</b></td></tr>';
+  h+='<tr><td><b>Nama, '+esc(d.nama1||'')+'</b></td><td><b>Tanda Tangan</b><span style="float:right"><b>Tanggal </b>'+esc(fmtId(d.tgl1))+'</span></td></tr>';
+  h+='<tr><td>'+esc(d.nama2||'')+'</td><td style="height:44px"></td></tr>';
+  for(let i=0;i<3;i++)h+='<tr><td>&nbsp;</td><td></td></tr>';
+  h+='</table></div>';
+  return h;
+}
+
 const DRAFT_DB='kolase-qc-draft',DRAFT_STORE='photos',BLOB_STORE='blobs';
 function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,3);r.onupgradeneeded=()=>{const db=r.result;if(db.objectStoreNames.contains(DRAFT_STORE))db.deleteObjectStore(DRAFT_STORE);db.createObjectStore(DRAFT_STORE,{keyPath:'i'});if(!db.objectStoreNames.contains(BLOB_STORE))db.createObjectStore(BLOB_STORE,{keyPath:'id'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
 function draftTx(mode,fn){return dbReady().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{res(q&&q.result);};t.onerror=()=>{rej(t.error);}}catch(e){rej(e);}}));}
