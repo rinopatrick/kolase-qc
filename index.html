@@ -153,7 +153,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .slot .ph{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--slot-ph);padding:22px 14px;cursor:pointer;text-align:center}
 .slot .ph .big{width:44px;height:44px;border-radius:12px;background:var(--field);border:1.5px dashed var(--slot-line);display:grid;place-items:center;font-size:20px}
 .slot .ph b{font-size:13px;color:var(--slot-cap)}
-.slot .ph span{font-size:11.5px}
+.slot .ph span{font-size:12px}
 .slot .ph .num{position:absolute;top:9px;left:9px;font-size:11px;font-weight:700;background:var(--slot-bg);color:var(--paper);border-radius:6px;padding:2px 8px}
 .slot .imgbox{position:relative;flex:1;min-height:190px;max-height:100%;overflow:hidden;cursor:grab;touch-action:pan-x pan-y pinch-zoom;background:var(--slot-bg)}
 .slot .imgbox img{position:absolute;left:50%;top:50%;transform-origin:center;user-select:none;-webkit-user-drag:none;pointer-events:none;max-width:none;max-height:none}
@@ -399,8 +399,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
     </div>
     <div id="pages"></div>
     <div class="empty-hero" id="emptyHero" data-od-id="empty-state" style="display:none">
-      <h2>Belum ada foto — mulai dari sini</h2>
-      <p>Seret & letakkan file foto ke halaman, klik nomor slot, atau tempel dari clipboard (<kbd>Ctrl</kbd>+<kbd>V</kbd>). Semua tersimpan otomatis di browser.</p>
+      <h2>Belum ada foto</h2>
+      <p>Kolase siap begitu foto masuk, tanpa perlu atur manual.</p>
       <div class="cta-row"><button class="btn-teal" id="btnEmptyAdd">＋ Tambah foto</button><button class="btn-line" id="btnEmptyCam"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Buka kamera</button></div>
     </div>
 
@@ -672,7 +672,7 @@ function detachSlot(p,s,el,grid){
   const pre=snap(),fr=cellRectFrac(grid,el);
   setFree(p,s,{x:+fr.x.toFixed(3),y:+fr.y.toFixed(3),w:+fr.w.toFixed(3),h:+fr.h.toFixed(3)});
   pushUndoPre(pre);save();render();
-  toast('Kotak bebas — Ctrl+Z kembalikan.');
+    toast('Kotak bebas. Ctrl+Z kembalikan.');
 }
 function makeOverlayBits(el,p,s,grid){
   const mv=document.createElement('div');mv.className='mv';mv.title='Seret untuk pindah posisi';el.insertBefore(mv,el.firstChild);
@@ -778,7 +778,7 @@ function render(){
         const move=me=>{if(Math.abs(me.clientY-y0)>2)suppressClick=true;let v=h0+(me.clientY-y0);v=Math.max(0,Math.min(48,v));p.headH=Math.round(v);pad.style.height=p.headH+'px';show(p.headH);save();};
         const up=()=>{badge.remove();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);pushUndoPre(pre);save();render();};
         window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);});
-      hd.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pushUndo();p.headH=0;delete p.headH;pad.style.height='';save();render();toast('Ruang kop direset');});}
+      hd.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pushUndo();p.headH=0;delete p.headH;pad.style.height='';save();render();toast('Ruang kop kembali rapat');});}
     const grid=document.createElement('div');grid.className='gridwrap';
     grid.style.gap=S.gap+'px';
     inner.appendChild(grid);
@@ -811,13 +811,13 @@ function render(){
       if(s.broken&&!s.img){
         el.classList.add('broken');
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="ph broken-ph" tabindex="0"><span class="big">⚠</span><b>Foto gagal dimuat</b><span>File tidak pulih setelah reload (slot '+(si+1)+')</span></div><div class="tools"><button class="tbtn" data-t="del" title="Hapus slot rusak">🗑</button></div>';
-        el.querySelector('[data-t=del]').addEventListener('click',ev=>{ev.stopPropagation();pushUndo();const idx=p.slots.indexOf(s);if(idx>=0)p.slots.splice(idx,1);save();render();toast('Slot rusak dihapus');});
+        el.querySelector('[data-t=del]').addEventListener('click',ev=>{ev.stopPropagation();pushUndo();const idx=p.slots.indexOf(s);if(idx>=0)p.slots.splice(idx,1);save();render();toast('Slot rusak dibuang');});
       }
       else if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" aria-label="Caption foto '+(si+1)+'" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="rep" title="Ganti foto">⇄</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
         const img=el.querySelector('img');img.src=showImgOf(s);applyImg(img,s);
-        img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat — slot ditandai, ketuk hapus untuk buang','warn');};
+        img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat. Slot ditandai, ketuk hapus untuk buang','warn');};
         const box=el.querySelector('.imgbox');
         let drag=null;
         box.addEventListener('pointerdown',e=>{if(e.button!==undefined&&e.button!==0)return;drag={x:e.clientX,y:e.clientY,px:s.px,py:s.py,pre:snap()};try{box.setPointerCapture(e.pointerId)}catch(_){}box.style.cursor='grabbing';box.classList.add('dragging')});
@@ -884,7 +884,7 @@ async function slotTool(p,s,t,img,el,grid){
   if(t==='rep'){pickFor(p,s);return}
   if(t==='left'||t==='right'){pushUndo();moveSlot(p,s,t==='left'?-1:1);save();render()}
   if(t==='del'){pushUndo();const bak={...s};await removeSlotImg(s);s.cap='';if(LINK.isGuest&&LINK.session&&bak.pid)syncDel(bak.pid);save();render();
-    toast('Foto dihapus — 8 detik untuk urungkan','warn',{label:'Urungkan',ms:8000,fn:async()=>{Object.assign(s,bak);if(isIdbRef(s.img)){const b=await blobGet(s.img.slice(4));if(b){s.img=URL.createObjectURL(b);}else{s.img=null;s.broken=true;}}save();render()}})}
+    toast('Foto dihapus. Urungkan?','warn',{label:'Urungkan',ms:8000,fn:async()=>{Object.assign(s,bak);if(isIdbRef(s.img)){const b=await blobGet(s.img.slice(4));if(b){s.img=URL.createObjectURL(b);}else{s.img=null;s.broken=true;}}save();render()}})}
 }
 function moveSlot(p,s,d){const i=p.slots.indexOf(s),j=i+d;if(j<0||j>=p.slots.length){crossMove(p,s,d);return}const a=p.slots[i];p.slots[i]=p.slots[j];p.slots[j]=a}
 function crossMove(p,s,d){const pi=S.pages.indexOf(p),qi=pi+d;if(!S.pages[qi])return;const q=S.pages[qi];const i=p.slots.indexOf(s);p.slots.splice(i,1);if(!p.slots.length)p.slots.push(newSlot());q.slots.splice(d>0?0:q.slots.length,0,s)}
