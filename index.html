@@ -201,8 +201,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 .hd.sw{left:-9px;bottom:-9px;cursor:nesw-resize}
 .slot .hd{opacity:0;pointer-events:none;cursor:inherit}
 .gridwrap .slot.sel{outline:2px solid var(--accent);outline-offset:-2px}
-.gridwrap .slot.sel .hd,.gridwrap .slot.ovl.sel .hd{opacity:1!important;pointer-events:auto;transition:none}
-.gridwrap.has-sel .divider{opacity:1!important;transition:none}
+.gridwrap .slot.sel .hd,.gridwrap .slot.ovl.sel .hd{opacity:1!important;pointer-events:auto}
+.gridwrap.has-sel .divider{opacity:1!important}
 @media (pointer:coarse){.gridwrap .slot.sel .hd,.gridwrap .slot.ovl.sel .hd{opacity:1}.hd.nw,.hd.ne,.hd.se,.hd.sw{width:20px;height:20px}.hd.n,.hd.s{width:32px;height:14px}.hd.e,.hd.w{width:14px;height:32px}}
 .colw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--font-m)}
 .colw input{width:80px;accent-color:var(--accent)}
@@ -335,7 +335,7 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 
 <div id="scrim" aria-hidden="true"></div>
 <div class="shell">
-  <aside class="panel" data-od-id="settings-panel">
+  <aside class="panel" data-od-id="settings-panel" aria-label="Pengaturan dokumen">
     <button class="ibtn" id="btnDrawerClose" aria-label="Tutup pengaturan" style="display:none;width:100%;margin-bottom:10px">✕ Tutup pengaturan</button>
     <div class="sect" data-od-id="sect-doc">
       <div class="sect-h"><span class="n">01</span><div><h2>Dokumen</h2><p>Kop tiap halaman cetak</p></div></div>
@@ -812,7 +812,7 @@ function render(){
         el.querySelector('[data-t=del]').addEventListener('click',ev=>{ev.stopPropagation();pushUndo();const idx=p.slots.indexOf(s);if(idx>=0)p.slots.splice(idx,1);save();render();toast('Slot rusak dihapus');});
       }
       else if(s.img){
-        el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
+        el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" aria-label="Caption foto '+(si+1)+'" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="rep" title="Ganti foto">⇄</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
         const img=el.querySelector('img');img.src=showImgOf(s);applyImg(img,s);
         img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat — slot ditandai, ketuk hapus untuk buang','warn');};
