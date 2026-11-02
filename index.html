@@ -1590,10 +1590,10 @@ function checkPreview(){
   h+='<div class="city">'+esc(QC.city||'Jakarta')+', '+esc(fmtId(QC.tanggal))+'</div>';
   h+='<table><tr><td class="ctr">Yang Melaksanakan,</td><td class="ctr">Memeriksa,</td><td class="ctr">Menyetujui,</td><td class="ctr">Mengetahui</td></tr>'
     +'<tr><td style="height:64px"></td><td></td><td></td><td></td></tr>'
-    +'<tr><td class="ctr">('+esc(QC.pelaksana||'&nbsp;')+')<br>'+esc(QC.pelaksanaRole||'Teknisi')+'</td>'
-    +'<td class="ctr">('+esc(QC.memeriksa||'&nbsp;')+')<br>'+esc(QC.memeriksaRole||'Manager Teknis')+'</td>'
-    +'<td class="ctr">('+esc(QC.menyetujui||'&nbsp;')+')<br>'+esc(QC.menyetujuiRole||'Penanggung Jawab Teknis')+'</td>'
-    +'<td class="ctr">('+esc(QC.mengetahui||'&nbsp;')+')<br>'+esc(QC.mengetahuiRole||'Staff Gudang')+'</td></tr></table>';
+    +'<tr><td class="ctr">('+(QC.pelaksana?esc(QC.pelaksana):'')+')<br>'+esc(QC.pelaksanaRole||'Teknisi')+'</td>'
+    +'<td class="ctr">('+(QC.memeriksa?esc(QC.memeriksa):'')+')<br>'+esc(QC.memeriksaRole||'Manager Teknis')+'</td>'
+    +'<td class="ctr">('+(QC.menyetujui?esc(QC.menyetujui):'')+')<br>'+esc(QC.menyetujuiRole||'Penanggung Jawab Teknis')+'</td>'
+    +'<td class="ctr">('+(QC.mengetahui?esc(QC.mengetahui):'')+')<br>'+esc(QC.mengetahuiRole||'Staff Gudang')+'</td></tr></table>';
   h+='</div>';
   return h;
 }
