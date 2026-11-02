@@ -673,6 +673,8 @@ function addRowDividers(grid,p,rows){
       let edge=0;for(let k=0;k<=ci;k++)edge+=fr[k];d.style.left=(edge*100)+'%';
       d._ri=ri;d._ci=ci;
       d.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();dragColDivider(d,e.currentTarget.parentElement,p,ri,ci,e.clientX);});
+      d.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pushUndo();delete p['rowFr_'+ri];const dv1=divsOf(p);if(ri===0){delete p.dividers;delete p.colW;}save();render();toast('Kolom baris disamakan lagi');});
+      d.title='Tarik untuk ubah lebar kolom baris ini · klik 2x untuk samakan lagi';
       row.appendChild(d);
     }
   });
@@ -837,7 +839,7 @@ function render(){
     d.innerHTML='<div class="page-bar"><span class="pg">HAL '+(pi+1)+'</span><span class="meta">'+p.slots.length+' foto · '+ori.toUpperCase()+'</span><span class="grow"></span>'+
       '<select data-act="pat" title="Pola">'+[['1','1 penuh'],['2H','2 atas-bawah'],['2S','2 sejajar'],['3B','3 besar-atas'],['3S','3 besar-bawah'],['4','4 (2×2)'],['6','6 foto'],['8','8 foto']].map(o=>'<option value="'+o[0]+'"'+(String(p.pattern)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
       '<select data-act="ori" title="Orientasi"><option value="portrait"'+(ori==='portrait'?' selected':'')+'>Portrait</option><option value="landscape"'+(ori==='landscape'?' selected':'')+'>Landscape</option></select>'+
-      '<button class="mini" data-act="break" title="Paksa halaman baru">⤵ Hal.baru</button>'+(gridShape(p)[0]>=2?'<label class="colw" title="Lebar kolom pertama">Kolom <input type="range" min="30" max="70" value="'+Math.round(colWOf(p)*100)+'" data-colw></label>':'')+'<button class="mini danger" data-act="delpage" title="Hapus halaman">Hapus</button></div>'+
+      '<button class="mini" data-act="break" title="Paksa halaman baru">⤵ Hal.baru</button>'+(gridShape(p)[0]>=2?'<label class="colw" title="Lebar kolom pertama">Kolom <input type="range" min="30" max="70" value="'+Math.round(colWOf(p)*100)+'" data-colw></label>':'')+'<button class="mini" data-act="even" title="Samakan semua baris + kolom (perbaiki simetris)">Samakan</button><button class="mini danger" data-act="delpage" title="Hapus halaman">Hapus</button></div>'+
       '<div class="sheet"><div class="sheet-inner"></div></div>';
     if(p.forceNew)d.querySelector('.pg').textContent+=' ⤵';
     /* Lembar jujur: rasio pratinjau = rasio mm kertas x orientasi halaman */
@@ -884,8 +886,9 @@ function render(){
       row.style.gap=S.gap+'px';
       grid.appendChild(row);rows.push(row);
       if(ri<rN-1){
-        const rd=document.createElement('div');rd.className='divider rowdiv h';rd.title='Tarik untuk ubah tinggi baris';
+        const rd=document.createElement('div');rd.className='divider rowdiv h';rd.title='Tarik untuk ubah tinggi baris · klik 2x untuk samakan lagi';
         rd.addEventListener('pointerdown',e=>{if(e.isPrimary===false)return;e.preventDefault();e.stopPropagation();dragRowDivider(rd,grid,p,ri,e.clientY);});
+        rd.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pushUndo();delete p.dividers;delete p.rowH;for(let k=0;k<rN;k++)delete p['rowFr_'+k];save();render();toast('Baris disamakan lagi');});
         rd._ri=ri;grid.appendChild(rd);
       }
     }
@@ -948,6 +951,7 @@ function render(){
     d.querySelector('[data-act=pat]').addEventListener('change',e=>{pushUndo();resizeSlots(p,e.target.value);p.dividers=null;delete p.free;save();render()});
     d.querySelector('[data-act=ori]').addEventListener('change',e=>{pushUndo();p.ori=e.target.value;p.dividers=null;delete p.free;save();render()});
     d.querySelector('[data-act=break]').addEventListener('click',e=>{pushUndo();p.forceNew=!p.forceNew;e.target.classList.toggle('on',p.forceNew);save();render();toast(p.forceNew?'Halaman '+(pi+1)+' dipaksa mulai di kertas baru':'Paksa halaman dibatalkan')});
+    d.querySelector('[data-act=even]').addEventListener('click',()=>{pushUndo();delete p.dividers;delete p.rowH;delete p.colW;delete p.rowCols;for(let k=0;k<12;k++)delete p['rowFr_'+k];save();render();toast('Halaman '+(pi+1)+' disamakan lagi')});
     d.querySelector('[data-act=delpage]').addEventListener('click',()=>delPage(pi));
     wrap.appendChild(d);
   });
