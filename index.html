@@ -488,20 +488,19 @@ function addFiles(files){const imgs=[...files].filter(f=>f.type.startsWith('imag
   let i=0;const readers=imgs.map(f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f)}));
   Promise.all(readers).then(async urls=>{for(const p of S.pages)for(const s of p.slots){if(i>=urls.length)break;if(!s.img){s.img=urls[i++];s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);}}save();render();toast(urls.length+' foto ditambahkan')});}
 function countEmpty(){return S.pages.flatMap(p=>p.slots).filter(s=>!s.img).length}
-let _saveT=0,_quotaWarned=false;
+let _quotaWarned=false;
+let _saveP=Promise.resolve();
 function save(){
-  /* cepat: metadata dulu agar UI responsif; blob dimigrasi async lalu simpan ulang */
-  const r=saveMeta();
-  if(!r.ok&&r.reason==='quota'&&!_quotaWarned){_quotaWarned=true;setTimeout(()=>{_quotaWarned=false;},30000);
-    toast('Penyimpanan penuh — foto besar dipindah ke arsip internal…','warn');}
-  const now=Date.now();if(now-_saveT<1500)return;_saveT=now;
-  (async()=>{
+  _saveP=_saveP.then(async()=>{
+    const r=saveMeta();
+    if(!r.ok&&r.reason==='quota'&&!_quotaWarned){_quotaWarned=true;setTimeout(()=>{_quotaWarned=false;},30000);
+      toast('Penyimpanan penuh — foto besar dipindah ke arsip internal…','warn');}
     let moved=false;
     for(const{slot}of allSlots()){if(slot.img&&!isIdbRef(slot.img)&&!slot.broken){
       if(slot.img.indexOf('blob:')===0||slot.img.length>48*1024){if(await persistSlotImg(slot))moved=true;}}}
     if(moved){const r2=saveMeta();
       if(!r2.ok&&r2.reason==='quota')toast('Penyimpanan penuh — beberapa foto mungkin tidak pulih setelah reload. Unduh PDF dulu.','warn');}
-  })();
+  }).catch(()=>{});
 }
 function load(){try{const j=localStorage.getItem('kolase-qc-v2');if(j){S=JSON.parse(j);let mx=0;for(const p of S.pages||[]){const n=parseInt(String(p.id||'').slice(1))||0;if(n>mx)mx=n;if(p.headH!=null){p.headH=Math.max(0,Math.min(48,+p.headH||0));if(!p.headH)delete p.headH;}}S.seq=Math.max(S.seq||1,mx+1);bindDocInputs()}}catch(e){}}
 
@@ -1310,17 +1309,22 @@ function scanBarRefresh(){
 /* ══ Draft otomatis (IndexedDB): foto HP selamat dari reload/pindah tab/scan QR ══ */
 const DRAFT_DB='kolase-qc-draft',DRAFT_STORE='photos',BLOB_STORE='blobs';
 function draftDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DRAFT_DB,3);r.onupgradeneeded=()=>{const db=r.result;if(db.objectStoreNames.contains(DRAFT_STORE))db.deleteObjectStore(DRAFT_STORE);db.createObjectStore(DRAFT_STORE,{keyPath:'i'});if(!db.objectStoreNames.contains(BLOB_STORE))db.createObjectStore(BLOB_STORE,{keyPath:'id'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
-function draftTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);}}catch(e){try{db.close();}catch(_){}rej(e);}}));}
+function draftTx(mode,fn){return dbReady().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(DRAFT_STORE,mode),s=t.objectStore(DRAFT_STORE),q=fn(s);t.oncomplete=()=>{res(q&&q.result);};t.onerror=()=>{rej(t.error);}}catch(e){rej(e);}}));}
 async function draftSaveAll(){try{const items=[];const filled=allSlots().filter(o=>showImgOf(o.slot));for(let i=0;i<filled.length;i++){const s=filled[i].slot;try{const b=await (await fetch(showImgOf(s))).blob();items.push({i,pid:s.pid||null,cap:s.cap||'',blob:b});}catch(e){}}await draftTx('readwrite',s=>{s.clear();items.forEach(it=>{try{s.put(it);}catch(e){}});});}catch(e){}}
 async function draftLoad(){try{const rows=await draftTx('readonly',s=>s.getAll());if(!rows||!rows.length)return false;rows.sort((a,b)=>a.i-b.i);pushUndo();for(const r of rows){try{
-  let tgt=firstEmptySlot();if(!tgt){S.pages.push(newPage(S.pattern));tgt=firstEmptySlot();}
+  if(!(r.blob instanceof Blob))continue;
+  let tgt=allSlots().find(o=>o.slot.pid&&r.pid&&o.slot.pid===r.pid&&!o.slot.img&&!o.slot.broken);
+  if(!tgt)tgt=firstEmptySlot();
+  if(!tgt)continue;
   tgt.slot.pid=r.pid||undefined;tgt.slot.img=URL.createObjectURL(r.blob);tgt.slot._url=tgt.slot.img;tgt.slot.cap=r.cap||'';tgt.slot.capText=r.cap||'';tgt.slot.zoom=1;tgt.slot.rot=0;tgt.slot.px=0;tgt.slot.py=0;tgt.slot.broken=false;
 }catch(e){}}save();return true;}catch(e){return false;}}
 async function draftClear(){try{await draftTx('readwrite',s=>s.clear());}catch(e){}}
 /* ══ Blob foto persisten (IndexedDB): localStorage hanya simpan metadata + s.img kecil.
    Tiap slot foto besar dapat blobId stabil; s.img='idb:xxx' = referensi, dihidrasi saat boot.
    Blob URL lama (blob:) tidak disimpan — selalu materialisasi ke blob dulu. == */
-function blobTx(mode,fn){return draftDB().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(BLOB_STORE,mode),s=t.objectStore(BLOB_STORE),q=fn(s);t.oncomplete=()=>{db.close();res(q&&q.result);};t.onerror=()=>{db.close();rej(t.error);}}catch(e){try{db.close();}catch(_){}rej(e);}}));}
+let _dbP=null;
+function dbReady(){if(_dbP)return _dbP;_dbP=draftDB();return _dbP;}
+function blobTx(mode,fn){return dbReady().then(db=>new Promise((res,rej)=>{try{const t=db.transaction(BLOB_STORE,mode),s=t.objectStore(BLOB_STORE),q=fn(s);t.oncomplete=()=>{res(q&&q.result);};t.onerror=()=>{rej(t.error);}}catch(e){rej(e);}}));}
 async function blobPut(id,blob){try{await blobTx('readwrite',s=>s.put({id,blob}));return true;}catch(e){return false;}}
 async function blobGet(id){try{const r=await blobTx('readonly',s=>s.get(id));return r&&r.blob||null;}catch(e){return null;}}
 async function blobDel(id){try{await blobTx('readwrite',s=>s.delete(id));}catch(e){}}
@@ -1382,9 +1386,12 @@ function draftArm(){if(draftArm._on)return;draftArm._on=true;const saveD=()=>{if
 $('#stage').addEventListener('dragover',e=>e.preventDefault());
 $('#stage').addEventListener('drop',e=>{if(e.target.closest('.slot'))return;e.preventDefault();addFiles(e.dataTransfer.files)});
 
-/* Boot: metadata localStorage → hidrasi blob IDB → render. Slot gambar mati/null ditandai. */
+/* Boot: metadata localStorage → hidrasi blob IDB → migrasi draft lama → render. Sekuens tunggal, anti-balapan. */
 load();
+let _booted=false;
 (async()=>{
+  if(_booted)return;_booted=true;
+  try{await dbReady();}catch(e){}
   for(const{slot}of allSlots()){
     if(!slot.img){slot._url=null;continue;}
     if(isIdbRef(slot.img)){const id=slot.img.slice(4);slot.blobId=id;const b=await blobGet(id);
@@ -1392,15 +1399,15 @@ load();
     else if(isBlobUrl(slot.img)){slot.img=null;slot._url=null;slot.broken=true;} /* URL sesi lama: pasti mati */
     else{slot._url=null;try{slot._url=URL.createObjectURL(await imgToBlob(slot.img));}catch(e){slot._url=null;}}
   }
-  hydrateLegacyDraft();
+  try{await hydrateLegacyDraft();}catch(e){}
+  try{if(!location.hash.match(/#s=/)){const ok=await draftLoad();if(ok)save();}}catch(e){}
   render();syncUndoBtns();
 })();
 /* boot P2P/guest/draft: sebelum interaksi; load lama + render ulang bila draft pulih */
 draftArm();guestInit();scanBarRefresh();
 try{window.addEventListener('resize',()=>{clearTimeout(window.__sbT);window.__sbT=setTimeout(scanBarRefresh,300);});}catch(e){}
-(async()=>{try{if(location.hash.match(/#s=/))return;const ok=await draftLoad();if(ok){save();render();}}catch(e){}})();
 /* Migrasi satu kali: draft blob lama (store photos) → blob store baru per slot */
-async function hydrateLegacyDraft(){
+async function hydrateLegacyDraft(){let moved=false;
   try{
     const rows=await draftTx('readonly',s=>s.getAll());
     if(!rows||!rows.length)return;
@@ -1414,8 +1421,9 @@ async function hydrateLegacyDraft(){
       tgt.slot.img='idb:'+id;tgt.slot.blobId=id;tgt.slot.pid=r.pid||tgt.slot.pid;
       tgt.slot.cap=r.cap||tgt.slot.cap||'';tgt.slot.broken=false;
       tgt.slot._url=URL.createObjectURL(r.blob);
+      moved=true;
     }
-    save();
+    if(moved){try{await draftTx('readwrite',s=>s.clear());}catch(e){}save();}
   }catch(e){}
 }
 </script>
