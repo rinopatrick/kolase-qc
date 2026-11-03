@@ -225,22 +225,26 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 body[data-mode="qc"] .only-kolase,body[data-mode="dev"] .only-kolase{display:none}
 body[data-mode="kolase"] .only-qc,body[data-mode="kolase"] .only-dev{display:none}
 body[data-mode="qc"] .only-dev,body[data-mode="dev"] .only-qc{display:none}
-#qcView{display:grid;gap:14px;max-width:860px;margin:0 auto}
+#qcView{display:grid;gap:14px;max-width:860px;margin:0 auto;padding-bottom:24px}
 #qcView[hidden]{display:none}
 body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #stageTopKolase,body[data-mode="dev"] #stageTopKolase{display:none}
 /* Formulir QC: kertas A4 jujur di atas meja malam */
-.qcsheet{background:#fff;color:#000;border-radius:10px;box-shadow:0 2px 12px var(--sheet-shadow);padding:26px 26px 30px;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.35}
-.qcsheet .kop{display:grid;grid-template-columns:1fr 96px;gap:8px;border:1px solid #000;padding:8px 10px;margin-bottom:0}
-.qcsheet .kop .t1{font-style:italic;font-weight:700;font-size:12pt}
-.qcsheet .kop .t2{font-weight:700;font-size:12pt}
-.qcsheet .kop img{width:96px;height:auto;justify-self:center;align-self:center}
-.qcsheet .kopmeta{display:grid;grid-template-columns:1.1fr 1.1fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr;gap:0;border:1px solid #000;border-top:none;margin-bottom:12px;font-size:9pt}
-.qcsheet .kopmeta div{border-right:1px solid #000;padding:2px 5px;white-space:nowrap;overflow:hidden}
+.qcsheet{background:#fff;color:#000;border-radius:2px;box-shadow:0 2px 12px var(--sheet-shadow);padding:6mm;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.35;width:177mm;margin:0 auto;overflow:hidden}
+.qcsheet .kopwrap{width:164.8mm}
+.qcsheet .kop{display:grid;grid-template-columns:1fr 45mm;gap:0;border:0.4pt solid #000;padding:0;margin-bottom:0}
+.qcsheet .kop>div:first-child{border-right:0.4pt solid #000;padding:5pt 8pt}
+.qcsheet .kop .t1{font-style:italic;font-weight:700;font-size:12pt;line-height:1.35}
+.qcsheet .kop .t2{font-weight:700;font-size:12pt;line-height:1.35;margin-top:3pt}
+.qcsheet .kop .logo{display:grid;place-items:center;padding:2pt}
+.qcsheet .kop img{width:32mm;height:auto;display:block}
+.qcsheet .kopmeta{display:grid;grid-template-columns:20.9mm 31.7mm 18.1mm 9mm 30.4mm 27mm 10.9mm 16.9mm;gap:0;border:0.4pt solid #000;border-top:none;margin-bottom:0;font-size:9pt;line-height:1.5}
+.qcsheet .kopmeta div{border-right:0.4pt solid #000;padding:1.5pt 4pt;white-space:nowrap;overflow:visible}
 .qcsheet .kopmeta div:last-child{border-right:none}
 .qcsheet .kopmeta b{font-size:9pt}
-.qcsheet table{border-collapse:collapse;width:100%;font-size:11pt}
-.qcsheet table,.qcsheet th,.qcsheet td{border:1px solid #000}
-.qcsheet th,.qcsheet td{padding:2px 6px;vertical-align:middle;font-weight:400}
+.qcsheet table{border-collapse:collapse;table-layout:fixed;font-size:11pt}
+.qcsheet table.t0{width:159.5mm}.qcsheet table.t1{width:159.9mm}.qcsheet table.t2{width:167mm}.qcsheet table.tdev{width:159mm}
+.qcsheet table,.qcsheet th,.qcsheet td{border:0.4pt solid #000}
+.qcsheet th,.qcsheet td{padding:1pt 9.6px;vertical-align:middle;font-weight:400;overflow-wrap:anywhere}
 .qcsheet th{background:none;font-weight:700}
 .qcsheet td.grpno{font-weight:700}
 .qcsheet .ctr{text-align:center}
@@ -248,8 +252,13 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 .qcsheet .grp td{font-weight:700}
 .qcsheet .sym{font-family:"Segoe UI Symbol",Calibri,sans-serif}
 .qcsheet .strike{text-decoration:line-through}
-.qcsheet .city{margin:10px 0 2px;font-size:11pt}
-.qcsheet .sign4{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:11pt;margin-top:2px}
+.qcsheet .city{margin:6pt 0 2pt;font-size:11pt}
+.qcsheet .bodysp{height:8pt}
+.qcsheet .ttdsp{height:22pt}
+.qcsheet .kopwrap .kop{border-bottom:none}
+@media print{
+  body[data-mode="qc"] .qcsheet,body[data-mode="dev"] .qcsheet{width:159mm;margin:0}
+}
 /* panel form gelap */
 .qcform{background:var(--bg1);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
 .qcform h3{margin:0;font-size:14px}
@@ -1559,36 +1568,37 @@ function refreshQcPrev(){const p=$('#qcPrev');if(!p)return;p.innerHTML=(document
 
 function gmlLogo(){try{if(typeof GML_LOGO_B64!=='undefined'&&GML_LOGO_B64&&GML_LOGO_B64.length>100)return('data:image/png;base64,'+GML_LOGO_B64);}catch(e){}return'';}
 /* ══ GENERATOR DOCX: bangun file Word persis struktur dokumen asli ══ */
-function kopHtml(title){return '<div class="kop"><div><div class="t1">Formulir</div><div class="t2">'+title+'</div></div>'+(gmlLogo()?'<img src="'+gmlLogo()+'" alt="GML">':'<div></div>')+'</div>';}
-function kopMetaCheck(){return '<div class="kopmeta" style="grid-template-columns:1.35fr 0.85fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr"><div><b>No Dok. :</b> GML-EG-02-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif:</b></div><div>13 Agustus 2025</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
-function kopMetaDev(){return '<div class="kopmeta" style="grid-template-columns:1.35fr 0.85fr 0.85fr 0.85fr 1.35fr 1.1fr 0.5fr 1.1fr"><div><b>No Dok. :</b> GML-MT-08-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif :</b></div><div>19 Oktober 2021</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
+function kopHtml(title){return '<div class="kop"><div><div class="t1">Formulir</div><div class="t2">'+title+'</div></div><div class="logo">'+(gmlLogo()?'<img src="'+gmlLogo()+'" alt="GML">':'')+'</div></div>';}
+function kopMetaCheck(){return '<div class="kopmeta"><div><b>No Dok. :</b> GML-EG-02-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif:</b></div><div>13 Agustus 2025</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
+function kopMetaDev(){return '<div class="kopmeta"><div><b>No Dok. :</b> GML-MT-08-F-01</div><div></div><div><b>Rev. No</b></div><div>01</div><div><b>Tanggal Efektif :</b></div><div>19 Oktober 2021</div><div><b>Hal:</b></div><div>1 of 1</div></div>';}
 function rowMark(r){if(r.grp)return '';if(r.st==='passed')return '<span style="font-size:15px">✓</span>';if(r.st==='rejected')return '<span style="font-size:15px">✕</span>';return '<span style="color:#666">-</span>';}
 function checkPreview(){
   const jenisAlkes=QC.jenis==='ALKES';
   const alkesBox=jenisAlkes?'☑':'\u25A1';
-  let h='<div class="qcsheet">'+kopHtml('CHECKLIST QUALITY CONTROL BARANG MASUK')+kopMetaCheck();
-  h+='<table style="margin-bottom:12px"><tr><th style="width:16%">NAMA</th><td style="width:38%">'+esc(QC.nama||'')+'</td><th style="width:16%">NO FORM</th><td>'+esc(QC.noform||'')+'</td></tr>'
-    +'<tr><th>MERK</th><td>'+esc(QC.merk||'')+'</td><th>TANGGAL</th><td>'+esc(fmtId(QC.tanggal))+'</td></tr>'
-    +'<tr><th>TIPE</th><td>'+esc(QC.tipe||'')+'</td><th>NOMOR SERI</th><td>'+esc(QC.noseri||'')+'</td></tr>'
-    +'<tr><th>JENIS</th><td><span class="sym">'+alkesBox+'</span> '+(jenisAlkes?'<b>ALKES</b>':'ALKES')+'</td><td colspan="2">'+(!jenisAlkes?'<span class="sym">✓</span> <b>Non ALKES</b>':'<span class="sym">☐</span> Non ALKES')+'</td></tr>'
-    +'<tr><th><i>NOTE</i></th><td colspan="3">'+esc(QC.note||'')+'</td></tr></table>';
-  h+='<table><tr><th style="width:7%">NO</th><th style="width:38%">PARAMETER ALAT/BARANG</th><th colspan="2" style="width:20%"><i>RESULT</i></th><th><i>REMARKS</i></th></tr>'
-    +'<tr><th></th><th></th><th style="width:10%"><i>PASSED</i></th><th style="width:10%"><i>REJECTED</i></th><th></th></tr>';
+  let h='<div class="qcsheet"><div class="kopwrap">'+kopHtml('CHECKLIST QUALITY CONTROL BARANG MASUK')+kopMetaCheck()+'</div>';
+  h+='<table class="t0" style="margin-bottom:0"><colgroup><col style="width:42.3mm"><col style="width:44.5mm"><col style="width:32.1mm"><col style="width:40.6mm"></colgroup><tr style="height:5.5mm"><th>NAMA</th><td>'+esc(QC.nama||'')+'</td><th>NO FORM</th><td>'+esc(QC.noform||'')+'</td></tr>'
+    +'<tr style="height:5.5mm"><th>MERK</th><td>'+esc(QC.merk||'')+'</td><th>TANGGAL</th><td>'+esc(fmtId(QC.tanggal))+'</td></tr>'
+    +'<tr style="height:5.5mm"><th>TIPE</th><td>'+esc(QC.tipe||'')+'</td><th>NOMOR SERI</th><td>'+esc(QC.noseri||'')+'</td></tr>'
+    +'<tr style="height:5.5mm"><th>JENIS</th><td><span class="sym">'+alkesBox+'</span> '+(jenisAlkes?'<b>ALKES</b>':'ALKES')+'</td><td colspan="2">'+(!jenisAlkes?'<span class="sym">✓</span> <b>Non ALKES</b>':'<span class="sym">☐</span> Non ALKES')+'</td></tr>'
+    +'<tr style="height:5.5mm"><th><i>NOTE</i></th><td colspan="3">'+esc(QC.note||'')+'</td></tr></table>';
+  h+='<div class="bodysp"></div>';
+  h+='<table class="t1"><colgroup><col style="width:12.4mm"><col style="width:55mm"><col style="width:19.8mm"><col style="width:24.5mm"><col style="width:48.2mm"></colgroup><tr style="height:7mm"><th>NO</th><th>PARAMETER ALAT/BARANG</th><th colspan="2"><i>RESULT</i></th><th><i>REMARKS</i></th></tr>'
+    +'<tr style="height:7mm"><th></th><th></th><th><i>PASSED</i></th><th><i>REJECTED</i></th><th></th></tr>';
   const label33='<span>Kelengkapan dokumen</span><br><span>Manual book</span><br><span>COO</span><br><span>Sertifikat kalibrasi pabrikan</span><br><span>……………..</span><br><span>……………..</span>';
   QC.rows.forEach(r=>{
-    if(r.grp){h+='<tr><td class="grpno">'+esc(r.no)+'</td><td colspan="4" class="grpno">'+esc(r.label)+'</td></tr>';return;}
+    if(r.grp){h+='<tr style="height:7mm"><td class="grpno">'+esc(r.no)+'</td><td colspan="4" class="grpno">'+esc(r.label)+'</td></tr>';return;}
     const noCls=(r.no.indexOf('.')>=0)?'rgt':'grpno';
     let param=esc(r.label), remark=esc(r.remark||'');
     if(r.no==='3.3'){param=label33;}
     if(r.no==='4.2'&&!remark){remark='* ada / <span class="strike">tidak ada foto</span>';}
     else if(r.no==='4.2'&&remark){remark=remark;}
-    h+='<tr><td class="'+noCls+'">'+esc(r.no)+'</td><td>'+(r.no==='1'?'<b>'+param+'</b>':param)+'</td>'
+    h+='<tr style="height:7mm"><td class="'+noCls+'">'+esc(r.no)+'</td><td>'+(r.no==='1'?'<b>'+param+'</b>':param)+'</td>'
       +'<td class="ctr">'+(r.st==='passed'?'<span class="sym">✓</span>':(r.st==='na'?'-':''))+'</td><td class="ctr">'+(r.st==='rejected'?'<span class="sym">✓</span>':'')+'</td>'
       +'<td class="ctr">'+remark+'</td></tr>';
   });
   h+='</table>';
   h+='<div class="city">'+esc(QC.city||'Jakarta')+', '+esc(fmtId(QC.tanggal))+'</div>';
-  h+='<table><tr><td class="ctr">Yang Melaksanakan,</td><td class="ctr">Memeriksa,</td><td class="ctr">Menyetujui,</td><td class="ctr">Mengetahui</td></tr>'
+  h+='<table class="t2"><colgroup><col style="width:39.4mm"><col style="width:42.8mm"><col style="width:49.7mm"><col style="width:35mm"></colgroup><tr><td class="ctr">Yang Melaksanakan,</td><td class="ctr">Memeriksa,</td><td class="ctr">Menyetujui,</td><td class="ctr">Mengetahui</td></tr>'
     +'<tr><td style="height:64px"></td><td></td><td></td><td></td></tr>'
     +'<tr><td class="ctr">('+(QC.pelaksana?esc(QC.pelaksana):'')+')<br>'+esc(QC.pelaksanaRole||'Teknisi')+'</td>'
     +'<td class="ctr">('+(QC.memeriksa?esc(QC.memeriksa):'')+')<br>'+esc(QC.memeriksaRole||'Manager Teknis')+'</td>'
@@ -1600,9 +1610,10 @@ function checkPreview(){
 function devPreview(){
   const d=QC.dev;
   const rows=[['Penyimpangan no:',d.nopenyimp||''],['Nama Produk',d.produk||''],['Lokasi Penyimpangan',d.lokasi||''],['Tanggal Penyimpangan',fmtId(d.tanggal)],['Rincian Penyimpangan yang terjadi',d.rincian||''],['Kenapa Penyimpangan bisa timbul ?',d.sebab||''],['Rincian Tindakan Sementara yang diambil',d.sementara||''],['Tindakan Perbaikan dan Pencegahan penyimpangan',d.perbaikan||''],['Catatan',d.catatan||'']];
-  let h='<div class="qcsheet">'+kopHtml('LAPORAN PENYIMPANGAN')+kopMetaDev();
-  h+='<table>';
-  rows.forEach(r=>{h+='<tr><th style="width:30%">'+esc(r[0])+'</th><td>'+esc(r[1]).replace(/\n/g,'<br>')+'</td></tr>';});
+  let h='<div class="qcsheet"><div class="kopwrap">'+kopHtml('LAPORAN PENYIMPANGAN')+kopMetaDev()+'</div>';
+  h+='<div style="height:2pt"></div>';
+  h+='<table class="tdev"><colgroup><col style="width:37.5mm"><col style="width:95.1mm"></colgroup>';
+  rows.forEach((r,ix)=>{h+='<tr'+(ix>=3&&ix<=8?' style="height:7mm"':'')+'><th>'+esc(r[0])+'</th><td>'+esc(r[1]).replace(/\n/g,'<br>')+'</td></tr>';});
   h+='<tr><td colspan="2" class="ctr"><b>Dilaksanakan dan diketahui oleh:</b></td></tr>';
   h+='<tr><td style="width:30%"><b>Nama, '+esc(d.nama1||'')+'</b></td><td><b>Tanda Tangan</b><span style="float:right"><b>Tanggal </b>'+esc(fmtId(d.tgl1))+'</span></td></tr>';
   h+='<tr><td>'+esc(d.nama2||'')+'</td><td style="height:52px"></td></tr>';
