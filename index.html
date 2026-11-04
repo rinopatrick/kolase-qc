@@ -1133,7 +1133,11 @@ function measureCells(p,gridEl,ori,areaW,areaH,gx){
   const[cN,rN]=gridShape(p), dv=divsOf(p);
   const sumR=(dv.rows||[]).reduce((a,b)=>a+b,0)||1, sumC=(dv.cols||[]).reduce((a,b)=>a+b,0)||1;
   const rf=dv.rows.map(v=>v/sumR), cf=dv.cols.map(v=>v/sumC);
-  const rows=[];for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv);let fr=rowFrOf(p,ri,n);const t=fr.reduce((a,b)=>a+b,0)||1;rows.push(fr.map(v=>v/t));}
+  /* issue-04: slider/divider path sets dv.cols without rowFr_0; preview renders
+     row 0 with those same fractions, so row 0 falls back to dv.cols here. */
+  const rows=[];for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv);let fr=rowFrOf(p,ri,n);
+    if(ri===0&&p['rowFr_0']==null&&dv.cols&&dv.cols.length===n)fr=[...dv.cols];
+    const t=fr.reduce((a,b)=>a+b,0)||1;rows.push(fr.map(v=>v/t));}
   const availH=areaH-(rN-1)*gx, rowH=rf.map(f=>availH*f), rowY=[];{let y=0;for(let r=0;r<rN;r++){rowY.push(y);y+=rowH[r]+gx;}}
   const cell=(fr,ci,y,h)=>{const aW=areaW-(fr.length-1)*gx;let x=0;for(let k=0;k<ci;k++)x+=aW*fr[k]+gx;return{x,w:aW*fr[ci],y,h};};
   const land=ori==='landscape', hero=(p.pattern==='3B'||p.pattern==='3S')&&p.slots.length===3&&cN===2&&rN===2;
