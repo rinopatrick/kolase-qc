@@ -919,7 +919,7 @@ function render(){
       else if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" aria-label="Caption foto '+(si+1)+'" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="rep" title="Ganti foto">⇄</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
-        const img=el.querySelector('img');img.src=showImgOf(s);applyImg(img,s);
+        const img=el.querySelector('img');img.src=showImgOf(s);img.onload=()=>applyImg(img,s);applyImg(img,s);
         img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat. Slot ditandai, ketuk hapus untuk buang','warn');};
         const box=el.querySelector('.imgbox');
         let drag=null;
@@ -973,7 +973,12 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function fmtDate(v){if(!v)return'';try{return new Date(v+'T00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}catch(e){return v}}
 function globalIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slots){n++;if(pg===p&&sl===s)return n}return n}
-function applyImg(img,s){img.style.transform='translate(-50%,-50%) translate('+s.px+'px,'+s.py+'px) rotate('+s.rot+'deg) scale('+s.zoom+')';img.style.width=(220*s.zoom)+'px'}
+/* Parity issue-02: cover-fit 1:1 dgn drawCover PDF (base=max(box/nat)*zoom, scale(base) di atas ukuran natural). */
+function coverBase(boxW,boxH,natW,natH,zoom){return Math.max(boxW/Math.max(1,natW),boxH/Math.max(1,natH))*(zoom||1);}
+function applyImg(img,s){const box=img.parentElement;const bw=(box&&box.clientWidth)||img.clientWidth||220,bh=(box&&box.clientHeight)||img.clientHeight||190;
+  const nw=img.naturalWidth||bw,nh=img.naturalHeight||bh;const b=coverBase(bw,bh,nw,nh,s.zoom||1);
+  img.style.width=nw+'px';img.style.height=nh+'px';
+  img.style.transform='translate(-50%,-50%) translate('+(s.px||0)+'px,'+(s.py||0)+'px) rotate('+(s.rot||0)+'deg) scale('+b+')';}
 function pushPan(s,dx,dy,drag,img){s.px=drag.px+dx;s.py=drag.py+dy;applyImg(img,s)}
 function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===5||pat==='5')return 5;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;const m=String(pat).match(/^(\d+)x(\d+)$/);if(m)return Math.min(12,Math.max(1,(+m[1])*(+m[2])));return parseInt(pat)||4;}
 function customGridOf(pat){const m=String(pat||'').match(/^(\d+)x(\d+)$/);if(!m)return null;const r=Math.min(6,Math.max(1,+m[1])),c=Math.min(6,Math.max(1,+m[2]));return[r,c];}
@@ -982,8 +987,8 @@ const cur=p.slots;if(n>cur.length)for(let i=cur.length;i<n;i++)cur.push(newSlot(
 async function slotTool(p,s,t,img,el,grid){
   if(t==='free'){const gw=(grid&&grid.classList&&grid.classList.contains('gridwrap'))?grid:el.closest('.gridwrap');if(gw)detachSlot(p,s,el,gw);return}
   if(t==='dock'){pushUndo();setFree(p,s,null);save();render();return}
-  if(t==='zin'){pushUndo();s.zoom=Math.min(3,s.zoom+0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
-  if(t==='zout'){pushUndo();s.zoom=Math.max(.5,s.zoom-0.15);el.querySelector('input').value=Math.round(s.zoom*100);applyImg(img,s);save()}
+  if(t==='zin'){pushUndo();s.zoom=Math.min(3,s.zoom+0.15);el.querySelector('input[data-t=zoom]').value=Math.round(s.zoom*100);applyImg(img,s);save()}
+  if(t==='zout'){pushUndo();s.zoom=Math.max(.5,s.zoom-0.15);el.querySelector('input[data-t=zoom]').value=Math.round(s.zoom*100);applyImg(img,s);save()}
   if(t==='rot'){pushUndo();s.rot=(s.rot+90)%360;applyImg(img,s);save()}
   if(t==='rep'){pickFor(p,s);return}
   if(t==='left'||t==='right'){pushUndo();moveSlot(p,s,t==='left'?-1:1);save();render()}
