@@ -371,7 +371,7 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 @media print{
   body.print-P .page-wrap[data-ori="landscape"]{display:none!important}
   body.print-L .page-wrap[data-ori="portrait"]{display:none!important}
-  .topbar,.panel,.stage-top,.page-bar,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.divider,.hd,.divbadge{display:none!important}
+  .topbar,.panel,.stage-top,.page-bar,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.slot .cap,.divider,.hd,.divbadge{display:none!important}
   .shell{display:block;height:auto}
   .stage{background:#fff;padding:0}
   .page-wrap{max-width:none;margin:0}
@@ -1076,14 +1076,58 @@ const _mixBtn=$('#btnMixPrint');if(_mixBtn)_mixBtn.onclick=()=>{closeOv(_mixBtn)
 $('#btnPhone').onclick=()=>{openOv('#ovPhone');hostOpen()};
 
 /* PDF — jsPDF 200DPI, campur orientasi */
+/* Ukur posisi slot 1:1 dari DOM pratinjau (pola, hero, divider, overlay ikut otomatis).
+   Fallback: hitung dari model bila DOM belum render. Tanpa nomor, tanpa caption. */
+function measureCells(p,gridEl,ori,areaW,areaH,gx){
+  const out=[];
+  if(gridEl){
+    const g=gridEl.getBoundingClientRect();
+    if(g.width>0&&g.height>0){
+      const bySid={};gridEl.querySelectorAll('.slot').forEach(el=>{bySid[el.dataset.sid]=el;});
+      let ok=true;
+      for(const s of p.slots){const el=bySid[s.id];if(!el){ok=false;break;}
+        const r=el.getBoundingClientRect();
+        out.push({s,x:(r.left-g.left)/g.width*areaW,y:(r.top-g.top)/g.height*areaH,w:r.width/g.width*areaW,h:r.height/g.height*areaH,k:(r.width/g.width*areaW)/Math.max(1,r.width),ovl:el.classList.contains('ovl')});}
+      if(ok&&out.length===p.slots.length)return out;
+      out.length=0;
+    }
+  }
+  const[cN,rN]=gridShape(p), dv=divsOf(p);
+  const sumR=(dv.rows||[]).reduce((a,b)=>a+b,0)||1, sumC=(dv.cols||[]).reduce((a,b)=>a+b,0)||1;
+  const rf=dv.rows.map(v=>v/sumR), cf=dv.cols.map(v=>v/sumC);
+  const rows=[];for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv);let fr=rowFrOf(p,ri,n);const t=fr.reduce((a,b)=>a+b,0)||1;rows.push(fr.map(v=>v/t));}
+  const availH=areaH-(rN-1)*gx, rowH=rf.map(f=>availH*f), rowY=[];{let y=0;for(let r=0;r<rN;r++){rowY.push(y);y+=rowH[r]+gx;}}
+  const cell=(fr,ci,y,h)=>{const aW=areaW-(fr.length-1)*gx;let x=0;for(let k=0;k<ci;k++)x+=aW*fr[k]+gx;return{x,w:aW*fr[ci],y,h};};
+  const land=ori==='landscape', hero=(p.pattern==='3B'||p.pattern==='3S')&&p.slots.length===3&&cN===2&&rN===2;
+  p.slots.forEach((s,si)=>{
+    const fb=freeBox(p,s);
+    if(fb){out.push({s,x:fb.x*areaW,y:fb.y*areaH,w:fb.w*areaW,h:fb.h*areaH,k:1,ovl:true});return;}
+    if(hero){
+      const aW=areaW-gx, w0=aW*cf[0], w1=aW*cf[1];
+      if(!land){
+        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:rowY[0],w:areaW,h:rowH[0],k:1,ovl:false});
+          else{const c=cell(rows[1],si-1,rowY[1],rowH[1]);out.push({s,...c,k:1,ovl:false});}}
+        else{if(si===2)out.push({s,x:0,y:rowY[1],w:areaW,h:rowH[1],k:1,ovl:false});
+          else{const c=cell(rows[0],si,rowY[0],rowH[0]);out.push({s,...c,k:1,ovl:false});}}
+      }else{
+        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:0,w:w0,h:areaH,k:1,ovl:false});
+          else out.push({s,x:w0+gx,y:rowY[si-1],w:w1,h:rowH[si-1],k:1,ovl:false});}
+        else{if(si===2)out.push({s,x:w0+gx,y:0,w:w1,h:areaH,k:1,ovl:false});
+          else out.push({s,x:0,y:rowY[si],w:w0,h:rowH[si],k:1,ovl:false});}
+      }
+      return;}
+    let acc=0,ri=0;for(let r=0;r<rN;r++){const n=(rows[r]||[]).length;if(si<acc+n){ri=r;break;}acc+=n;ri=r;}
+    const c=cell(rows[ri],si-acc,rowY[ri],rowH[ri]);out.push({s,...c,k:1,ovl:false});
+  });
+  return out;
+}
 async function doPDF(){
-  const filled=S.pages.map(p=>({...p,filled:p.slots.filter(s=>s.img)}));
-  if(!filled.some(p=>p.filled.length)){toast('Belum ada foto untuk diekspor','warn');return}
+  const filled=S.pages.filter(p=>p.slots.some(s=>s.img));
+  if(!filled.length){toast('Belum ada foto untuk diekspor','warn');return}
   toast('Merender PDF 200 DPI…');
   try{
     const{jsPDF}=window.jspdf;let doc=null;
     for(const p of filled){
-      if(!p.filled.length)continue;
       const[W,H]=PAPER_MM[S.paper]||PAPER_MM.A4;const ori=p.ori||S.ori;
       const pw=ori==='portrait'?W:H, ph=ori==='portrait'?H:W;
       const scale=200/25.4; // px per mm
@@ -1103,15 +1147,15 @@ async function doPDF(){
         ctx.strokeStyle='#142027';ctx.lineWidth=3;ctx.beginPath();const ly2=ly+8+((p.headH||0)/28*mmm*scale*0.5);ctx.moveTo(mx,ly2);ctx.lineTo(cv.width-mx,ly2);ctx.stroke();
         top=my+26+((p.headH||0)/28*mmm*scale*0.5);}
       const areaW=cv.width-2*mx, areaH=cv.height-top-mx;
-      const n=p.filled.length;let cols=n===1?1:n<=2?(S.variant==='rows'?1:2):n<=4?2:n<=6?3:4;
-      if(S.variant==='cols')cols=n;if(S.variant==='rows')cols=1;
-      const rows=Math.ceil(n/cols);const cw=(areaW-(cols-1)*gx)/cols, ch=(areaH-(rows-1)*gx)/rows;
-      for(let i=0;i<n;i++){const s=p.filled[i];const cx2=mx+(i%cols)*(cw+gx), cy=top+Math.floor(i/cols)*(ch+gx);
-        await drawCover(ctx,s,cx2,cy,cw,ch);
-        // caption + nomor
-        ctx.fillStyle='rgba(11,15,18,.9)';const nb='0'+(flatIndex(p,s)+1);ctx.font='700 '+Math.round(cv.width*0.018)+'px ui-monospace,monospace';
-        const tw=ctx.measureText(nb).width;roundRect(ctx,cx2+8,cy+8,tw+18,30,7);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(nb,cx2+17,cy+30);
-        if(s.cap){ctx.fillStyle='#142027';ctx.font=Math.round(cv.width*0.02)+'px "Segoe UI",sans-serif';ctx.textAlign='left';ctx.fillText(s.cap.slice(0,60),cx2+4,cy+ch-12)}}
+      // 1:1 pratinjau: posisi sel diukur dari DOM (pola, hero, divider, overlay ikut). Foto saja, tanpa nomor & caption.
+      const pi0=S.pages.indexOf(p);
+      const wrap0=document.querySelectorAll('#pages .page-wrap')[pi0];
+      const gridEl=wrap0?wrap0.querySelector('.gridwrap'):null;
+      const cells=measureCells(p,gridEl,ori,areaW,areaH,gx);
+      const order=cells.filter(c=>!c.ovl).concat(cells.filter(c=>c.ovl));
+      for(const c of order){const cx2=mx+c.x, cy=top+c.y;
+        if(c.s.img)await drawCover(ctx,c.s,cx2,cy,c.w,c.h,c.k);
+        else{ctx.save();ctx.fillStyle='#EDF1F4';ctx.fillRect(cx2,cy,c.w,c.h);ctx.setLineDash([12,9]);ctx.strokeStyle='#9AA8B4';ctx.lineWidth=2;ctx.strokeRect(cx2,cy,c.w,c.h);ctx.restore();}}
       const img=cv.toDataURL('image/jpeg',0.92);
       if(!doc)doc=new jsPDF({unit:'mm',format:S.paper.toLowerCase()==='ltr'?'letter':S.paper.toLowerCase(),orientation:ori,compress:true});
       else doc.addPage(S.paper.toLowerCase()==='ltr'?'letter':S.paper.toLowerCase(),ori);
@@ -1124,12 +1168,12 @@ async function doPDF(){
 function flatIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slots){if(sl.img)n++;if(pg===p&&sl===s)return n}return n}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
-async function drawCover(ctx,s,dx,dy,dw,dh){
+async function drawCover(ctx,s,dx,dy,dw,dh,k){
   const src=showImgOf(s);if(!src)return;const im=await loadImg(src);ctx.save();
   ctx.beginPath();ctx.rect(dx,dy,dw,dh);ctx.clip();ctx.fillStyle='#0E1418';ctx.fillRect(dx,dy,dw,dh);
-  const rot=(s.rot||0)*Math.PI/180, zoom=s.zoom||1;
+  const rot=(s.rot||0)*Math.PI/180, zoom=s.zoom||1, kk=k||1;
   const base=Math.max(dw/im.width,dh/im.height)*zoom;
-  ctx.translate(dx+dw/2+(s.px||0),dy+dh/2+(s.py||0));ctx.rotate(rot);ctx.scale(base,base);ctx.drawImage(im,-im.width/2,-im.height/2);
+  ctx.translate(dx+dw/2+(s.px||0)*kk,dy+dh/2+(s.py||0)*kk);ctx.rotate(rot);ctx.scale(base,base);ctx.drawImage(im,-im.width/2,-im.height/2);
   ctx.restore();ctx.strokeStyle='#8FA0AC';ctx.lineWidth=2;ctx.strokeRect(dx,dy,dw,dh);
 }
 
