@@ -919,7 +919,7 @@ function render(){
       else if(s.img){
         el.innerHTML='<span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><div class="imgbox"><img alt="Foto QC '+(si+1)+'"></div><input class="cap" aria-label="Caption foto '+(si+1)+'" placeholder="Caption — ketik keterangan foto…" value="'+esc(s.cap)+'">'+
         '<div class="tools"><button class="tbtn" data-t="zin" title="Zoom +">+</button><button class="tbtn zoom"><input type="range" min="50" max="300" value="'+Math.round(s.zoom*100)+'" data-t="zoom"></button><button class="tbtn" data-t="zout" title="Zoom −">-</button><button class="tbtn" data-t="rot" title="Putar 90°">⟳</button><button class="tbtn" data-t="rep" title="Ganti foto">⇄</button><button class="tbtn" data-t="left" title="Geser kiri">←</button><button class="tbtn" data-t="right" title="Geser kanan">→</button><button class="tbtn" data-t="free" title="Lepas jadi kotak bebas">⤢</button><button class="tbtn" data-t="del" title="Hapus foto">🗑</button></div>';
-        const img=el.querySelector('img');img.src=showImgOf(s);img.onload=()=>applyImg(img,s);applyImg(img,s);
+        const img=el.querySelector('img');img.src=showImgOf(s);img.onload=()=>applyImg(img,s);if(img.complete&&img.naturalWidth)applyImg(img,s);
         img.onerror=()=>{if(s.broken)return;s.broken=true;save();render();toast('Satu foto gagal dimuat. Slot ditandai, ketuk hapus untuk buang','warn');};
         const box=el.querySelector('.imgbox');
         let drag=null;
@@ -976,9 +976,11 @@ function globalIndex(p,s){let n=0;for(const pg of S.pages)for(const sl of pg.slo
 /* Parity issue-02: cover-fit 1:1 dgn drawCover PDF (base=max(box/nat)*zoom, scale(base) di atas ukuran natural). */
 function coverBase(boxW,boxH,natW,natH,zoom){return Math.max(boxW/Math.max(1,natW),boxH/Math.max(1,natH))*(zoom||1);}
 function applyImg(img,s){const box=img.parentElement;const bw=(box&&box.clientWidth)||img.clientWidth||220,bh=(box&&box.clientHeight)||img.clientHeight||190;
-  const nw=img.naturalWidth||bw,nh=img.naturalHeight||bh;const b=coverBase(bw,bh,nw,nh,s.zoom||1);
+  /* paint tertunda: naturalWidth 0 = gambar belum siap; tunggu onload agar base tidak salah (screen=paper) */
+  if(!img.naturalWidth||!img.naturalHeight)return false;
+  const nw=img.naturalWidth,nh=img.naturalHeight;const b=coverBase(bw,bh,nw,nh,s.zoom||1);
   img.style.width=nw+'px';img.style.height=nh+'px';
-  img.style.transform='translate(-50%,-50%) translate('+(s.px||0)+'px,'+(s.py||0)+'px) rotate('+(s.rot||0)+'deg) scale('+b+')';}
+  img.style.transform='translate(-50%,-50%) translate('+(s.px||0)+'px,'+(s.py||0)+'px) rotate('+(s.rot||0)+'deg) scale('+b+')';return true;}
 function pushPan(s,dx,dy,drag,img){s.px=drag.px+dx;s.py=drag.py+dy;applyImg(img,s)}
 function patCount(pat){if(pat==='1')return 1;if(pat==='2H'||pat==='2S'||pat===2)return 2;if(pat==='3B'||pat==='3S')return 3;if(pat===4||pat==='4')return 4;if(pat===5||pat==='5')return 5;if(pat===6||pat==='6')return 6;if(pat===8||pat==='8')return 8;const m=String(pat).match(/^(\d+)x(\d+)$/);if(m)return Math.min(12,Math.max(1,(+m[1])*(+m[2])));return parseInt(pat)||4;}
 function customGridOf(pat){const m=String(pat||'').match(/^(\d+)x(\d+)$/);if(!m)return null;const r=Math.min(6,Math.max(1,+m[1])),c=Math.min(6,Math.max(1,+m[2]));return[r,c];}
@@ -1097,6 +1099,14 @@ function measureCells(p,gridEl,ori,areaW,areaH,gx){
       out.length=0;
     }
   }
+  /* fallback k: rasio lebar PDF-area thd lebar grid DOM; pinjam grid halaman lain / sheet bila grid halaman ini tak ter-render */
+  let fk=1;
+  const gridW=el=>{try{const r=el.getBoundingClientRect();return r.width>0?r.width:0;}catch(e){return 0;}};
+  if(gridEl)fk=areaW/(gridW(gridEl)||-1);
+  if(!(fk>0)||!isFinite(fk)){const any=document.querySelector('#pages .gridwrap');const w=any&&any!==gridEl?gridW(any):0;
+    if(w>0)fk=areaW/w;}
+  if(!(fk>0)||!isFinite(fk)){const sh=(gridEl&&gridEl.closest('.sheet'))||document.querySelector('#pages .sheet');const sw=sh&&sh.clientWidth;
+    if(sw>0)fk=areaW/sw;else fk=1;}
   const[cN,rN]=gridShape(p), dv=divsOf(p);
   const sumR=(dv.rows||[]).reduce((a,b)=>a+b,0)||1, sumC=(dv.cols||[]).reduce((a,b)=>a+b,0)||1;
   const rf=dv.rows.map(v=>v/sumR), cf=dv.cols.map(v=>v/sumC);
@@ -1106,29 +1116,31 @@ function measureCells(p,gridEl,ori,areaW,areaH,gx){
   const land=ori==='landscape', hero=(p.pattern==='3B'||p.pattern==='3S')&&p.slots.length===3&&cN===2&&rN===2;
   p.slots.forEach((s,si)=>{
     const fb=freeBox(p,s);
-    if(fb){out.push({s,x:fb.x*areaW,y:fb.y*areaH,w:fb.w*areaW,h:fb.h*areaH,k:1,ovl:true});return;}
+    if(fb){out.push({s,x:fb.x*areaW,y:fb.y*areaH,w:fb.w*areaW,h:fb.h*areaH,k:fk,ovl:true});return;}
     if(hero){
       const aW=areaW-gx, w0=aW*cf[0], w1=aW*cf[1];
       if(!land){
-        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:rowY[0],w:areaW,h:rowH[0],k:1,ovl:false});
-          else{const c=cell(rows[1],si-1,rowY[1],rowH[1]);out.push({s,...c,k:1,ovl:false});}}
-        else{if(si===2)out.push({s,x:0,y:rowY[1],w:areaW,h:rowH[1],k:1,ovl:false});
-          else{const c=cell(rows[0],si,rowY[0],rowH[0]);out.push({s,...c,k:1,ovl:false});}}
+        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:rowY[0],w:areaW,h:rowH[0],k:fk,ovl:false});
+          else{const c=cell(rows[1],si-1,rowY[1],rowH[1]);out.push({s,...c,k:fk,ovl:false});}}
+        else{if(si===2)out.push({s,x:0,y:rowY[1],w:areaW,h:rowH[1],k:fk,ovl:false});
+          else{const c=cell(rows[0],si,rowY[0],rowH[0]);out.push({s,...c,k:fk,ovl:false});}}
       }else{
-        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:0,w:w0,h:areaH,k:1,ovl:false});
-          else out.push({s,x:w0+gx,y:rowY[si-1],w:w1,h:rowH[si-1],k:1,ovl:false});}
-        else{if(si===2)out.push({s,x:w0+gx,y:0,w:w1,h:areaH,k:1,ovl:false});
-          else out.push({s,x:0,y:rowY[si],w:w0,h:rowH[si],k:1,ovl:false});}
+        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:0,w:w0,h:areaH,k:fk,ovl:false});
+          else out.push({s,x:w0+gx,y:rowY[si-1],w:w1,h:rowH[si-1],k:fk,ovl:false});}
+        else{if(si===2)out.push({s,x:w0+gx,y:0,w:w1,h:areaH,k:fk,ovl:false});
+          else out.push({s,x:0,y:rowY[si],w:w0,h:rowH[si],k:fk,ovl:false});}
       }
       return;}
     let acc=0,ri=0;for(let r=0;r<rN;r++){const n=(rows[r]||[]).length;if(si<acc+n){ri=r;break;}acc+=n;ri=r;}
-    const c=cell(rows[ri],si-acc,rowY[ri],rowH[ri]);out.push({s,...c,k:1,ovl:false});
+    const c=cell(rows[ri],si-acc,rowY[ri],rowH[ri]);out.push({s,...c,k:fk,ovl:false});
   });
   return out;
 }
 async function doPDF(){
   const filled=S.pages.filter(p=>p.slots.some(s=>s.img));
   if(!filled.length){toast('Belum ada foto untuk diekspor','warn');return}
+  /* issue-05: export wajib offline-kecuali-CDN-sekali; jsPDF harus sudah termuat (cache browser), jangan fetch saat export */
+  if(!window.jspdf||!window.jspdf.jsPDF){toast('Pustaka PDF belum termuat — sambungkan internet sekali lalu coba lagi','warn');return;}
   toast('Merender PDF 200 DPI…');
   try{
     const{jsPDF}=window.jspdf;let doc=null;
