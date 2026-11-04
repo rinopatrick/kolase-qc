@@ -170,6 +170,8 @@ kbd{font-family:var(--font-m);font-size:11px;background:var(--bg0);border:1px so
 /* Task2: divider tarik + overlay bebas. Grid dibungkus .gridwrap (relative); divider absolute di atasnya. */
 .gridwrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:260px;grid-column:1/-1;grid-row:2}
 .gridrow{position:relative;display:grid;flex:1 1 0;min-height:0}
+.gridstack{position:relative;display:flex;flex-direction:column;min-height:0;min-width:0}
+.gridstack>.slot{flex:1 1 0;min-height:0}
 .slot{position:relative;min-height:120px}
 .divider{position:absolute;z-index:20;touch-action:none;opacity:0;pointer-events:none;transition:opacity .15s}
 .divider.rowdiv{position:relative;left:auto!important;top:auto!important;width:auto;height:12px;margin:-6px 0;cursor:row-resize;flex:none}
@@ -622,6 +624,7 @@ function gridShape(p){const n=p.slots.length,pat=p.pattern;
   if(n===3)return[2,2];if(n<=4)return[2,2];if(n<=6)return[2,3];return[2,4];}
 /* 3B = slot 0 besar (span 2 kolom / 2 baris); 3S = slot terakhir besar. Adaptif orientasi. */
 function gridArea(p,si){const pat=p.pattern,ori=p.ori||S.ori;
+  if((pat==='3B'||pat==='3S')&&p.slots.length===3)return null;
   if(pat==='3B'&&p.slots.length===3){if(si===0)return ori==='landscape'?'1/1/3/2':'1/1/2/3';return null;}
   if(pat==='3S'&&p.slots.length===3){if(si===2)return ori==='landscape'?'1/2/3/3':'2/1/3/3';return null;}
   return null;}
@@ -671,9 +674,12 @@ function dragDivider(d,grid,p,vertical,idx,sx,sy){
     pushUndoPre(pre);save();render();};
   window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
 }
-function rowColsOf(p,ri,dv0){if(ri===0)return dv0.cols.length;if(p.rowCols&&p.rowCols[ri]!=null)return p.rowCols[ri];return dv0.cols.length;}
+function rowColsOf(p,ri,dv0){const ori=p.ori||S.ori;
+  if((p.pattern==='3B'||p.pattern==='3S')&&p.slots.length===3&&ori!=='landscape')return ri===0?(p.pattern==='3B'?1:2):(p.pattern==='3B'?2:1);
+  if(ri===0)return dv0.cols.length;if(p.rowCols&&p.rowCols[ri]!=null)return p.rowCols[ri];return dv0.cols.length;}
 function rowFrOf(p,ri,n){const fr=p['rowFr_'+ri];if(fr&&fr.length===n)return[...fr];return Array(n).fill(+(1/n).toFixed(3));}
 function addRowDividers(grid,p,rows){
+  if(rows.length===1&&rows[0]._stack)return;
   const[cN,rN]=gridShape(p);const dv=divsOf(p);
   rows.forEach((row,ri)=>{
     const n=row.querySelectorAll(':scope > .slot').length||rowColsOf(p,ri,dv);
@@ -886,7 +892,19 @@ function render(){
     inner.appendChild(grid);
     const[cN,rN]=gridShape(p);
     const dv0=divsOf(p);
+    const ori0=p.ori||S.ori;
+    const landHero=(p.pattern==='3B'||p.pattern==='3S')&&p.slots.length===3&&ori0==='landscape';
     const rows=[];
+    if(landHero){
+      const row=document.createElement('div');row.className='gridrow';row.dataset.row=0;
+      const w0=dv0.cols[0]||0.5,w1=1-w0;
+      row.style.gridTemplateColumns=w0.toFixed(3)+'fr '+w1.toFixed(3)+'fr';
+      row.style.flexGrow=100;row.style.flexShrink=1;row.style.flexBasis='0%';
+      row.style.gap=S.gap+'px';
+      grid.appendChild(row);rows.push(row);
+      const st=document.createElement('div');st.className='gridstack';st.style.gap=S.gap+'px';
+      row.appendChild(st);row._stack=st;
+    } else
     for(let ri=0;ri<rN;ri++){
       const row=document.createElement('div');row.className='gridrow';row.dataset.row=ri;
       const nCols=rowColsOf(p,ri,dv0);
@@ -903,10 +921,14 @@ function render(){
         rd._ri=ri;grid.appendChild(rd);
       }
     }
-    const rowOfSlot=si=>{let acc=0;for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv0);if(si<acc+n)return ri;acc+=n;}return rN-1;};
+    const landHeroOrder=p.pattern==='3B'?[0]:[2];
+    const heroFirst=p.pattern==='3B';
+    const rowOfSlot=si=>{if(landHero)return 0;let acc=0;for(let ri=0;ri<rN;ri++){const n=rowColsOf(p,ri,dv0);if(si<acc+n)return ri;acc+=n;}return rN-1;};
+    const stackSlot=si=>landHero&&!landHeroOrder.includes(si);
     p.slots.forEach((s,si)=>{
       const row=rows[rowOfSlot(si)]||rows[rows.length-1];
       const rowEl=row;
+      const inStack=stackSlot(si);
       const fb=freeBox(p,s);
       const el=document.createElement('div');el.className='slot'+(s.img?' filled':'')+(fb?' ovl':'');el.dataset.pid=p.id;el.dataset.sid=s.id;
       if(fb){el.style.position='absolute';el.style.left=(fb.x*100)+'%';el.style.top=(fb.y*100)+'%';el.style.width=(fb.w*100)+'%';el.style.height=(fb.h*100)+'%';el.style.zIndex=++ovlTop}
@@ -949,9 +971,10 @@ function render(){
         el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
         el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover');dropToSlot(e.dataTransfer.files,p,s)});
       }
-      rowEl.appendChild(el);
-      if(!fb)attachGridBits(el,p,rowEl);
-      if(s.img&&fb)makeOverlayBits(el,p,s,rowEl);
+      (inStack?row._stack:rowEl).appendChild(el);
+      if(landHero){row._stack.style.order=heroFirst?1:0;if(!inStack)el.style.order=heroFirst?0:1;}
+      if(!fb)attachGridBits(el,p,inStack?row._stack:rowEl);
+      if(s.img&&fb)makeOverlayBits(el,p,s,inStack?row._stack:rowEl);
     });
     addRowDividers(grid,p,rows);
     const colw=d.querySelector('[data-colw]');
@@ -1125,10 +1148,13 @@ function measureCells(p,gridEl,ori,areaW,areaH,gx){
         else{if(si===2)out.push({s,x:0,y:rowY[1],w:areaW,h:rowH[1],k:fk,ovl:false});
           else{const c=cell(rows[0],si,rowY[0],rowH[0]);out.push({s,...c,k:fk,ovl:false});}}
       }else{
-        if(p.pattern==='3B'){if(si===0)out.push({s,x:0,y:0,w:w0,h:areaH,k:fk,ovl:false});
-          else out.push({s,x:w0+gx,y:rowY[si-1],w:w1,h:rowH[si-1],k:fk,ovl:false});}
-        else{if(si===2)out.push({s,x:w0+gx,y:0,w:w1,h:areaH,k:fk,ovl:false});
-          else out.push({s,x:0,y:rowY[si],w:w0,h:rowH[si],k:fk,ovl:false});}
+        const sh=(areaH-gx)/2, heroCol=p.pattern==='3B'?0:1;
+        const hx=heroCol===0?0:w0+gx, hw=heroCol===0?w0:w1;
+        const sx=heroCol===0?w0+gx:0, sw=heroCol===0?w1:w0;
+        const isHero=(p.pattern==='3B'&&si===0)||(p.pattern==='3S'&&si===2);
+        if(isHero){out.push({s,x:hx,y:0,w:hw,h:areaH,k:fk,ovl:false});}
+        else{const order=p.pattern==='3B'?si-1:si;const yy=order===0?0:sh+gx;
+          out.push({s,x:sx,y:yy,w:sw,h:sh,k:fk,ovl:false});}
       }
       return;}
     let acc=0,ri=0;for(let r=0;r<rN;r++){const n=(rows[r]||[]).length;if(si<acc+n){ri=r;break;}acc+=n;ri=r;}
