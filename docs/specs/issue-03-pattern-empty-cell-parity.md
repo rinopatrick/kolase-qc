@@ -19,3 +19,9 @@ End-to-end: user picks any page pattern (1/2/3B/3S/4/6/8, including 3B/3S hero s
 ## Blocked by
 
 - Issue 02 — Single-photo geometry parity (per-photo math must be correct before multi-cell layout can be trusted)
+
+## Closeout
+
+- Status: CLOSED (2026-11-04, live `https://kolase-qc.vercel.app` serves grid + 4 slots, deploy `dpl_2nyvYeiDtSjC2oyb4rbXYxVvYSek` READY)
+- Commits: `d716fd6` fix + `68e0c81` acceptance evidence
+- Evidence: `docs/specs/check-issue03-hero.js` GREEN; live DOM + `doPDF` export verified
