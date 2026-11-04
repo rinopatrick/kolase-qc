@@ -1170,8 +1170,12 @@ async function doPDF(){
       const gridEl=wrap0?wrap0.querySelector('.gridwrap'):null;
       const cells=measureCells(p,gridEl,ori,areaW,areaH,gx);
       const order=cells.filter(c=>!c.ovl).concat(cells.filter(c=>c.ovl));
+      // Samakan area foto dgn imgbox pratinjau (slot minus strip caption): ukur rasio
+      // box DOM per slot, foto PDF setinggi c.w/boxRatio. Sisa sel = strip kosong.
+      const boxOf={};if(gridEl)gridEl.querySelectorAll('.slot').forEach(el=>{const ib=el.querySelector('.imgbox');if(!ib||!el.dataset.sid)return;const r=ib.getBoundingClientRect();if(r.width>0&&r.height>0)boxOf[el.dataset.sid]=r.width/r.height;});
       for(const c of order){const cx2=mx+c.x, cy=top+c.y;
-        if(c.s.img)await drawCover(ctx,c.s,cx2,cy,c.w,c.h,c.k);
+        const br=boxOf[c.s.id];const ph=(br&&br>0)?Math.min(c.h,c.w/br):c.h;const strip=c.h-ph;
+        if(c.s.img){await drawCover(ctx,c.s,cx2,cy,c.w,ph,c.k);if(strip>1){ctx.save();ctx.fillStyle='#fff';ctx.fillRect(cx2,cy+ph,c.w,strip);ctx.restore();}}
         else{ctx.save();ctx.fillStyle='#EDF1F4';ctx.fillRect(cx2,cy,c.w,c.h);ctx.setLineDash([12,9]);ctx.strokeStyle='#9AA8B4';ctx.lineWidth=2;ctx.strokeRect(cx2,cy,c.w,c.h);ctx.restore();}}
       const img=cv.toDataURL('image/jpeg',0.92);
       if(!doc)doc=new jsPDF({unit:'mm',format:S.paper.toLowerCase()==='ltr'?'letter':S.paper.toLowerCase(),orientation:ori,compress:true});
