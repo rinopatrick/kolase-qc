@@ -374,6 +374,8 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
   body.print-P .page-wrap[data-ori="landscape"]{display:none!important}
   body.print-L .page-wrap[data-ori="portrait"]{display:none!important}
   .topbar,.panel,.stage-top,.page-bar,.empty-hero,#toasts,.overlay,.slot .tools,.slot .num,.slot .cap,.divider,.hd,.divbadge{display:none!important}
+  .slot:not(.filled){background:#fff!important;border-color:transparent!important;box-shadow:none!important}
+  .slot:not(.filled) .ph{visibility:hidden!important}
   .shell{display:block;height:auto}
   .stage{background:#fff;padding:0}
   .page-wrap{max-width:none;margin:0}
@@ -1206,7 +1208,7 @@ async function doPDF(){
       for(const c of order){const cx2=mx+c.x, cy=top+c.y;
         const br=boxOf[c.s.id];const ph=(br&&br>0)?Math.min(c.h,c.w/br):c.h;const strip=c.h-ph;
         if(c.s.img){await drawCover(ctx,c.s,cx2,cy,c.w,ph,c.k);if(strip>1){ctx.save();ctx.fillStyle='#fff';ctx.fillRect(cx2,cy+ph,c.w,strip);ctx.restore();}}
-        else{ctx.save();ctx.fillStyle='#EDF1F4';ctx.fillRect(cx2,cy,c.w,c.h);ctx.setLineDash([12,9]);ctx.strokeStyle='#9AA8B4';ctx.lineWidth=2;ctx.strokeRect(cx2,cy,c.w,c.h);ctx.restore();}}
+        else{ctx.save();ctx.fillStyle='#fff';ctx.fillRect(cx2,cy,c.w,c.h);ctx.restore();}}
       const img=cv.toDataURL('image/jpeg',0.92);
       if(!doc)doc=new jsPDF({unit:'mm',format:S.paper.toLowerCase()==='ltr'?'letter':S.paper.toLowerCase(),orientation:ori,compress:true});
       else doc.addPage(S.paper.toLowerCase()==='ltr'?'letter':S.paper.toLowerCase(),ori);
