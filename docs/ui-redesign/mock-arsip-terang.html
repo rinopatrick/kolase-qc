@@ -1,0 +1,406 @@
+<title>Kolase QC Arsip Terang</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: folder-archive light chrome; white panel left, cool desk right, white paper on desk; one pen-blue for the primary action + active state. Deliberately single light theme (the app is light-only). */
+:root{
+  color-scheme:light;
+  --chrome:#F5F6F8;      /* topbar + panel ground */
+  --surface:#FFFFFF;     /* inputs, cards, paper */
+  --desk:#D9DEE5;        /* stage behind paper */
+  --line:#D6DBE2;        /* one-level separator */
+  --line-strong:#A8B0BC; /* input borders */
+  --ink:#151A21;
+  --ink-soft:#4B5562;
+  --ink-faint:#6B7480;
+  --pen:#1E3A9E;         /* biru pulpen: primary + active only */
+  --pen-hover:#172E7E;
+  --pen-wash:#E9EDF8;
+  --pass:#17663A; --pass-wash:#E5F2EA;
+  --reject:#B42318; --reject-wash:#FBE9E7;
+  --na:#4B5562;
+  --font-d:Bahnschrift,"DIN Alternate","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;
+  --font-b:"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r-s:6px; --r-m:8px;
+}
+*{box-sizing:border-box}
+body{background:#ECEEF1;color:var(--ink);font-family:var(--font-b);font-size:14px;line-height:1.45;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:40px}
+.intro h1{font-family:var(--font-d);font-weight:600;font-size:28px;margin:0 0 6px;letter-spacing:-.01em}
+.intro p{margin:0;color:var(--ink-soft);max-width:68ch}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px;margin-top:18px;padding:0;list-style:none}
+.rules li{border-top:2px solid var(--ink);padding-top:8px;font-size:13px;color:var(--ink-soft)}
+.rules b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+.frame-h{display:flex;align-items:baseline;gap:12px;margin:0 0 10px}
+.frame-h h2{font-family:var(--font-d);font-weight:600;font-size:19px;margin:0}
+.frame-h p{margin:0;color:var(--ink-soft);font-size:13px}
+.scroller{overflow-x:auto;border:1px solid var(--line-strong);border-radius:10px;background:var(--chrome)}
+.screen{width:1240px}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- topbar ---------- */
+.topbar{height:56px;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+.word{font-family:var(--font-d);font-weight:600;font-size:18px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.word .stamp{font-size:12px;font-weight:700;color:var(--pen);border:1.5px solid var(--pen);border-radius:3px;padding:0 4px;line-height:18px;letter-spacing:.04em}
+.tabs{display:flex;align-self:stretch;margin-left:18px}
+.tabs button{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;padding:0 14px;font-size:14px;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--pen)}
+.tabs .count{font-family:var(--font-d);font-size:12px;font-weight:700;background:var(--reject);color:#fff;border-radius:9px;padding:0 6px;line-height:17px}
+.grow{flex:1}
+.metrics{display:flex;gap:16px;font-size:13px;color:var(--ink-soft);white-space:nowrap}
+.metrics b{font-family:var(--font-d);font-weight:600;color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;margin-right:4px}
+.acts{display:flex;align-items:center;gap:4px}
+.vr{width:1px;height:24px;background:var(--line);margin:0 6px}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;min-width:36px;padding:0 11px;border-radius:var(--r-s);font-size:14px;color:var(--ink);white-space:nowrap}
+.btn:hover{background:#ECEFF3}
+.btn.icon{padding:0}
+.btn.dim{color:var(--ink-faint)}
+.btn.line{border:1px solid var(--line-strong);background:var(--surface)}
+.btn.primary{background:var(--pen);color:#fff;font-weight:600;padding:0 14px}
+.btn.primary:hover{background:var(--pen-hover)}
+.btn:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:300px 1fr;height:820px}
+.panel{background:var(--chrome);border-right:1px solid var(--line);overflow:hidden}
+.sect{padding:16px 16px 18px;border-bottom:1px solid var(--line);display:grid;gap:12px}
+.sect-h h3{margin:0;font-size:14px;font-weight:650}
+.sect-h p{margin:1px 0 0;font-size:12.5px;color:var(--ink-faint)}
+.f{display:grid;gap:5px;font-size:12.5px;color:var(--ink-soft);font-weight:500}
+.inp{height:38px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-s);padding:0 10px;display:flex;align-items:center;font-size:14px;color:var(--ink)}
+.inp.sel{justify-content:space-between}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.list{border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface)}
+.row{display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:42px;font-size:14px}
+.row+.row{border-top:1px solid var(--line)}
+.sw{width:34px;height:20px;border-radius:10px;background:var(--pen);position:relative}
+.sw::after{content:"";position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.sw.off{background:#B9C0CA}.sw.off::after{right:auto;left:3px}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:var(--r-s);background:var(--surface);overflow:hidden}
+.seg span{flex:1;text-align:center;padding:6px 0 5px;font-size:13px;font-weight:600;line-height:1.15}
+.seg span+span{border-left:1px solid var(--line)}
+.seg span small{display:block;font-family:var(--font-d);font-weight:400;font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.seg span.on{background:var(--pen-wash);color:var(--pen);box-shadow:inset 0 -2px 0 var(--pen)}
+.seg span.on small{color:var(--pen)}
+.rng{display:grid;gap:6px}
+.rng .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft)}
+.rng .lab b{font-family:var(--font-d);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.track{height:4px;border-radius:2px;background:#C8CED7;position:relative}
+.track i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--pen)}
+.track i::after{content:"";position:absolute;right:-8px;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--pen)}
+.pats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pat{border:1px solid var(--line-strong);border-radius:var(--r-s);background:var(--surface);padding:7px 0 5px;display:grid;justify-items:center;gap:3px;font-family:var(--font-d);font-size:12px;color:var(--ink-soft)}
+.pat.on{border-color:var(--pen);background:var(--pen-wash);color:var(--pen);box-shadow:inset 0 0 0 1px var(--pen)}
+.pat svg{width:20px;height:26px}
+.pat svg rect{fill:none;stroke:currentColor;stroke-width:1.4}
+
+/* ---------- stage ---------- */
+.stage{background:var(--desk);overflow:hidden;padding:0 28px}
+.stage-top{display:flex;align-items:center;gap:12px;height:52px;font-size:13px;color:var(--ink-soft)}
+.stage-top .zoom{display:flex;align-items:center;gap:8px}
+.stage-top .zoom .track{width:110px}
+.stage-top .zoom b{font-family:var(--font-d);font-weight:600;color:var(--ink);width:34px}
+.page{width:530px;margin:4px auto 0}
+.page-bar{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;background:var(--surface);border:1px solid var(--line-strong);border-bottom:none;border-radius:8px 8px 0 0;width:fit-content;max-width:100%;flex-wrap:wrap}
+.pg{font-family:var(--font-d);font-weight:700;font-size:15px;color:var(--ink)}
+.meta{font-size:12.5px;color:var(--ink-faint);margin-right:6px}
+.mini{all:unset;box-sizing:border-box;height:30px;padding:0 9px;border-radius:5px;border:1px solid var(--line-strong);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:var(--surface);cursor:pointer}
+.mini.sel{gap:10px}
+.mini.danger{color:var(--reject)}
+.sheet{background:#fff;aspect-ratio:210/297;box-shadow:0 1px 2px rgba(20,30,45,.12),0 6px 18px rgba(20,30,45,.10);padding:28px;display:grid;grid-template-rows:auto 1fr;gap:12px;border-top-right-radius:2px}
+.kop{text-align:center;border-bottom:2px solid #131B21;padding-bottom:8px}
+.kop h4{margin:0;font-family:var(--font-d);font-weight:700;font-size:21px;letter-spacing:.01em}
+.kop p{margin:2px 0 0;font-size:11px;color:#55616B}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
+.slot{position:relative;border:1px dashed #AEB6C1;border-radius:4px;background:#F5F6F8;display:grid;place-content:center;justify-items:center;gap:6px;color:#4B5562}
+.slot .num{position:absolute;top:8px;left:8px;font-family:var(--font-d);font-weight:600;font-size:12px;background:#fff;border:1px solid #9CA5B1;border-radius:4px;padding:0 6px;line-height:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+.slot .plus{width:36px;height:36px;border-radius:50%;border:1.5px solid #8A94A1;display:grid;place-items:center}
+.slot b{font-size:13px;font-weight:600;color:var(--ink)}
+.slot small{font-size:11.5px;color:#5F6874}
+.slot.filled{border:none;background:linear-gradient(160deg,#7d8a92 0%,#5c676e 40%,#46504f 100%);place-content:stretch}
+.slot.filled .num{background:rgba(255,255,255,.92);border-color:transparent}
+.slot.filled .tools{position:absolute;top:8px;right:8px;display:flex;gap:4px}
+.slot.filled .tools span{width:30px;height:30px;border-radius:5px;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--ink)}
+.slot.filled .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);font-size:11.5px;padding:5px 9px;color:var(--ink);border-radius:0 0 4px 4px}
+.photo-lines{position:absolute;inset:0;background:repeating-linear-gradient(105deg,transparent 0 38px,rgba(255,255,255,.07) 38px 40px);border-radius:4px}
+
+/* ---------- checklist ---------- */
+.qcpanel .hint{font-size:13px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--reject);border-radius:var(--r-s);padding:9px 11px}
+.dl{display:grid;gap:6px}
+.dl .lab{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.dl .pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.form{background:#fff;width:820px;margin:10px auto 0;box-shadow:0 1px 2px rgba(20,30,45,.12),0 6px 18px rgba(20,30,45,.10);padding:22px 26px}
+.form-h{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:14px}
+.form-h h3{margin:0;font-size:16px;font-weight:700}
+.form-h code{font-family:var(--font-d);font-size:13px;color:var(--ink-soft);font-weight:600}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-bottom:16px}
+.fl{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft);font-weight:500}
+.fl .v{border:none;border-bottom:1px solid var(--line-strong);height:30px;display:flex;align-items:end;padding:0 2px 4px;font-size:14px;color:var(--ink)}
+.fl .v.ph{color:#8A929D}
+.items{border-top:1px solid var(--ink)}
+.item{display:grid;grid-template-columns:44px 1fr 236px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.item .no{font-family:var(--font-d);font-weight:600;font-size:14px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.item .t{font-size:14px}
+.item .rm{font-size:12.5px;color:#8A929D;border-bottom:1px dashed var(--line-strong);margin-top:4px;padding-bottom:2px}
+.item.group{grid-template-columns:44px 1fr;background:#F3F5F8}
+.item.group .t{font-weight:650}
+.st{display:flex;border:1px solid var(--line-strong);border-radius:var(--r-s);overflow:hidden;height:34px}
+.st span{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:13px;color:var(--ink-soft)}
+.st span+span{border-left:1px solid var(--line)}
+.st .p.on{background:var(--pass-wash);color:var(--pass);font-weight:650;box-shadow:inset 0 -2px 0 var(--pass)}
+.st .r.on{background:var(--reject-wash);color:var(--reject);font-weight:650;box-shadow:inset 0 -2px 0 var(--reject)}
+.item.rej .rm{color:var(--reject);border-bottom-color:var(--reject)}
+
+/* ---------- modal ---------- */
+.modal-bg{background:rgba(21,26,33,.45);padding:60px 0;display:grid;place-items:center}
+.card{width:480px;max-width:calc(100% - 32px);background:var(--surface);border-radius:10px;box-shadow:0 18px 50px rgba(10,15,25,.35)}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px 20px;border-bottom:1px solid var(--line)}
+.card-h h3{margin:0;font-size:16px;font-weight:650}
+.card-b{padding:16px 20px 20px;display:grid;gap:14px}
+.pf{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:var(--r-m)}
+.pf div{padding:10px 12px}
+.pf div:nth-child(odd){border-right:1px solid var(--line)}
+.pf div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+.pf span{display:block;font-size:12px;color:var(--ink-faint)}
+.pf b{font-size:14px;font-weight:600}
+.pf b.num{font-family:var(--font-d);font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--ink-soft);margin:0}
+.btnrow{display:flex;gap:8px}
+.btnrow .btn{height:42px}
+.btnrow .primary{flex:1}
+
+/* ---------- phone ---------- */
+.phones{display:flex;gap:28px;flex-wrap:wrap}
+.phone{width:375px;max-width:100%;border:1px solid var(--line-strong);border-radius:22px;overflow:hidden;background:var(--chrome)}
+.p-top{display:flex;align-items:center;gap:6px;height:56px;padding:0 8px;background:var(--surface)}
+.p-top .btn{height:44px;min-width:44px}
+.p-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--line)}
+.p-tabs button{all:unset;flex:1;text-align:center;height:44px;font-size:14px;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;justify-content:center;gap:6px}
+.p-tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--pen)}
+.p-tools{display:flex;gap:6px;padding:8px;background:var(--chrome);border-bottom:1px solid var(--line);overflow-x:auto}
+.p-tools .btn{height:44px;border:1px solid var(--line-strong);background:var(--surface);flex:none}
+.p-stage{background:var(--desk);padding:14px 12px 20px;height:520px;overflow:hidden}
+.p-stage .page{width:100%}
+.p-stage .sheet{padding:16px;gap:8px}
+.p-stage .kop h4{font-size:15px}
+.p-stage .kop p{font-size:9.5px}
+.p-stage .grid{gap:6px}
+.p-stage .slot .plus{width:30px;height:30px}
+.p-stage .slot small{display:none}
+.p-stage .page-bar{gap:6px}
+.p-stage .mini{height:34px}
+
+@media (max-width:640px){.frame-h{flex-direction:column;gap:2px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="8" rx="2"/><path d="M6 14h12v8H6z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-break" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></symbol>
+  <symbol id="i-rot" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Kolase QC — arah visual Arsip Terang</h1>
+    <p>Mock statis untuk disetujui sebelum dikerjakan. Semua tombol, input, dan pilihan yang ada sekarang tetap ada dengan fungsi yang sama. Yang berubah hanya tampilan dan penataannya.</p>
+    <ul class="rules">
+      <li><b>Terang dan tegas</b>Chrome putih dan abu dingin, garis jelas, kebaca di bawah matahari lokasi proyek.</li>
+      <li><b>Satu biru pulpen</b>Hanya untuk Unduh PDF, tab aktif, dan pilihan yang sedang aktif. Hijau dan merah khusus Passed dan Reject.</li>
+      <li><b>Tanpa emoji</b>Satu set ikon garis yang sama di semua tempat.</li>
+      <li><b>Angka pakai Bahnschrift</b>Huruf bawaan Windows bergaya DIN untuk nomor slot, halaman, kode formulir. Di Android jatuh ke Roboto Condensed. Tetap offline.</li>
+    </ul>
+  </header>
+
+  <!-- ===== 1. editor desktop ===== -->
+  <section>
+    <div class="frame-h"><h2>Editor kolase, laptop</h2><p>Tab mode pindah ke topbar. Seksi panel tanpa nomor 01/02/03, toggle jadi daftar biasa.</p></div>
+    <div class="scroller"><div class="screen">
+      <div class="topbar">
+        <div class="word">Kolase <span class="stamp">QC</span></div>
+        <nav class="tabs" aria-label="Mode kerja">
+          <button class="on">Kolase</button><button>Checklist QC</button><button>Penyimpangan</button>
+        </nav>
+        <div class="grow"></div>
+        <div class="metrics"><span><b>2</b>foto</span><span><b>1</b>halaman</span><span><b>A4</b>kertas</span></div>
+        <div class="vr"></div>
+        <div class="acts">
+          <button class="btn icon" title="Urungkan"><svg class="i"><use href="#i-undo"/></svg></button>
+          <button class="btn icon dim" title="Ulangi"><svg class="i"><use href="#i-redo"/></svg></button>
+          <div class="vr"></div>
+          <button class="btn"><svg class="i"><use href="#i-plus"/></svg>Foto</button>
+          <button class="btn icon" title="Kamera"><svg class="i"><use href="#i-cam"/></svg></button>
+          <button class="btn"><svg class="i"><use href="#i-phone"/></svg>HP</button>
+          <button class="btn icon" title="Kosongkan"><svg class="i"><use href="#i-trash"/></svg></button>
+          <div class="vr"></div>
+          <button class="btn"><svg class="i"><use href="#i-print"/></svg>Cetak</button>
+          <button class="btn primary"><svg class="i"><use href="#i-down"/></svg>Unduh PDF</button>
+        </div>
+      </div>
+      <div class="shell">
+        <aside class="panel">
+          <div class="sect">
+            <div class="sect-h"><h3>Dokumen</h3><p>Kop di tiap halaman cetak</p></div>
+            <label class="f">Judul dokumen<div class="inp">LAPORAN DOKUMENTASI QC</div></label>
+            <label class="f">Subjudul<div class="inp">Gedung B — Lantai 3 / Kolom K-12</div></label>
+            <div class="two"><label class="f">Tanggal<div class="inp">11/11/2026</div></label><label class="f">Ukuran judul<div class="inp">22</div></label></div>
+            <div class="list">
+              <div class="row">Tampilkan judul<span class="sw"></span></div>
+              <div class="row">Tampilkan subjudul<span class="sw"></span></div>
+              <div class="row">Tampilkan tanggal<span class="sw"></span></div>
+              <div class="row">Judul tebal<span class="sw off"></span></div>
+            </div>
+          </div>
+          <div class="sect">
+            <div class="sect-h"><h3>Kertas</h3></div>
+            <div class="seg"><span class="on">A4<small>210×297</small></span><span>F4<small>215×330</small></span><span>LTR<small>216×279</small></span><span>LGL<small>216×356</small></span><span>A3<small>297×420</small></span></div>
+            <div class="seg"><span class="on">Portrait</span><span>Landscape</span></div>
+            <div class="rng"><div class="lab">Margin tepi<b>28px</b></div><div class="track"><i style="width:36%"></i></div></div>
+          </div>
+          <div class="sect">
+            <div class="sect-h"><h3>Tata letak</h3><p>Pola untuk halaman baru</p></div>
+            <div class="pats">
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="18" height="24"/></svg>1</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="18" height="11"/><rect x="1" y="14" width="18" height="11"/></svg>2</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="18" height="11"/><rect x="1" y="14" width="8" height="11"/><rect x="11" y="14" width="8" height="11"/></svg>3B</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="8" height="11"/><rect x="11" y="1" width="8" height="11"/><rect x="1" y="14" width="18" height="11"/></svg>3S</span>
+              <span class="pat on"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="8" height="11"/><rect x="11" y="1" width="8" height="11"/><rect x="1" y="14" width="8" height="11"/><rect x="11" y="14" width="8" height="11"/></svg>4</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="8" height="7"/><rect x="11" y="1" width="8" height="7"/><rect x="1" y="9.5" width="8" height="7"/><rect x="11" y="9.5" width="8" height="7"/><rect x="1" y="18" width="8" height="7"/><rect x="11" y="18" width="8" height="7"/></svg>6</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="18" height="11"/><rect x="1" y="14" width="3.5" height="11"/><rect x="5.8" y="14" width="3.5" height="11"/><rect x="10.6" y="14" width="3.5" height="11"/><rect x="15.4" y="14" width="3.6" height="11"/></svg>5</span>
+              <span class="pat"><svg viewBox="0 0 20 26"><rect x="1" y="1" width="8" height="5"/><rect x="11" y="1" width="8" height="5"/><rect x="1" y="7.3" width="8" height="5"/><rect x="11" y="7.3" width="8" height="5"/><rect x="1" y="13.6" width="8" height="5"/><rect x="11" y="13.6" width="8" height="5"/><rect x="1" y="20" width="8" height="5"/><rect x="11" y="20" width="8" height="5"/></svg>8</span>
+            </div>
+          </div>
+        </aside>
+        <main class="stage">
+          <div class="stage-top"><span>Pratinjau kertas · A4 Portrait · pola 4 · 2 foto</span><span class="grow"></span>
+            <span class="zoom">Tampilan<span class="track"><i style="width:60%"></i></span><b>80%</b></span>
+            <button class="btn line"><svg class="i"><use href="#i-plus"/></svg>Halaman</button></div>
+          <div class="page">
+            <div class="page-bar">
+              <span class="pg">Hal 1</span><span class="meta">4 foto · PORTRAIT</span>
+              <span class="mini sel">4 (2×2)<svg class="i"><use href="#i-chev"/></svg></span>
+              <span class="mini sel">Portrait<svg class="i"><use href="#i-chev"/></svg></span>
+              <span class="mini"><svg class="i"><use href="#i-break"/></svg>Hal. baru</span>
+              <span class="mini">Samakan</span>
+              <span class="mini danger"><svg class="i"><use href="#i-trash"/></svg>Hapus</span>
+            </div>
+            <div class="sheet">
+              <div class="kop"><h4>LAPORAN DOKUMENTASI QC</h4><p>Gedung B — Lantai 3 / Kolom K-12</p><p>11 November 2026</p></div>
+              <div class="grid">
+                <div class="slot filled"><div class="photo-lines"></div><span class="num">01</span><div class="tools"><span><svg class="i"><use href="#i-zoom"/></svg></span><span><svg class="i"><use href="#i-rot"/></svg></span><span><svg class="i"><use href="#i-trash"/></svg></span></div><div class="cap">Bekisting kolom K-12 sisi timur</div></div>
+                <div class="slot filled"><div class="photo-lines" style="transform:scaleX(-1)"></div><span class="num">02</span><div class="cap">Selimut beton 40 mm, diukur</div></div>
+                <div class="slot"><span class="num">03</span><span class="plus"><svg class="i"><use href="#i-plus"/></svg></span><b>Slot 3</b><small>JPG, PNG, WEBP</small></div>
+                <div class="slot"><span class="num">04</span><span class="plus"><svg class="i"><use href="#i-plus"/></svg></span><b>Slot 4</b><small>JPG, PNG, WEBP</small></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ===== 2. checklist ===== -->
+  <section>
+    <div class="frame-h"><h2>Checklist QC, laptop</h2><p>Formulir ditata seperti kertas aslinya. Status Passed, Reject, N/A pakai warna maknanya, bukan biru.</p></div>
+    <div class="scroller"><div class="screen">
+      <div class="topbar">
+        <div class="word">Kolase <span class="stamp">QC</span></div>
+        <nav class="tabs"><button>Kolase</button><button class="on">Checklist QC</button><button>Penyimpangan <span class="count">1</span></button></nav>
+        <div class="grow"></div>
+        <div class="acts"><button class="btn"><svg class="i"><use href="#i-print"/></svg>Cetak</button><button class="btn primary"><svg class="i"><use href="#i-down"/></svg>Unduh PDF</button></div>
+      </div>
+      <div class="shell" style="height:640px">
+        <aside class="panel qcpanel">
+          <div class="sect">
+            <div class="sect-h"><h3>Checklist QC</h3><p>Isi di formulir sebelah kanan</p></div>
+            <div class="hint">Ada 1 item Reject. Formulir Penyimpangan sudah terisi otomatis.</div>
+            <div class="dl"><span class="lab">Checklist</span><div class="pair"><button class="btn line"><svg class="i"><use href="#i-file"/></svg>Word</button><button class="btn line"><svg class="i"><use href="#i-down"/></svg>PDF</button></div></div>
+            <div class="dl"><span class="lab">Penyimpangan</span><div class="pair"><button class="btn line"><svg class="i"><use href="#i-file"/></svg>Word</button><button class="btn line"><svg class="i"><use href="#i-down"/></svg>PDF</button></div></div>
+          </div>
+        </aside>
+        <main class="stage" style="overflow:hidden">
+          <div class="form">
+            <div class="form-h"><h3>Checklist Quality Control Barang Masuk</h3><code>GML-EG-02-F-01</code></div>
+            <div class="fields">
+              <label class="fl">Nama<span class="v">Infusion pump</span></label>
+              <label class="fl">No form<span class="v ph">No form arsip</span></label>
+              <label class="fl">Merk<span class="v">Terumo</span></label>
+              <label class="fl">Tanggal<span class="v">11/11/2026</span></label>
+            </div>
+            <div class="items">
+              <div class="item"><span class="no">1</span><div><div class="t">Label / identitas alat</div><div class="rm">Catatan</div></div><div class="st"><span class="p on"><svg class="i"><use href="#i-check"/></svg>Passed</span><span class="r">Reject</span><span>N/A</span></div></div>
+              <div class="item group"><span class="no">2</span><div class="t">Kondisi fisik</div></div>
+              <div class="item"><span class="no">2.1</span><div><div class="t">Kondisi fisik bungkusan</div><div class="rm">Catatan</div></div><div class="st"><span class="p on"><svg class="i"><use href="#i-check"/></svg>Passed</span><span class="r">Reject</span><span>N/A</span></div></div>
+              <div class="item rej"><span class="no">2.2</span><div><div class="t">Kondisi fisik bungkusan dalam</div><div class="rm">Plastik dalam sobek di sudut kiri</div></div><div class="st"><span class="p">Passed</span><span class="r on"><svg class="i"><use href="#i-x"/></svg>Reject</span><span>N/A</span></div></div>
+              <div class="item"><span class="no">2.3</span><div><div class="t">Kondisi fisik alat / barang</div><div class="rm">Catatan</div></div><div class="st"><span class="p">Passed</span><span class="r">Reject</span><span>N/A</span></div></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ===== 3. phone + modal ===== -->
+  <section>
+    <div class="frame-h"><h2>HP dan preflight</h2><p>Target sentuh 44px. Tidak ada geser ke samping di tab mana pun.</p></div>
+    <div class="phones">
+      <div class="phone">
+        <div class="p-top">
+          <button class="btn icon" title="Pengaturan"><svg class="i"><use href="#i-menu"/></svg></button>
+          <div class="word">Kolase <span class="stamp">QC</span></div>
+          <span class="grow"></span>
+          <button class="btn icon"><svg class="i"><use href="#i-undo"/></svg></button>
+          <button class="btn primary"><svg class="i"><use href="#i-down"/></svg>PDF</button>
+        </div>
+        <div class="p-tabs"><button class="on">Kolase</button><button>Checklist</button><button>Penyimpangan</button></div>
+        <div class="p-tools">
+          <button class="btn"><svg class="i"><use href="#i-plus"/></svg>Foto</button>
+          <button class="btn"><svg class="i"><use href="#i-cam"/></svg>Kamera</button>
+          <button class="btn"><svg class="i"><use href="#i-phone"/></svg>HP</button>
+          <button class="btn icon"><svg class="i"><use href="#i-trash"/></svg></button>
+        </div>
+        <div class="p-stage">
+          <div class="page">
+            <div class="page-bar"><span class="pg">Hal 1</span><span class="mini sel">4 (2×2)<svg class="i"><use href="#i-chev"/></svg></span><span class="mini sel">Portrait<svg class="i"><use href="#i-chev"/></svg></span></div>
+            <div class="sheet">
+              <div class="kop"><h4>LAPORAN DOKUMENTASI QC</h4><p>Gedung B — Lantai 3 / Kolom K-12</p></div>
+              <div class="grid">
+                <div class="slot filled"><div class="photo-lines"></div><span class="num">01</span></div>
+                <div class="slot filled"><div class="photo-lines" style="transform:scaleX(-1)"></div><span class="num">02</span></div>
+                <div class="slot"><span class="num">03</span><span class="plus"><svg class="i"><use href="#i-plus"/></svg></span><b>Slot 3</b></div>
+                <div class="slot"><span class="num">04</span><span class="plus"><svg class="i"><use href="#i-plus"/></svg></span><b>Slot 4</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-bg" style="flex:1;min-width:0;border-radius:10px">
+        <div class="card">
+          <div class="card-h"><h3>Preflight cetak</h3><button class="btn icon" title="Tutup"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="card-b">
+            <div class="pf">
+              <div><span>Kertas</span><b>A4 · Portrait</b></div>
+              <div><span>Total</span><b class="num">2 foto · 1 hal</b></div>
+              <div><span>Kualitas PDF</span><b class="num">200 DPI · jsPDF</b></div>
+              <div><span>Mode</span><b>Campur orientasi OK</b></div>
+            </div>
+            <p class="note">Unduh PDF menggambar tiap halaman pada 200 DPI dan menggabungkan portrait dan landscape dalam satu file. Pakai Cetak via browser hanya kalau PDF gagal.</p>
+            <div class="btnrow"><button class="btn primary"><svg class="i"><use href="#i-down"/></svg>Unduh PDF</button><button class="btn line"><svg class="i"><use href="#i-print"/></svg>Cetak via browser</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
