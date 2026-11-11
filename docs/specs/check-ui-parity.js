@@ -35,7 +35,7 @@ function scripts(html) {
 function markup(html) { // static markup only: strip <script> and <style>
   return norm(html).replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
 }
-function css(html) { return [...norm(html).matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n'); }
+function css(html) { return [...norm(html).matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n').replace(/\/\*[\s\S]*?\*\//g, ''); } // comments stripped: a comment may mention "@media print"
 
 const O = scripts(oldHtml), N = scripts(newHtml);
 

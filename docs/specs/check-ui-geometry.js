@@ -6,7 +6,8 @@
 // Walks page 1 through every pattern x orientation via the page-bar selects (the same path
 // a user clicks), records sheet aspect, kop box, and every slot box, then restores the start.
 async function uiGeometry() {
-  const wait = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // setTimeout, not rAF: rAF stalls in a background pane; reading rects forces layout anyway
+  const wait = () => new Promise(r => setTimeout(r, 50));
   const page = () => document.querySelector('.page-wrap');
   const sel = act => page().querySelector('select[data-act="' + act + '"]');
   const fire = (el, v) => { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };

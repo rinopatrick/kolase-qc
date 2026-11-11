@@ -28,6 +28,13 @@ Kamu mengerjakan SATU task dari redesign UI Kolase QC. Baca file ini sampai habi
 1. `node docs/specs/check-ui-parity.js` → harus `GREEN`. Kalau `a)` gagal karena baris JS yang memang kamu ubah sesuai aturan 2, catat di allowlist lalu jalankan ulang. Jangan pernah "memperbaiki" gerbang dengan mengubah skrip gerbang.
 2. `grep -c "alert(\|confirm(" index.html` tidak bertambah dari baseline.
 3. Kalau tool browser (`mcp__Claude_Browser__*`) tersedia: buka URL baru, cek desktop 1440 dan 375px, pastikan tidak ada yang rusak/bertumpuk/overflow horizontal, dan klik-uji kontrol area kamu (klik tab, toggle, segmen, buka modal) — pastikan aksi tetap jalan dan tidak ada error di console. Reset viewport ke desktop setelahnya.
+3b. Geometri kertas (wajib kalau tool browser ada): set viewport 1440x900, front tab, buka URL baru, jalankan via javascript_tool:
+   ```js
+   const src = await fetch('/kolase-qc-ui/docs/specs/check-ui-geometry.js?'+Date.now()).then(r=>r.text());
+   (0,eval)(src.replace("if (typeof module !== 'undefined') module.exports = { uiGeometry, uiGeometryDiff };",'window.uiGeometry=uiGeometry;window.uiGeometryDiff=uiGeometryDiff;'));
+   uiGeometryDiff(JSON.parse(localStorage.getItem('__uiGeoBase')), await uiGeometry())
+   ```
+   Harus `PASS geometry identical` (baseline lama sudah tersimpan di localStorage origin localhost:8765). Jangan timpa key `__uiGeoBase`.
 4. Commit satu kali: `git add -A && git commit -m "style(ui): <task> arsip terang"` dengan baris akhir `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Jangan push, jangan merge.
 
 ## Laporan akhir (singkat)
