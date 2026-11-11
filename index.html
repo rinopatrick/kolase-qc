@@ -380,51 +380,67 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 .btn-line{background:var(--surface);border:1px solid var(--line2);border-radius:var(--r-s);padding:0 16px;font-weight:500;cursor:pointer;min-height:40px;color:var(--fg)}
 .btn-line:hover{background:var(--bg2)}
 .btn-dark,.btn-teal,.btn-line{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn-dark[hidden],.btn-teal[hidden],.btn-line[hidden]{display:none}
 @media (pointer:coarse){.btn-dark,.btn-teal,.btn-line{min-height:44px}}
 
 
 /* toasts */
 #toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;display:grid;gap:8px;width:min(480px,92vw)}
-.toast{background:var(--surface);border:1px solid var(--line2);color:var(--fg);border-radius:var(--r-m);padding:11px 13px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 6px 18px rgba(20,30,45,.18)}
-.toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
-.toast.warn::before{background:var(--warn)}
-.toast button{margin-left:auto;background:var(--pen);border:none;color:#fff;font-weight:600;border-radius:var(--r-s);padding:0 14px;cursor:pointer;min-height:36px}
+.toast{background:var(--fg);border:0;border-left:3px solid #4CAF7A;color:#fff;border-radius:var(--r-m);padding:11px 13px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 8px 24px rgba(10,15,25,.3)}
+.toast.warn{border-left-color:#F2A33A}
+.toast button{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.28);color:#B9C8FF;font-weight:600;border-radius:var(--r-s);padding:0 14px;cursor:pointer;min-height:36px}
+.toast button:hover{background:rgba(255,255,255,.1);color:#fff}
+@media (pointer:coarse){.toast button{min-height:44px}}
 
 /* modal */
 .overlay{position:fixed;inset:0;background:var(--overlay);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
 .overlay.open{display:flex}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 18px 50px var(--modal-shadow)}
-.card-h{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-h{padding:14px 16px 12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
 .card-h h3{margin:0;font-family:var(--font-b);font-weight:650;font-size:16px}
-.card-h .x{margin-left:auto;background:transparent;border:none;color:var(--fg);border-radius:var(--r-s);width:36px;height:36px;cursor:pointer;font-size:16px}
+.card-h .x{margin-left:auto;background:transparent;border:none;color:var(--fg);border-radius:var(--r-s);width:36px;height:36px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.card-h .x svg{width:16px;height:16px}
 .card-h .x:hover{background:var(--bg2)}
 @media (pointer:coarse){.card-h .x{width:44px;height:44px}}
-.card-b{padding:16px 18px;display:grid;gap:12px}
-.preflight{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.preflight .pf{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:10px 12px}
-.preflight .pf span{font-size:12px;color:var(--muted2)}
-.preflight .pf b{display:block;font-size:14px;margin-top:2px}
+.card-b{padding:16px 20px 20px;display:grid;gap:14px}
+.card-note{font-size:13px;color:var(--muted);margin:0}
+.card-note.fg{font-size:12.5px;color:var(--fg)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+.btnrow>.grow{flex:1}
+.btn-teal svg,.btn-line svg,.btn-dark svg{width:16px;height:16px;flex:none}
+.preflight{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:var(--r-m)}
+.preflight .pf{padding:10px 12px;min-width:0}
+.preflight .pf:nth-child(odd){border-right:1px solid var(--line)}
+.preflight .pf:nth-child(-n+2){border-bottom:1px solid var(--line)}
+.preflight .pf span{display:block;font-size:12px;color:var(--ink-faint)}
+.preflight .pf b{display:block;font-size:14px;font-weight:600;margin-top:2px}
+.preflight .pf b.num{font-family:var(--font-d)}
+#ovPrint .hint{background:transparent;border:0;padding:0;font-size:13px;color:var(--muted)}
+#ovPrint #mixHint,#ovPrint #safariNote{padding:9px 12px;border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:var(--r-s);background:#FFF8EC;color:var(--fg)}
+#ovPrint #safariNote{border-left-color:var(--line2);background:var(--bg1)}
+#ovPrint .hint[hidden]{display:none}
 .qrbox{display:flex;gap:14px;align-items:center}
 .qrbox canvas{border-radius:10px;background:var(--field);padding:6px}
 .roomcode{font-family:var(--font-m);font-size:26px;font-weight:800;letter-spacing:.2em;color:var(--ink)}
 /* P2P link / guest / scan */
 #guestBar,#scanBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;font-weight:600}
-#guestBar{background:var(--accent);color:var(--accent-ink)}
-#scanBar{background:var(--bg1);color:var(--fg);border-bottom:1px solid var(--line)}
+#guestBar,#scanBar{background:var(--bg1);color:var(--fg);border-bottom:1px solid var(--line);font-weight:600}
+#guestBar .btn-teal,#guestBar .btn-line,#scanBar .btn-line{min-height:38px;padding:8px 14px}
 #guestBar[hidden],#scanBar[hidden]{display:none}
-.gcode{background:var(--code-bg);color:var(--paper-ink);border-radius:8px;padding:3px 10px;font-family:var(--font-m);letter-spacing:1px}
+.gcode{background:var(--surface);color:var(--fg);border:1px solid var(--line2);border-radius:var(--r-s);padding:2px 10px;font-family:var(--font-m);letter-spacing:1px}
 .gstatus{font-size:13px;font-weight:500;flex:1;min-width:140px}
 #scanView{width:100%;border-radius:12px;background:var(--scan);max-height:52vh;object-fit:cover;display:block}
 .scan-hint{font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.5}
 .scan-err{font-size:13px;color:var(--err-fg);background:var(--err-bg);border:1px solid var(--err-line);border-radius:var(--r-s);padding:9px 12px;margin-top:10px;line-height:1.5}
 .scan-err[hidden]{display:none}
-.lk-qr{display:grid;place-items:center;background:var(--field);border-radius:12px;padding:14px;margin:4px 0 12px;min-height:208px}
+.lk-qr{display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:14px;min-height:208px}
 .lk-qr img,.lk-qr canvas{display:block}
-.lk-code{text-align:center;font-size:14px;margin-bottom:8px}
-.lk-code b{font-family:var(--font-m);letter-spacing:2px}
-.lk-linkrow{display:flex;gap:8px;align-items:center;background:var(--bg1);border:1px solid var(--line);border-radius:var(--r-m);padding:8px 8px 8px 12px;margin-bottom:10px}
-.lk-linkrow code{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lk-status{font-size:13px;color:var(--ink);background:var(--link-bg);border:1px solid var(--link-line);border-radius:var(--r-s);padding:9px 12px;margin-bottom:4px;line-height:1.5}
+.lk-code{text-align:center;font-size:14px;color:var(--muted)}
+.lk-code b{font-family:var(--font-m);letter-spacing:2px;color:var(--fg);font-size:16px}
+.lk-linkrow{display:flex;gap:8px;align-items:center;background:var(--bg1);border:1px solid var(--line);border-radius:var(--r-s);padding:6px 6px 6px 12px}
+.lk-linkrow code{flex:1;font-family:var(--font-b);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-linkrow .btn-line{min-height:36px;padding:0 12px}
+.lk-status{font-size:13px;color:var(--fg);background:var(--bg1);border:1px solid var(--line);border-left:3px solid var(--pen);border-radius:var(--r-s);padding:9px 12px;line-height:1.5}
 
 #btnMenu{display:none}
 #scrim{display:none}
@@ -503,8 +519,8 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 </svg>
 
 
-<div id="guestBar" hidden>Mode kirim <span class="gcode" id="gCode">–</span><span class="gstatus" id="gStatus">Siap kirim ke laptop.</span><button id="gSend" class="btn-dark" style="min-height:38px;padding:8px 14px">Kirim ke laptop</button><button id="gExport" class="btn-line" style="min-height:38px;padding:8px 14px">Unduh file</button></div>
-<div id="scanBar" hidden><span class="gstatus" id="scanHint">Foto di HP ini aman.</span><button id="gScanBtn" class="btn-line" style="min-height:38px;padding:8px 14px">Pindai QR laptop</button></div>
+<div id="guestBar" hidden>Mode kirim <span class="gcode" id="gCode">–</span><span class="gstatus" id="gStatus">Siap kirim ke laptop.</span><button id="gSend" class="btn-teal">Kirim ke laptop</button><button id="gExport" class="btn-line">Unduh file</button></div>
+<div id="scanBar" hidden><span class="gstatus" id="scanHint">Foto di HP ini aman.</span><button id="gScanBtn" class="btn-line">Pindai QR laptop</button></div>
 
 <header class="topbar" data-od-id="topbar">
   <button class="ibtn" id="btnMenu" aria-label="Buka pengaturan" aria-expanded="false" title="Pengaturan"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
@@ -536,7 +552,7 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 <div id="scrim" aria-hidden="true"></div>
 <div class="shell">
   <aside class="panel" data-od-id="settings-panel" aria-label="Pengaturan dokumen">
-    <button class="ibtn" id="btnDrawerClose" aria-label="Tutup pengaturan" style="display:none;width:100%;margin-bottom:10px">✕ Tutup pengaturan</button>
+    <button class="ibtn" id="btnDrawerClose" aria-label="Tutup pengaturan" style="display:none;width:100%;margin-bottom:10px"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Tutup pengaturan</button>
     <div class="sect only-kolase" data-od-id="sect-doc">
       <div class="sect-h"><span class="n">01</span><div><h2>Dokumen</h2><p>Kop di tiap halaman cetak</p></div></div>
       <div class="sect-b">
@@ -592,7 +608,7 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
     <div class="sect only-qc" data-od-id="sect-qc">
       <div class="sect-h"><div><h2>Checklist QC</h2></div></div>
       <div class="sect-b">
-        <div class="hint hint-rej" id="qcSideHint">Isi dari tab <b>Checklist QC</b> di kanvas. Ada REJECT → banner penyimpangan muncul otomatis.</div>
+        <div class="hint hint-rej" id="qcSideHint">Isi dari tab <b>Checklist QC</b> di kanvas. Ada REJECT, banner penyimpangan muncul otomatis.</div>
         <div class="dlgrp"><span class="dllab">Checklist</span><div class="dlpair"><button class="chipbtn" id="btnSideQcDocx" aria-label="Word Checklist (.docx)"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word</button><button class="chipbtn" id="btnSideQcPdf" aria-label="PDF Checklist"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>PDF</button></div></div>
         <div class="dlgrp"><span class="dllab">Penyimpangan</span><div class="dlpair"><button class="chipbtn" id="btnSideDevDocx" aria-label="Word Penyimpangan (.docx)"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word</button><button class="chipbtn" id="btnSideDevPdf" aria-label="PDF Penyimpangan"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>PDF</button></div></div>
       </div>
@@ -629,26 +645,26 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 <input type="file" id="filePick" accept="image/*" multiple hidden>
 <input type="file" id="camPick" accept="image/*" capture="environment" hidden>
 <input type="file" id="galPick" accept="image/*" multiple hidden>
-<div class="overlay" id="srcSheet"><div class="card"><div class="card-h"><h3>Tambah foto</h3><button class="x" data-close>✕</button></div>
-<div class="card-b"><p style="font-size:13px;color:var(--muted);margin:0">Pilih sumber foto.</p>
-<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-teal" id="srcCam" style="flex:1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Kamera</button><button class="btn-line" id="srcGal" style="flex:1">Galeri</button></div></div></div></div>
+<div class="overlay" id="srcSheet"><div class="card"><div class="card-h"><h3>Tambah foto</h3><button class="x" data-close aria-label="Tutup" title="Tutup"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+<div class="card-b"><p class="card-note">Pilih sumber foto.</p>
+<div class="btnrow"><button class="btn-teal grow" id="srcCam"><svg class="i" aria-hidden="true"><use href="#i-cam"/></svg>Kamera</button><button class="btn-line grow" id="srcGal">Galeri</button></div></div></div></div>
 
 <div class="overlay" id="ovPrint" data-od-id="modal-print">
   <div class="card">
-    <div class="card-h"><h3>Preflight Cetak</h3><button class="x" data-close>✕</button></div>
+    <div class="card-h"><h3>Preflight cetak</h3><button class="x" data-close aria-label="Tutup" title="Tutup"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
     <div class="card-b">
       <div class="preflight">
         <div class="pf"><span>Kertas</span><b id="pfPaper">A4 · Portrait</b></div>
-        <div class="pf"><span>Total</span><b id="pfTotal">0 foto · 1 hal</b></div>
-        <div class="pf"><span>Kualitas PDF</span><b>200 DPI · jsPDF</b></div>
+        <div class="pf"><span>Total</span><b class="num" id="pfTotal">0 foto · 1 hal</b></div>
+        <div class="pf"><span>Kualitas PDF</span><b class="num">200 DPI · jsPDF</b></div>
         <div class="pf"><span>Mode</span><b id="pfMode">Campur orientasi OK</b></div>
       </div>
       <div class="hint">PDF primer me-render tiap halaman via canvas 200 DPI lalu menggabungkan portrait + landscape dalam satu file. Cetak browser hanya fallback bila tombol PDF gagal.</div>
       <div class="hint" id="mixHint" hidden>Perhatian: Halaman campur Portrait + Landscape. Unduh PDF menggabung otomatis 1 file. Jalur Cetak butuh 2 dialog (P lalu L).</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-teal" id="btnPdf2" style="flex:1">⬇ Unduh PDF</button>
-        <button class="btn-line" id="btnDoPrint">Cetak via browser</button>
-        <button class="btn-line" id="btnMixPrint" hidden>Cetak 2 tahap</button>
+      <div class="btnrow">
+        <button class="btn-teal grow" id="btnPdf2"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>Unduh PDF</button>
+        <button class="btn-line" id="btnDoPrint"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>Cetak via browser</button>
+        <button class="btn-line" id="btnMixPrint" hidden><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>Cetak 2 tahap</button>
       </div>
       <div class="hint" id="safariNote" hidden><b>Kamu di Safari / iPhone?</b> Unduh PDF hasilkan file bersih tanpa tulisan tepi. Jalur Cetak di Safari sisipkan judul + link + tanggal tepi yang <b>tidak bisa dimatikan</b>.</div>
     </div>
@@ -657,23 +673,23 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 
 <div class="overlay" id="ovPhone" data-od-id="modal-phone">
   <div class="card">
-    <div class="card-h"><h3>Terima dari HP</h3><button class="x" data-close>✕</button></div>
+    <div class="card-h"><h3>Terima dari HP</h3><button class="x" data-close aria-label="Tutup" title="Tutup"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
     <div class="card-b">
       <div class="lk-qr" id="lkQr"></div>
       <div class="lk-code">Sesi <b id="lkCode">–</b> · <span id="lkCount"></span></div>
-      <div class="lk-linkrow"><code id="lkLink"></code><button class="btn-line" id="lkCopy" style="min-height:36px;padding:6px 12px">Salin</button></div>
+      <div class="lk-linkrow"><code id="lkLink"></code><button class="btn-line" id="lkCopy">Salin</button></div>
       <div class="lk-status" id="lkStatus">Menyiapkan…</div>
-      <p style="font-size:12.5px;color:var(--fg);margin:0">Di HP: buka link sesi / pindai QR — lalu kirim foto. Tab laptop ini <b>jangan ditutup</b> selama kirim. Foto jalan langsung HP → laptop (terenkripsi), tidak disimpan di server mana pun.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-line" id="lkImportBtn">Import file…</button><input type="file" id="lkFile" accept="application/json,.json" hidden><button class="btn-line" id="lkClose">Tutup sesi</button></div>
+      <p class="card-note fg">Di HP: buka link sesi / pindai QR, lalu kirim foto. Tab laptop ini <b>jangan ditutup</b> selama kirim. Foto jalan langsung dari HP ke laptop (terenkripsi), tidak disimpan di server mana pun.</p>
+      <div class="btnrow"><button class="btn-line" id="lkImportBtn">Import file…</button><input type="file" id="lkFile" accept="application/json,.json" hidden><button class="btn-line" id="lkClose">Tutup sesi</button></div>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="scanModal">
   <div class="card">
-    <div class="card-h"><h3>Pindai QR laptop</h3><button class="x" id="scanCancel">✕</button></div>
+    <div class="card-h"><h3>Pindai QR laptop</h3><button class="x" id="scanCancel" aria-label="Tutup" title="Tutup"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
     <div class="card-b">
-      <p style="font-size:13px;color:var(--muted);margin:0">Arahkan kamera ke QR di layar laptop. Foto di HP ini <b>tidak hilang</b> — setelah tersambung, ketuk Kirim.</p>
+      <p class="card-note">Arahkan kamera ke QR di layar laptop. Foto di HP ini <b>tidak hilang</b> — setelah tersambung, ketuk Kirim.</p>
       <video id="scanView" playsinline muted></video>
       <p class="scan-hint" id="scanMsg">Menyiapkan kamera…</p>
       <p class="scan-err" id="scanErr" hidden></p>
