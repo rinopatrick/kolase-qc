@@ -34,7 +34,7 @@ Kamu mengerjakan SATU task dari redesign UI Kolase QC. Baca file ini sampai habi
    (0,eval)(src.replace("if (typeof module !== 'undefined') module.exports = { uiGeometry, uiGeometryDiff };",'window.uiGeometry=uiGeometry;window.uiGeometryDiff=uiGeometryDiff;'));
    uiGeometryDiff(JSON.parse(localStorage.getItem('__uiGeoBase')), await uiGeometry())
    ```
-   Harus `PASS geometry identical` (baseline lama sudah tersimpan di localStorage origin localhost:8765). Jangan timpa key `__uiGeoBase`.
+   Harus `PASS geometry identical`. Baseline bergantung state tersimpan, jadi SELALU rekam ulang dulu dari app LAMA di state yang sama: buka `/kolase-qc/index.html`, jalankan dua baris pertama lalu `localStorage.setItem('__uiGeoBase', JSON.stringify(await uiGeometry()))`, kemudian buka URL baru dan jalankan diff di atas. Jangan mengubah state di antara keduanya.
 4. Commit satu kali: `git add -A && git commit -m "style(ui): <task> arsip terang"` dengan baris akhir `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Jangan push, jangan merge.
 
 ## Laporan akhir (singkat)
