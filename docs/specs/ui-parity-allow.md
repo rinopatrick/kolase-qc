@@ -75,3 +75,65 @@ Lama:
 el.innerHTML='<div class="ph" tabindex="0"><span class="num">'+String(globalIndex(p,s)).padStart(2,'0')+'</span><span class="big">＋</span><b>Slot '+(si+1)+'</b><span>JPG · PNG · WEBP</span></div>';
 ```
 Alasan: ikon plus placeholder slot kosong: glyph jadi SVG sprite
+
+## T3 checklist QC + penyimpangan
+
+Baru:
+```js
+  return '<div class="qcseg" data-row="'+idx+'"><button data-v="passed" class="'+(r.st==='passed'?'on-p':'')+'"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Passed</button><button data-v="rejected" class="'+(r.st==='rejected'?'on-r':'')+'"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Reject</button><button data-v="na" class="'+(r.st==='na'?'on-n':'')+'">N/A</button></div>';
+```
+Lama:
+```js
+  return '<div class="qcseg" data-row="'+idx+'"><button data-v="passed" class="'+(r.st==='passed'?'on-p':'')+'">✓ Passed</button><button data-v="rejected" class="'+(r.st==='rejected'?'on-r':'')+'">✕ Reject</button><button data-v="na" class="'+(r.st==='na'?'on-n':'')+'">– N/A</button></div>';
+```
+Alasan: segmen status: glyph jadi SVG (check/x), teks N/A tanpa tanda minus
+
+Baru:
+```js
+      h+='<div class="qcrow"><div><div class="plab"><b>'+esc(r.no)+'</b><span>'+esc(r.label)+'</span></div>'
+```
+Lama:
+```js
+      h+='<div class="qcrow"><div><div class="plab"><b>'+esc(r.no)+'</b> · '+esc(r.label)+'</div>'
+```
+Alasan: nomor dan label baris checklist dipisah jadi <b> + <span> agar bisa jadi kolom nomor
+
+Baru:
+```js
+    if(rej.length){h+='<div class="qcwarn"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><b>'+rej.length+' item REJECTED</b>: '+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'.<br>Form penyimpangan sudah terisi otomatis — buka tab <b>Penyimpangan</b> untuk melengkapi lalu generate Word/PDF.</div>';}
+```
+Lama:
+```js
+    if(rej.length){h+='<div class="qcwarn">⚠ <b>'+rej.length+' item REJECTED</b>: '+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'.<br>Form penyimpangan sudah terisi otomatis — buka tab <b>Penyimpangan</b> untuk melengkapi lalu generate Word/PDF.</div>';}
+```
+Alasan: banner REJECT: emoji peringatan jadi SVG alert
+
+Baru:
+```js
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="q_docx"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word Checklist (.docx)</button><button class="chipbtn" id="q_pdf"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>PDF / Cetak Checklist</button><button class="chipbtn dangerb" id="q_goto_dev">Lanjut ke Penyimpangan<svg class="i" aria-hidden="true"><use href="#i-right"/></svg></button><button class="chipbtn" id="q_reset">Reset</button></div></div>';
+```
+Lama:
+```js
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="q_docx">⬇ Word Checklist (.docx)</button><button class="chipbtn" id="q_pdf">🖨 PDF / Cetak Checklist</button><button class="chipbtn dangerb" id="q_goto_dev">Lanjut ke Penyimpangan →</button><button class="chipbtn" id="q_reset">Reset</button></div></div>';
+```
+Alasan: tombol aksi form checklist: emoji jadi SVG sprite
+
+Baru:
+```js
+    if(rej.length){h+='<div class="qcwarn"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>Terhubung ke checklist: <b>'+rej.length+' REJECT</b> ('+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'). Rincian di bawah terisi otomatis — sesuaikan bila perlu.</div>';}
+```
+Lama:
+```js
+    if(rej.length){h+='<div class="qcwarn">Terhubung ke checklist: <b>'+rej.length+' REJECT</b> ('+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'). Rincian di bawah terisi otomatis — sesuaikan bila perlu.</div>';}
+```
+Alasan: banner penyimpangan: tambah ikon alert SVG
+
+Baru:
+```js
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto"><svg class="i" aria-hidden="true"><use href="#i-undo"/></svg>Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Kembali ke Checklist</button></div></div>';
+```
+Lama:
+```js
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx">⬇ Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf">🖨 PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto">↺ Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back">← Kembali ke Checklist</button></div></div>';
+```
+Alasan: tombol aksi form penyimpangan: emoji/panah jadi SVG sprite

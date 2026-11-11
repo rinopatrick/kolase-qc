@@ -299,27 +299,67 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
 @media print{
   body[data-mode="qc"] .qcsheet,body[data-mode="dev"] .qcsheet{width:159mm;margin:0}
 }
-/* panel form gelap */
-.qcform{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:14px;display:grid;gap:10px}
-.qcform h3{margin:0;font-size:14px}
-.qcform .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.qcform .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-@media(max-width:640px){.qcform .grid2,.qcform .grid3{grid-template-columns:1fr}}
-.qcform textarea{background:var(--surface);border:1px solid var(--line2);color:var(--fg);border-radius:var(--r-s);padding:10px;font-size:14px;width:100%;min-height:64px;font-family:inherit;resize:vertical}
-.qcrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:9px 11px}
-.qcrow .plab{font-size:12.5px}
-.qcrow .plab small{display:block;color:var(--muted);font-size:11px}
-.qcseg{display:flex;background:var(--surface);border:1px solid var(--line2);border-radius:var(--r-s);overflow:hidden;min-width:210px}
-.qcseg button{flex:1;border:none;background:transparent;color:var(--muted);border-radius:0;padding:8px 6px;font-size:13px;font-weight:500;cursor:pointer;min-height:40px}
+/* Formulir QC/Penyimpangan: kertas formulir di atas meja (Arsip Terang) */
+#qcView{min-width:0}
+.qcform{background:#fff;border:none;border-radius:2px;box-shadow:0 1px 2px rgba(20,30,45,.12),0 6px 18px rgba(20,30,45,.10);padding:22px 26px;display:grid;gap:14px;width:100%;max-width:820px;min-width:0;margin:0 auto}
+.qcform>*{min-width:0}
+.qcform h3{margin:0;font-size:16px;font-weight:700;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 16px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.qcform h3 span{font-family:var(--font-d);font-size:13px;color:var(--ink-soft)!important;font-weight:600!important}
+.qcform .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.qcform .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 18px}
+.qcform .grid2>*,.qcform .grid3>*{min-width:0}
+.qcform label.f{gap:4px;font-size:12.5px;color:var(--ink-soft);font-weight:500;letter-spacing:0}
+.qcform input[type=text],.qcform input[type=date],.qcform select{background-color:transparent;border:none;border-bottom:1px solid var(--line-strong);border-radius:0;min-height:32px;padding:0 2px 4px;box-shadow:none;min-width:0}
+.qcform select{padding-right:26px}
+.qcform input[type=text]:focus-visible,.qcform input[type=date]:focus-visible,.qcform select:focus-visible,.qcform textarea:focus-visible{outline:none;border-color:var(--pen);box-shadow:0 1px 0 var(--pen)}
+.qcform ::placeholder{color:var(--ink-faint);opacity:1}
+.qcform textarea{background:transparent;border:1px solid var(--line-strong);color:var(--fg);border-radius:var(--r-s);padding:8px 10px;font-size:14px;width:100%;min-height:64px;font-family:inherit;resize:vertical}
+.qcform .hint{background:var(--bg1)}
+#qcRows{border-top:1px solid var(--ink)}
+.qcrow{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:12px;align-items:center;background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 0}
+.qcrow>div:first-child:not(.plab){display:grid;grid-template-columns:44px minmax(0,1fr);align-items:baseline;min-width:0}
+.qcrow>div>.plab{display:contents}
+.qcrow .plab b{font-family:var(--font-d);font-weight:600;font-size:14px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.qcrow .plab span{font-size:14px;color:var(--fg);overflow-wrap:anywhere}
+.qcrow>.plab{font-size:14px}
+.qcrow:not(:has(.qcseg)){grid-template-columns:minmax(0,1fr);background:#F3F5F8!important;padding-left:0}
+.qcrow:not(:has(.qcseg))>.plab b{font-family:var(--font-d);font-weight:650;color:var(--fg)}
+.qcrow:not(:has(.qcseg))>div:empty{display:none}
+.qcrow [data-remark]{grid-column:2;margin:4px 0 0!important;padding:2px 0 3px!important;min-height:28px!important;background:transparent!important;border:0!important;border-bottom:1px dashed var(--line-strong)!important;border-radius:0!important;font-size:12.5px!important;color:var(--fg)!important}
+.qcrow [data-remark]:focus-visible{outline:none;border-bottom:2px dashed var(--pen)!important;padding-bottom:2px!important}
+.qcrow:has(.qcseg .on-r) [data-remark]{color:var(--reject)!important;border-bottom-color:var(--reject)!important}
+.qcseg{display:flex;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-s);overflow:hidden;min-width:0;width:100%}
+.qcseg button{flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:none;background:transparent;color:var(--ink-soft);border-radius:0;padding:0 6px;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.qcseg button:hover{background:var(--bg2)}
 .qcseg button+button{border-left:1px solid var(--line)}
+.qcseg button:focus-visible{outline-offset:-2px}
+.qcseg button:not(.on-p):not(.on-r) svg{display:none}
 .qcseg button.on-p{background:var(--pass-wash);color:var(--pass);font-weight:650;box-shadow:inset 0 -2px 0 var(--pass)}
 .qcseg button.on-r{background:var(--reject-wash);color:var(--reject);font-weight:650;box-shadow:inset 0 -2px 0 var(--reject)}
 .qcseg button.on-n{background:var(--bg3);color:var(--fg);font-weight:650;box-shadow:inset 0 -2px 0 var(--na)}
-.qcwarn{background:var(--err-bg);border:1px solid var(--err-line);border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--fg)}
+@media (pointer:coarse){.qcseg button{min-height:44px}.qcform input[type=text],.qcform input[type=date],.qcform select{min-height:44px}.qcrow [data-remark]{min-height:44px!important}}
+.qcwarn{position:relative;background:var(--reject-wash);border:none;border-left:3px solid var(--reject);border-radius:var(--r-s);padding:10px 12px 10px 38px;font-size:13px;color:var(--fg)}
+.qcwarn>svg.i{position:absolute;left:12px;top:12px;color:var(--reject)}
 .qcbtnrow{display:flex;gap:8px;flex-wrap:wrap}
-.qcbtnrow .chipbtn{background:var(--surface);color:var(--fg);border:1px solid var(--line2);font-family:inherit}
-.qcbtnrow .chipbtn.teal{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
+.qcbtnrow .chipbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--surface);color:var(--fg);border:1px solid var(--line-strong);font-family:inherit}
+.qcbtnrow .chipbtn:hover{background:var(--bg2)}
+.qcbtnrow .chipbtn.teal{background:var(--surface);border-color:var(--line-strong);color:var(--fg);font-weight:500}
+.qcbtnrow .chipbtn#q_pdf,.qcbtnrow .chipbtn#d_pdf{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
+.qcbtnrow .chipbtn#q_pdf:hover,.qcbtnrow .chipbtn#d_pdf:hover{background:var(--pen-hover)}
 .qcbtnrow .chipbtn.dangerb{border-color:var(--reject);color:var(--reject)}
+#qcPrev{max-width:100%;overflow-x:auto}
+/* sidebar unduh: label + pasangan Word/PDF */
+.dlgrp{display:grid;gap:6px}
+.dllab{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.dlpair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dlpair .chipbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.hint.hint-rej{border-left:3px solid var(--reject)}
+@media(max-width:640px){
+  .qcform{padding:16px 14px}
+  .qcform .grid2,.qcform .grid3{grid-template-columns:1fr}
+  .qcrow{grid-template-columns:minmax(0,1fr);gap:8px}
+  .qcrow [data-remark]{grid-column:2}
+}
 @media print{
   body[data-mode="qc"] .modetabs,body[data-mode="dev"] .modetabs,body[data-mode="qc"] .qcform,body[data-mode="dev"] .qcform,body[data-mode="qc"] .qcbtnrow,body[data-mode="dev"] .qcbtnrow{display:none!important}
   body[data-mode="qc"] .panel,body[data-mode="dev"] .panel{display:none!important}
@@ -552,20 +592,17 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
     <div class="sect only-qc" data-od-id="sect-qc">
       <div class="sect-h"><div><h2>Checklist QC</h2></div></div>
       <div class="sect-b">
-        <div class="hint" id="qcSideHint">Isi dari tab <b>Checklist QC</b> di kanvas. Ada REJECT → banner penyimpangan muncul otomatis.</div>
-        <button class="chipbtn" id="btnSideQcDocx" style="width:100%">⬇ Word Checklist (.docx)</button>
-        <button class="chipbtn" id="btnSideQcPdf" style="width:100%">⬇ PDF Checklist</button>
-        <button class="chipbtn" id="btnSideDevDocx" style="width:100%">⬇ Word Penyimpangan (.docx)</button>
-        <button class="chipbtn" id="btnSideDevPdf" style="width:100%">⬇ PDF Penyimpangan</button>
+        <div class="hint hint-rej" id="qcSideHint">Isi dari tab <b>Checklist QC</b> di kanvas. Ada REJECT → banner penyimpangan muncul otomatis.</div>
+        <div class="dlgrp"><span class="dllab">Checklist</span><div class="dlpair"><button class="chipbtn" id="btnSideQcDocx" aria-label="Word Checklist (.docx)"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word</button><button class="chipbtn" id="btnSideQcPdf" aria-label="PDF Checklist"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>PDF</button></div></div>
+        <div class="dlgrp"><span class="dllab">Penyimpangan</span><div class="dlpair"><button class="chipbtn" id="btnSideDevDocx" aria-label="Word Penyimpangan (.docx)"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word</button><button class="chipbtn" id="btnSideDevPdf" aria-label="PDF Penyimpangan"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>PDF</button></div></div>
       </div>
     </div>
 
     <div class="sect only-dev" data-od-id="sect-dev">
       <div class="sect-h"><div><h2>Penyimpangan</h2></div></div>
       <div class="sect-b">
-        <div class="hint">Terisi otomatis dari checklist yang REJECT. Lengkapkan + unduh.</div>
-        <button class="chipbtn" id="btnSideDevDocx2" style="width:100%">⬇ Word Penyimpangan (.docx)</button>
-        <button class="chipbtn" id="btnSideDevPdf2" style="width:100%">⬇ PDF Penyimpangan</button>
+        <div class="hint hint-rej">Terisi otomatis dari checklist yang REJECT. Lengkapkan + unduh.</div>
+        <div class="dlgrp"><span class="dllab">Penyimpangan</span><div class="dlpair"><button class="chipbtn" id="btnSideDevDocx2" aria-label="Word Penyimpangan (.docx)"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word</button><button class="chipbtn" id="btnSideDevPdf2" aria-label="PDF Penyimpangan"><svg class="i" aria-hidden="true"><use href="#i-down"/></svg>PDF</button></div></div>
       </div>
     </div>
 
@@ -1635,7 +1672,7 @@ function syncDevFromQc(overwrite){
 }
 
 function triBtn(r,idx){
-  return '<div class="qcseg" data-row="'+idx+'"><button data-v="passed" class="'+(r.st==='passed'?'on-p':'')+'">✓ Passed</button><button data-v="rejected" class="'+(r.st==='rejected'?'on-r':'')+'">✕ Reject</button><button data-v="na" class="'+(r.st==='na'?'on-n':'')+'">– N/A</button></div>';
+  return '<div class="qcseg" data-row="'+idx+'"><button data-v="passed" class="'+(r.st==='passed'?'on-p':'')+'"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Passed</button><button data-v="rejected" class="'+(r.st==='rejected'?'on-r':'')+'"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Reject</button><button data-v="na" class="'+(r.st==='na'?'on-n':'')+'">N/A</button></div>';
 }
 function renderQc(){
   const v=$('#qcView');if(!v)return;
@@ -1666,19 +1703,19 @@ function renderQc(){
     h+='<div id="qcRows">';
     QC.rows.forEach((r,i)=>{
       if(r.grp){h+='<div class="qcrow" style="background:var(--bg1)"><div class="plab"><b>'+esc(r.no)+' · '+esc(r.label)+'</b></div><div></div></div>';return;}
-      h+='<div class="qcrow"><div><div class="plab"><b>'+esc(r.no)+'</b> · '+esc(r.label)+'</div>'
+      h+='<div class="qcrow"><div><div class="plab"><b>'+esc(r.no)+'</b><span>'+esc(r.label)+'</span></div>'
         +'<input type="text" data-remark="'+i+'" value="'+esc(r.remark||'')+'" placeholder="Remarks" style="margin-top:6px;background:var(--bg1);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px;font-size:12.5px;width:100%">'
         +'</div>'+triBtn(r,i)+'</div>';
     });
     h+='</div>';
-    if(rej.length){h+='<div class="qcwarn">⚠ <b>'+rej.length+' item REJECTED</b>: '+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'.<br>Form penyimpangan sudah terisi otomatis — buka tab <b>Penyimpangan</b> untuk melengkapi lalu generate Word/PDF.</div>';}
-    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="q_docx">⬇ Word Checklist (.docx)</button><button class="chipbtn" id="q_pdf">🖨 PDF / Cetak Checklist</button><button class="chipbtn dangerb" id="q_goto_dev">Lanjut ke Penyimpangan →</button><button class="chipbtn" id="q_reset">Reset</button></div></div>';
+    if(rej.length){h+='<div class="qcwarn"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><b>'+rej.length+' item REJECTED</b>: '+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'.<br>Form penyimpangan sudah terisi otomatis — buka tab <b>Penyimpangan</b> untuk melengkapi lalu generate Word/PDF.</div>';}
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="q_docx"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word Checklist (.docx)</button><button class="chipbtn" id="q_pdf"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>PDF / Cetak Checklist</button><button class="chipbtn dangerb" id="q_goto_dev">Lanjut ke Penyimpangan<svg class="i" aria-hidden="true"><use href="#i-right"/></svg></button><button class="chipbtn" id="q_reset">Reset</button></div></div>';
     h+='<div id="qcPrev">'+checkPreview()+'</div>';
   }else{
     syncDevFromQc(false);
     const d=QC.dev;
     h+='<div class="qcform"><h3>Laporan Penyimpangan <span style="color:var(--muted);font-weight:400">· GML-MT-08-F-01</span></h3>';
-    if(rej.length){h+='<div class="qcwarn">Terhubung ke checklist: <b>'+rej.length+' REJECT</b> ('+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'). Rincian di bawah terisi otomatis — sesuaikan bila perlu.</div>';}
+    if(rej.length){h+='<div class="qcwarn"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>Terhubung ke checklist: <b>'+rej.length+' REJECT</b> ('+esc(rej.map(r=>r.no+' '+r.label).join('; '))+'). Rincian di bawah terisi otomatis — sesuaikan bila perlu.</div>';}
     else{h+='<div class="hint">Tidak ada item REJECT di checklist. Form tetap bisa diisi manual.</div>';}
     h+='<div class="grid2">'
       +'<label class="f">Penyimpangan no<input type="text" id="d_no" value="'+esc(d.nopenyimp)+'" placeholder="No penyimpangan"></label>'
@@ -1694,7 +1731,7 @@ function renderQc(){
     h+='<div class="grid3"><label class="f">Nama (ttd 1)<input type="text" id="d_n1" value="'+esc(d.nama1)+'" placeholder="Nama lengkap"></label>'
       +'<label class="f">Nama (ttd 2)<input type="text" id="d_n2" value="'+esc(d.nama2)+'" placeholder="Nama lengkap"></label>'
       +'<label class="f">Tanggal ttd<input type="date" id="d_t1" value="'+esc(d.tgl1||'')+'"></label></div>';
-    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx">⬇ Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf">🖨 PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto">↺ Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back">← Kembali ke Checklist</button></div></div>';
+    h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg>PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto"><svg class="i" aria-hidden="true"><use href="#i-undo"/></svg>Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Kembali ke Checklist</button></div></div>';
     h+='<div id="qcPrev">'+devPreview()+'</div>';
   }
   v.innerHTML=h;
