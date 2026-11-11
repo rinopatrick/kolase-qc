@@ -2,186 +2,161 @@
 name: Kolase QC
 description: Field documentation tool for QC photo collages ready to print.
 colors:
-  ink: "#131B21"
-  ink-soft: "#55616B"
+  chrome: "#F5F6F8"
+  surface: "#FFFFFF"
+  desk: "#D9DEE5"
+  ink: "#151A21"
+  ink-soft: "#4B5562"
+  ink-faint: "#6B7480"
+  line: "#D6DBE2"
+  line-strong: "#A8B0BC"
+  pen: "#1E3A9E"
+  pen-hover: "#172E7E"
+  pen-wash: "#E9EDF8"
+  pass: "#17663A"
+  pass-wash: "#E5F2EA"
+  reject: "#B42318"
+  reject-wash: "#FBE9E7"
   paper: "#FFFFFF"
-  canvas: "#D5DBDE"
-  night-0: "#0D1114"
-  night-1: "#13191D"
-  night-2: "#1A2228"
-  night-3: "#232E36"
-  line: "#2A343C"
-  line-strong: "#3A4750"
-  accent-teal: "#2DD4BF"
-  accent-deep: "#0D9488"
-  accent-ink: "#04211D"
-  warn: "#F59E0B"
-  danger: "#F0716F"
-  text-light: "#ECEFF1"
-  text-dim: "#9AA6B0"
+  paper-ink: "#131B21"
 typography:
   display:
-    fontFamily: "Segoe UI, system-ui, sans-serif"
-    fontSize: "22px"
-    fontWeight: 800
+    fontFamily: "Bahnschrift, DIN Alternate, Roboto Condensed, Arial Narrow, system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
     lineHeight: 1.2
   title:
-    fontFamily: "Segoe UI, system-ui, sans-serif"
-    fontSize: "15px"
-    fontWeight: 700
+    fontFamily: "Segoe UI, system-ui, Roboto, sans-serif"
+    fontSize: "16px"
+    fontWeight: 650
     lineHeight: 1.3
   body:
-    fontFamily: "Segoe UI, system-ui, sans-serif"
-    fontSize: "13px"
+    fontFamily: "Segoe UI, system-ui, Roboto, sans-serif"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.45
   label:
-    fontFamily: "Segoe UI, system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 400
-  mono:
-    fontFamily: "ui-monospace, Cascadia Code, monospace"
-    fontSize: "11px"
+    fontFamily: "Segoe UI, system-ui, Roboto, sans-serif"
+    fontSize: "12.5px"
+    fontWeight: 500
+  numeral:
+    fontFamily: "Bahnschrift, DIN Alternate, Roboto Condensed, Arial Narrow, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
 rounded:
-  sm: "8px"
-  md: "10px"
-  lg: "12px"
+  sm: "6px"
+  md: "8px"
+  lg: "10px"
 spacing:
   sm: "8px"
   md: "12px"
   lg: "16px"
 components:
   button-primary:
-    backgroundColor: "{colors.accent-teal}"
-    textColor: "{colors.accent-ink}"
+    backgroundColor: "{colors.pen}"
+    textColor: "{colors.surface}"
     rounded: "{rounded.sm}"
-    padding: "0 16px"
-    height: "38px"
+    padding: "0 14px"
+    height: "36px"
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.text-light}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.sm}"
-    height: "38px"
+    height: "36px"
   input-field:
-    backgroundColor: "{colors.night-0}"
-    textColor: "{colors.text-light}"
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.sm}"
-    padding: "10px"
+    padding: "0 10px"
+    height: "38px"
 ---
 
 # Design System: Kolase QC
 
 ## Overview
 
-**Creative North Star: "Arsip Lapangan"**
+**Creative North Star: "Arsip Terang"**
 
-Sistem yang terasa seperti map arsip yang terawat: label jelas, grid teratur, semua terbaca sekilas di bawah cahaya menyilaukan lokasi proyek. Malam gelap untuk chrome (hemat baterai AMOLED, tidak menyilaukan), kertas putih jujur untuk kanvas (yang tampil = yang tercetak). Satu aksen teal dipakai hemat: hanya aksi utama dan status penting.
+Map arsip yang terang dan tegas: chrome putih dan abu dingin, garis jelas, terbaca di bawah matahari lokasi proyek. Panel kiri abu muda, meja kerja abu dingin di kanan, kertas putih jujur di atas meja (yang tampil = yang tercetak). Satu biru pulpen untuk aksi utama dan status aktif. Hanya tema terang.
 
-Personality: tenang, presisi, tidak banyak bicara. Kepadatan sedang — panel kaya kontrol tapi tiap grup punya napas. Estetika menolak dekorasi: tanpa kaca, tanpa gradien, tanpa bayangan tebar — kecuali kaca tunggal di topbar lengket yang memang melayang di atas konten.
+Personality: tenang, presisi, tidak banyak bicara. Kepadatan sedang. Estetika menolak dekorasi: tanpa gradien, tanpa glow, tanpa blur, tanpa kartu bersarang.
 
 **Key Characteristics:**
-- Chrome malam solid, kanvas kertas terang — dua dunia yang tidak bercampur.
-- Radius dua langkah: kecil (8px) untuk kontrol, besar (10-12px) untuk kartu dan kertas.
-- Tipografi satu keluarga sans; mono hanya untuk angka/nomor.
-- Aksen teal ≤10% layar: tombol utama, status aktif, nomor terpilih.
+- Chrome terang solid, kanvas kertas di atas meja abu dingin.
+- Radius: 6px kontrol, 8px grup/daftar, 10px modal.
+- Angka (nomor slot, halaman, metrik, kode formulir) pakai Bahnschrift, huruf bawaan Windows bergaya DIN. Di Android jatuh ke Roboto Condensed. Tetap offline, tanpa webfont.
+- Biru pulpen hanya untuk aksi utama dan status aktif.
 
 ## Colors
 
-Palet terkendali: malam netral + kertas putih + satu teal hemat.
-
 ### Primary
-- **Teal Lapangan** (#2DD4BF): aksi utama (Unduh PDF, tambah), status aktif, nomor slot terpilih. Latar selalu gelap; teks di atasnya hijau-tinta (#04211D).
+- **Biru Pulpen** (#1E3A9E, hover #172E7E, wash #E9EDF8): tombol Unduh PDF, tab aktif, segmen terpilih, toggle aktif, cincin fokus. Teks di atasnya putih.
+
+### Semantic
+- **Passed** (#17663A, wash #E5F2EA) dan **Reject** (#B42318, wash #FBE9E7): khusus status checklist dan penanda bahaya. Terpisah dari aksen.
 
 ### Neutral
-- **Malam 0-3** (#0D1114 → #232E36): latar chrome, bertingkat dari luar ke dalam. Topbar paling gelap, panel satu tingkat di atasnya, kartu seksi di atas panel.
-- **Garis** (#2A343C, kuat #3A4750): pemisah satu-level, bukan dekorasi.
-- **Kertas** (#FFFFFF) dan **Meja Kanvas** (#D5DBDE): dunia cetak. Teks di atasnya tinta (#131B21, lunak #55616B).
-- **Teks Terang** (#ECEFF1, redup #9AA6B0): di atas malam.
+- **Chrome** (#F5F6F8): panel dan latar umum. **Surface** (#FFFFFF): topbar, input, kartu, modal.
+- **Meja** (#D9DEE5): latar kanvas di belakang kertas.
+- **Garis** (#D6DBE2, kuat #A8B0BC): pemisah satu-level dan border input.
+- **Tinta** (#151A21, lunak #4B5562, samar #6B7480). Kontras teks AA (4.5:1 atau lebih).
+- **Kertas** (#FFFFFF) dengan tinta #131B21: dunia cetak, tidak berubah.
 
 ### Named Rules
-**The Print Honesty Rule.** Kanvas dan kertas selalu solid terang. Tidak ada efek di atas kertas yang tidak ikut tercetak.
-**The Teal Rarity Rule.** Teal hanya untuk aksi yang bisa ditekan dan status yang berubah. Tidak pernah untuk teks statis, ikon pasif, atau hiasan.
+**The Print Honesty Rule.** Kertas selalu solid terang. Tidak ada efek di atas kertas yang tidak ikut tercetak.
+**The Pen Rarity Rule.** Biru pulpen hanya untuk aksi utama dan status aktif. Tidak pernah untuk teks statis atau hiasan.
 
 ## Typography
 
-**Display Font:** Segoe UI semibold-bold (with system-ui fallback)
-**Body Font:** Segoe UI (with system-ui, Roboto fallback)
-**Label/Mono Font:** ui-monospace, Cascadia Code (hanya angka, nomor slot, kode sesi)
-
-**Character:** Satu keluarga sans untuk semua; hierarki dari bobot dan ukuran, bukan dari jenis huruf.
+**Display/Angka:** Bahnschrift (fallback DIN Alternate, Roboto Condensed, Arial Narrow).
+**Body:** Segoe UI (fallback system-ui, Roboto).
+**Mono:** hanya kode sesi dan QR.
 
 ### Hierarchy
-- **Display** (800, 22px, 1.2): kop dokumen di kertas (nama laporan).
-- **Title** (700, 15px, 1.3): nama aplikasi, judul kartu modal.
-- **Body** (400, 13px, 1.45): label, isi panel, caption foto.
-- **Label** (400, 11px): teks bantu, meta halaman, hint.
-- **Mono/Data** (monospace, 11px, tabular-nums): nomor slot, metrik topbar, kode sesi P2P, badge ukuran.
-
-### Named Rules
-**The One Family Rule.** Tidak ada display face terpisah. Penekanan lewat bobot (700/800) dan ukuran, bukan ganti huruf.
+- **Merek** (600, 18px, display): wordmark Kolase dengan stempel QC.
+- **Title** (650, 16px): judul kartu modal.
+- **Body** (400, 14px, 1.45): label, isi panel, caption.
+- **Label** (500, 12.5px): label field, teks bantu.
+- **Angka** (600, 15px, tabular-nums): metrik, nomor halaman, nomor slot.
 
 ## Layout
 
-Grid aplikasi: panel 308px + stage fleksibel; ≤980px panel jadi laci geser (transform, bukan display) dengan tombol ☰ di topbar. Kanvas: lembar max 860px rata tengah, jarak antar halaman 26px, padding stage 26px/20px. Ritme vertikal: grup rapat (6-10px), antar-seksi renggang (12px+), judul selalu lebih dekat ke isinya daripada ke grup atasnya.
+Panel 300-308px di kiri + stage fleksibel. Tab mode di topbar. Di 980px ke bawah panel jadi laci geser dengan tombol menu di topbar. Target sentuh 44px di layar sentuh (pointer:coarse). Tidak ada geser ke samping.
 
 ## Elevation & Depth
 
-Sistem flat dengan tonal layering; bayangan tunggal halus hanya untuk memisahkan kertas dari meja dan kartu modal dari malam. Panel, seksi, tombol dalam keadaan diam tidak berbayang.
-
-### Shadow Vocabulary
-- **Kertas** (`0 2px 12px rgba(10,22,28,.18)`): lembar di atas meja kanvas.
-- **Modal** (`0 12px 40px rgba(0,0,0,.5)`): kartu dialog di atas malam.
-
-### Named Rules
-**The Flat-By-Default Rule.** Permukaan diam itu datar. Bayangan hanya muncul sebagai respons (kertas terangkat, modal terbuka, tombol ditekan).
-
-## Shapes
-
-Dua langkah radius: kecil 8px (tombol, input, badge, chip), besar 10-12px (seksi, kartu modal, lembar kertas). Slot foto mengikuti grid kertas: sudut 10px menyatu dengan lembar. Tidak ada pil penuh kecuali toggle switch; tidak ada lingkaran kecuali handle sudut overlay.
+Datar secara default. Bayangan hanya untuk kertas di atas meja (`0 1px 2px rgba(20,30,45,.12), 0 6px 18px rgba(20,30,45,.10)`) dan modal (`0 18px 50px rgba(10,15,25,.35)`).
 
 ## Components
 
 ### Buttons
-- **Shape:** radius kecil (8px) di semua varian.
-- **Primary:** teal solid (#2DD4BF), teks hijau-tinta, padding 0 16px, tinggi 38px (44px di sentuh kasar). Hover: #5EEAD4.
-- **Ghost:** transparan, border garis; hover isi panel + border kuat. Tombol topbar biasa ghost; hanya aksi utama yang primary.
-- **Focus:** outline 2px teal offset 2px. **Active:** tanpa scale (menghindari goyang layout); umpan balik lewat warna.
+- **Primary:** biru pulpen solid, teks putih, tinggi 36px (44px sentuh), radius 6px. Hanya satu per layar (Unduh PDF).
+- **Ghost / line:** transparan atau putih dengan border kuat; hover abu muda.
+- **Focus:** outline 2px biru pulpen offset 2px.
 
-### Chips
-- **Style:** nomor slot = mono putih di atas pil gelap transparan; badge halaman = teal solid dengan teks tinta.
-- **State:** terpilih = teal; default = gelap.
+### Inputs
+Putih, border #A8B0BC, radius 6px, tinggi 38px (44px sentuh). Fokus: border dan cincin biru pulpen.
 
-### Cards / Containers
-- **Corner Style:** besar (10-12px).
-- **Background:** malam-2 di atas malam-1; modal malam-1 solid.
-- **Shadow Strategy:** hanya modal dan kertas (lihat Elevation).
-- **Border:** garis satu-level (#2A343C); kuat (#3A4750) untuk input.
-- **Internal Padding:** 12-13px seksi, 16-18px modal.
+### Segmen, toggle, slider
+Segmen terpilih: wash biru + garis bawah 2px. Toggle aktif: track biru, kenop putih. Slider: `accent-color` biru, trek 4px.
 
-### Inputs / Fields
-- **Style:** malam-0, border garis kuat, radius kecil, padding 10px, teks 13px.
-- **Focus:** border jadi teal; tanpa glow.
-- **Error / Disabled:** merah (#F0716F) untuk error; opacity .35 untuk disabled.
+### Ikon
+Satu set ikon garis (stroke 1.8, ujung bulat, 16px) lewat sprite `<symbol>`. Tanpa emoji atau glyph teks sebagai ikon.
 
-### Navigation
-Topbar lengket 56px: kaca tunggal (blur 14px di atas konten scroll), tombol ☰ hanya ≤980px, metrik ringkas tanpa boks, grup aksi ghost + satu primary. Panel: seksi lipat vertikal, judul 13px tebal + deskripsi 11px redup; drawer di HP (geser, scrim gelap, fokus kembali ke tombol saat tutup).
-
-### Slot Foto (signature component)
-Kotak bernomor: kosong = garis putus-putus di atas terang; terisi = foto gelap + toolbar kaca gelap + caption putih. Nomor mono selalu terlihat. Zoom/pan/putar inline; hapus selalu dengan Urungkan 8 detik, tanpa popup.
+### Slot Foto
+Kosong = garis putus-putus di atas abu terang; terisi = foto + toolbar gelap transparan. Nomor selalu terlihat. Geometri kertas tidak diubah.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** pakai teal hanya untuk aksi dan status (The Teal Rarity Rule).
-- **Do** jaga kertas solid terang — pratinjau harus jujur (The Print Honesty Rule).
-- **Do** samakan radius dalam satu keluarga: 8px kontrol, 10-12px kartu/kertas.
-- **Do** samakan tinggi tombol 38px (44px layar sentuh) di semua tempat.
-- **Do** tulis angka/nomor/kode dengan mono tabular.
+- **Do** pakai biru pulpen hanya untuk aksi utama dan status aktif.
+- **Do** jaga kertas solid terang.
+- **Do** pakai hijau/merah hanya untuk Passed/Reject.
+- **Do** tulis angka dengan Bahnschrift tabular.
 
 ### Don't:
-- **Don't** tambah blur/kaca di luar topbar lengket.
-- **Don't** pakai gradien untuk teks, tombol, atau latar.
-- **Don't** pakai glow/b neon dalam keadaan diam.
-- **Don't** pakai huruf serif/display/dekoratif di UI.
-- **Don't** pakai emoji sebagai ikon aksi (📷 📲 🗑 adalah teks sementara, bukan ikon).
-- **Don't** pakai popup browser (alert/confirm) untuk aksi apa pun.
+- **Don't** pakai gradien, glow, atau blur.
+- **Don't** pakai kartu bersarang.
+- **Don't** pakai eyebrow huruf kapital ber-tracking atau nomor dekoratif 01/02/03.
+- **Don't** pakai emoji sebagai ikon.
+- **Don't** pakai popup browser (alert/confirm).

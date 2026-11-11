@@ -24,7 +24,7 @@ Tambah foto (klik/seret/tempel/kamera/QR dari HP), atur per slot (pan/zoom/putar
 Formulir QC: tab Checklist QC (12 baris Passed/Reject/N-A + remarks, kop GML-EG-02-F-01) + tab Penyimpangan (auto-isi dari item REJECT, kop GML-MT-08-F-01). Pratinjau kertas A4 mirip dokumen asli. Unduh .docx via JSZip (struktur tabel + kop/logo persis template) atau PDF/cetak via print browser. State formulir di localStorage `kolase-qc-formulir`. Generate .docx butuh CDN JSZip sekali (online); selebihnya offline.
 
 ## Brand Commitments
-Nama "Kolase QC", aksen teal. Tidak ada logo/brandbook lain yang mengikat.
+Nama "Kolase QC", aksen biru pulpen (#1E3A9E). Tidak ada logo/brandbook lain yang mengikat.
 
 ## Evidence on Hand
 index.html (implementasi berjalan), index-legacy.html (versi sebelum redesign), .impeccable/critique + screenshot fix.
