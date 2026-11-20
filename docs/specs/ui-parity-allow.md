@@ -137,3 +137,15 @@ Lama:
     h+='<div class="qcbtnrow"><button class="chipbtn teal" id="d_docx">⬇ Word Penyimpangan (.docx)</button><button class="chipbtn" id="d_pdf">🖨 PDF / Cetak Penyimpangan</button><button class="chipbtn" id="d_auto">↺ Isi ulang otomatis dari checklist</button><button class="chipbtn" id="d_back">← Kembali ke Checklist</button></div></div>';
 ```
 Alasan: tombol aksi form penyimpangan: emoji/panah jadi SVG sprite
+
+
+## Fix toolbar slot HP: bottom bar saat dipilih (tidak menutupi foto)
+
+Baru (4 baris sisipan, tanpa mengubah baris lama):
+```js
+const dn=document.createElement('button');dn.className='tbtn';dn.dataset.t='done';dn.title='Selesai edit';dn.setAttribute('aria-label','Selesai edit');dn.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-check"/></svg>';
+dn.addEventListener('click',ev=>{ev.stopPropagation();el.classList.remove('sel');const gr=el.closest('.gridwrap')||grid;if(gr)gr.classList.remove('has-sel');save()});
+el.querySelector('.tools').appendChild(dn);
+document.addEventListener('pointerdown',e=>{if(!window.matchMedia('(max-width:980px)').matches)return;if(!(e.target instanceof Element)||e.target.closest('.slot.sel'))return;if(!document.querySelector('.slot.sel'))return;document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));save();});
+```
+Alasan: di ≤980px toolbar slot lama selalu tampil menumpuk menutupi foto. Kini .tools jadi bottom bar fixed hanya saat slot .sel (CSS saja); JS menambah tombol "Selesai edit" (hapus kelas sel) dan deselect saat tap di luar slot terpilih. Semua aksi foto lama tetap sama; hanya visibilitas/placement toolbar yang berubah.

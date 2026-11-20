@@ -10,7 +10,7 @@
 <style>
 /* Hallmark v2.0.0 · Shape: Workbench (app screen, code-led) · Theme: Arsip Terang (chrome terang + kertas jujur + biru pulpen hemat) · Signature: lembar kertas putih di atas meja abu dingin · Sweep: pending */
 /* critique: sloplintDeposit — FAIL legislative, REFLEX bernalar, WARN dinilai */
-/* waive 19-title: em-dash di <title> adalah judul dokumen, bukan copy · waive 54-mark: .mark QC adalah logo brand, bukan eyebrow · waive 7a-print: .stage putih di @media print adalah kertas cetak · waive 62-tools: toolbar slot hover-reveal disengaja + selalu tampil di sentuh (coarse) · waive 76-imgslot: <img> slot diisi runtime via FileReader/P2P · waive 24b-scale: app screens pakai px fungsional, bukan skala 4px dekoratif */
+/* waive 19-title: em-dash di <title> adalah judul dokumen, bukan copy · waive 54-mark: .mark QC adalah logo brand, bukan eyebrow · waive 7a-print: .stage putih di @media print adalah kertas cetak · waive 62-tools: toolbar slot hover-reveal disengaja; di ≤980px jadi bottom bar fixed saat slot dipilih (tidak menutupi foto) · waive 76-imgslot: <img> slot diisi runtime via FileReader/P2P · waive 24b-scale: app screens pakai px fungsional, bukan skala 4px dekoratif */
 :root{
   color-scheme:light;
   /* Arsip Terang: chrome terang, satu biru pulpen untuk aksi utama + status aktif */
@@ -253,6 +253,7 @@ kbd{font-family:var(--font-d);font-size:11px;background:var(--surface);border:1p
 .tbtn:hover{background:#fff;color:var(--pen)}
 @media (max-width:768px){input,select{font-size:16px}}
 .tbtn:active{transform:scale(.96);transition:transform 150ms ease-out}
+.tbtn[data-t=done]{display:none}
 .tbtn.zoom{font-size:12px;gap:5px;font-family:inherit}
 .tbtn input[type=range]{width:74px;accent-color:var(--pen)}
 
@@ -479,7 +480,10 @@ body[data-mode="qc"] #pages,body[data-mode="dev"] #pages,body[data-mode="qc"] #s
   .stage{padding:12px 12px 120px}
   #guestBar,#scanBar{font-size:13px;padding:8px 12px}
   #scanBar .btn-line{min-height:36px;padding:6px 10px;font-size:12px}
-  .slot .tools{opacity:1;transform:none}
+  .slot .tools{display:none}
+  .slot.sel .tools{position:fixed;left:0;right:0;bottom:0;z-index:90;display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px var(--ovl-shadow);opacity:1;transform:none}
+  .slot.sel .tools .tbtn{flex:none}
+  .slot.sel .tools .tbtn[data-t=done]{display:inline-flex;background:var(--pen);color:var(--accent-ink)}
   .ibtn{min-height:44px;min-width:44px}
 }
 @media(max-width:980px) and (pointer:coarse){
@@ -1115,6 +1119,9 @@ function render(){
           if(b.tagName==='INPUT'){b.addEventListener('input',e=>{s.zoom=e.target.value/100;applyImg(img,s);save()});b.addEventListener('change',pushUndoLite);return}
           b.addEventListener('click',ev=>{ev.stopPropagation();slotTool(p,s,b.dataset.t,img,el,grid)});
         });
+        const dn=document.createElement('button');dn.className='tbtn';dn.dataset.t='done';dn.title='Selesai edit';dn.setAttribute('aria-label','Selesai edit');dn.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-check"/></svg>';
+        dn.addEventListener('click',ev=>{ev.stopPropagation();el.classList.remove('sel');const gr=el.closest('.gridwrap')||grid;if(gr)gr.classList.remove('has-sel');save()});
+        el.querySelector('.tools').appendChild(dn);
         el.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}
           const gr=el.closest('.gridwrap')||grid;const was=el.classList.contains('sel');gr.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));
           if(!was)el.classList.add('sel');gr.classList.toggle('has-sel',!was);save()});
@@ -1189,6 +1196,8 @@ let pickTarget=null;
 function pickFor(p,s){pickTarget={p,s};const inp=$('#filePick');const clear=()=>{pickTarget=null;inp.value='';inp.removeEventListener('change',clear);inp.removeEventListener('cancel',clear);window.removeEventListener('focus',clear)};inp.addEventListener('change',clear);inp.addEventListener('cancel',clear);window.addEventListener('focus',clear);inp.click()}
 function dropToSlot(files,p,s){const f=[...files].find(f=>f.type.startsWith('image/'));if(!f)return;pushUndo();const r=new FileReader();r.onload=async()=>{s.img=r.result;s.zoom=1;s.rot=0;s.px=0;s.py=0;s.broken=false;await persistSlotImg(s);save();render();const total=allSlots().filter(o=>o.slot.img).length;toast('Foto masuk slot '+globalIndex(p,s)+' dari '+total)};r.readAsDataURL(f)}
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length)addFiles(files)});
+
+document.addEventListener('pointerdown',e=>{if(!window.matchMedia('(max-width:980px)').matches)return;if(!(e.target instanceof Element)||e.target.closest('.slot.sel'))return;if(!document.querySelector('.slot.sel'))return;document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));save();});
 
 /* controls */
 $('#filePick').addEventListener('change',e=>{document.querySelectorAll('.gridwrap.has-sel').forEach(g=>g.classList.remove('has-sel'));document.querySelectorAll('.slot.sel').forEach(o=>o.classList.remove('sel'));if(pickTarget&&e.target.files.length===1&&![...e.target.files][0])return;
